@@ -2,7 +2,7 @@ import {Concept} from './Concept.js';
 import {MemoryIndex} from './MemoryIndex.js';
 import {MemoryConsolidation} from './MemoryConsolidation.js';
 import {ConfigurableComponent} from '../util/ConfigurableComponent.js';
-import {clamp} from '../../util/common.js';
+import {clamp} from '../util/common.js';
 
 export class Memory extends ConfigurableComponent {
     constructor(config = {}) {

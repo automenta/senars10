@@ -1,6 +1,6 @@
-import {Memory} from '../../../src/core/memory/Memory.js';
-import {Task} from '../../../src/core/task/Task.js';
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
+import {Memory} from '../../../src/memory/Memory.js';
+import {Task} from '../../../src/task/Task.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
 
 describe('Memory', () => {
     let memory;

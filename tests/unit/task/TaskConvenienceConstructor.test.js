@@ -1,7 +1,7 @@
 // Test to verify the new convenience constructor functionality
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
-import {Task} from '../../../src/core/task/Task.js';
-import {Truth} from '../../../src/core/Truth.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
+import {Task} from '../../../src/task/Task.js';
+import {Truth} from '../../../src/Truth.js';
 
 describe('Task convenience constructor', () => {
     let termFactory;

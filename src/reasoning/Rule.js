@@ -1,6 +1,6 @@
 import {Metrics} from '../util/Metrics.js';
 import {TRUTH} from '../config/constants.js';
-import {clamp} from '../../util/common.js';
+import {clamp} from '../util/common.js';
 
 export class Rule {
     constructor(id, type, priority = 1.0, config = {}) {

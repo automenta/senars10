@@ -1,5 +1,5 @@
-import {Term, TermType} from '../../../src/core/term/Term.js';
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
+import {Term, TermType} from '../../../src/term/Term.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
 
 describe('Term', () => {
     let termFactory;

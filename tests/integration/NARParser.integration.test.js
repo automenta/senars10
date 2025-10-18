@@ -1,4 +1,4 @@
-import {NAR} from '../../src/core/nar/NAR.js';
+import {NAR} from '../../src/nar/NAR.js';
 
 describe('NAR Parser Integration', () => {
     let nar;

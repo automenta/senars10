@@ -1,7 +1,7 @@
-import {Concept} from '../../../src/core/memory/Concept.js';
-import {Task} from '../../../src/core/task/Task.js';
-import {Truth} from '../../../src/core/Truth.js';
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
+import {Concept} from '../../../src/memory/Concept.js';
+import {Task} from '../../../src/task/Task.js';
+import {Truth} from '../../../src/Truth.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
 
 describe('Concept', () => {
     let concept;

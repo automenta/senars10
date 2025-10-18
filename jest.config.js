@@ -3,6 +3,10 @@ export default {
     moduleNameMapper: {
         '^(\\.{1,2}/.*)\\.js$': '$1',
     },
+    testPathIgnorePatterns: [
+        'v8/.*',
+        'v9/.*',
+    ],
     transform: {
         '^.+\\.js$': 'babel-jest',
     },

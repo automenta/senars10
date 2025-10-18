@@ -1,8 +1,8 @@
-import {TaskManager} from '../../../src/core/task/TaskManager.js';
-import {Task} from '../../../src/core/task/Task.js';
-import {Memory} from '../../../src/core/memory/Memory.js';
-import {Focus} from '../../../src/core/memory/Focus.js';
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
+import {TaskManager} from '../../../src/task/TaskManager.js';
+import {Task} from '../../../src/task/Task.js';
+import {Memory} from '../../../src/memory/Memory.js';
+import {Focus} from '../../../src/memory/Focus.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
 
 describe('TaskManager', () => {
     let taskManager;

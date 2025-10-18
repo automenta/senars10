@@ -1,7 +1,7 @@
-import {Task} from '../../../src/core/task/Task.js';
-import {Truth} from '../../../src/core/Truth.js';
-import {Stamp} from '../../../src/core/Stamp.js';
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
+import {Task} from '../../../src/task/Task.js';
+import {Truth} from '../../../src/Truth.js';
+import {Stamp} from '../../../src/Stamp.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
 
 describe('Task', () => {
     let termFactory;

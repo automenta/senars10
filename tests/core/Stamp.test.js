@@ -1,4 +1,4 @@
-import {ArrayStamp, BloomStamp, Stamp} from '../../src/core/Stamp.js';
+import {ArrayStamp, BloomStamp, Stamp} from '../../src/Stamp.js';
 
 describe('Stamp', () => {
     test('should not allow instantiation of the abstract Stamp class', () => {

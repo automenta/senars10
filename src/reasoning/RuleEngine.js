@@ -1,9 +1,9 @@
-import {Logger} from '../../util/Logger.js';
+import {Logger} from '../util/Logger.js';
 import {Rule} from './Rule.js';
 import {LMRule} from './LMRule.js';
 import {RuleSet} from './RuleSet.js';
 import {Metrics as MetricsUtil} from '../util/Metrics.js';
-import {sortByPriority} from '../../util/common.js';
+import {sortByPriority} from '../util/common.js';
 
 export class RuleEngine {
     constructor(config = {}, lm = null) {

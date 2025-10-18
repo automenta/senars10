@@ -1,6 +1,6 @@
-import {Bag} from '../../../src/core/memory/Bag.js';
-import {Task} from '../../../src/core/task/Task.js';
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
+import {Bag} from '../../../src/memory/Bag.js';
+import {Task} from '../../../src/task/Task.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
 
 describe('Bag', () => {
     let bag;

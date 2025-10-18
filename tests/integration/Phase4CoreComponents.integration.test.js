@@ -10,12 +10,12 @@
  * - TermFactory validation
  */
 
-import {TermFactory} from '../../src/core/term/TermFactory.js';
-import {Task} from '../../src/core/task/Task.js';
-import {Memory} from '../../src/core/memory/Memory.js';
-import {Focus} from '../../src/core/memory/Focus.js';
-import {NAR} from '../../src/core/nar/NAR.js';
-import {Truth} from '../../src/core/Truth.js';
+import {TermFactory} from '../../src/term/TermFactory.js';
+import {Task} from '../../src/task/Task.js';
+import {Memory} from '../../src/memory/Memory.js';
+import {Focus} from '../../src/memory/Focus.js';
+import {NAR} from '../../src/nar/NAR.js';
+import {Truth} from '../../src/Truth.js';
 
 describe('Phase 4 Core Components Integration', () => {
     let termFactory;

@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import {freezeObject} from '../../util/common.js';
+import {freezeObject} from '../util/common.js';
 
 export const TermType = {
     ATOM: 'atom',

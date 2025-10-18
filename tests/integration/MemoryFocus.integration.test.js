@@ -3,15 +3,15 @@
  * Tests the complete memory architecture with focus sets, indexing, and consolidation
  */
 
-import {Memory} from '../../src/core/memory/Memory.js';
-import {Focus} from '../../src/core/memory/Focus.js';
-import {FocusSetSelector} from '../../src/core/memory/FocusSetSelector.js';
-import {MemoryIndex} from '../../src/core/memory/MemoryIndex.js';
-import {MemoryConsolidation} from '../../src/core/memory/MemoryConsolidation.js';
-import {Task} from '../../src/core/task/Task.js';
-import {TermFactory} from '../../src/core/term/TermFactory.js';
-import {ArrayStamp} from '../../src/core/Stamp.js';
-import {Concept} from '../../src/core/memory/Concept.js';
+import {Memory} from '../../src/memory/Memory.js';
+import {Focus} from '../../src/memory/Focus.js';
+import {FocusSetSelector} from '../../src/memory/FocusSetSelector.js';
+import {MemoryIndex} from '../../src/memory/MemoryIndex.js';
+import {MemoryConsolidation} from '../../src/memory/MemoryConsolidation.js';
+import {Task} from '../../src/task/Task.js';
+import {TermFactory} from '../../src/term/TermFactory.js';
+import {ArrayStamp} from '../../src/Stamp.js';
+import {Concept} from '../../src/memory/Concept.js';
 
 describe('Memory and Focus Management Integration', () => {
     let memory;

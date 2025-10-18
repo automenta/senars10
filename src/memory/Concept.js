@@ -1,5 +1,5 @@
 import {Bag} from './Bag.js';
-import {clamp, sortByPriority} from '../../util/common.js';
+import {clamp, sortByPriority} from '../util/common.js';
 import {ConfigurableComponent} from '../util/ConfigurableComponent.js';
 
 export class Concept extends ConfigurableComponent {

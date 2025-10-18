@@ -1,4 +1,4 @@
-import {Truth} from '../../../src/core/Truth.js';
+import {Truth} from '../../../src/Truth.js';
 
 describe('Truth', () => {
     test('should create a new Truth instance with correct properties', () => {

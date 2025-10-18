@@ -1,6 +1,6 @@
-import {LMRule} from '../../../src/core/reasoning/LMRule.js';
-import {LM} from '../../../src/core/lm/LM.js';
-import {DummyProvider} from '../../../src/core/lm/DummyProvider.js';
+import {LMRule} from '../../../src/reasoning/LMRule.js';
+import {LM} from '../../../src/lm/LM.js';
+import {DummyProvider} from '../../../src/lm/DummyProvider.js';
 
 describe('LMRule', () => {
     let lm;

@@ -2,12 +2,12 @@ import {SystemConfig} from './SystemConfig.js';
 import {Memory} from '../memory/Memory.js';
 import {TaskManager} from '../task/TaskManager.js';
 import {Cycle} from './Cycle.js';
-import {NarseseParser} from '../../parser/NarseseParser.js';
-import {EventBus} from '../../util/EventBus.js';
+import {NarseseParser} from '../parser/NarseseParser.js';
+import {EventBus} from '../util/EventBus.js';
 import {RuleEngine} from '../reasoning/RuleEngine.js';
 import {DeductionRule} from '../reasoning/rules/deduction.js';
 import {PRIORITY, TRUTH} from '../config/constants.js';
-import {Logger} from '../../util/Logger.js';
+import {Logger} from '../util/Logger.js';
 import {Focus} from '../memory/Focus.js';
 import {LM} from '../lm/LM.js';
 

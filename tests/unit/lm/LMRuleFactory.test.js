@@ -1,6 +1,6 @@
-import {LMRuleFactory} from '../../../src/core/lm/LMRuleFactory.js';
-import {LM} from '../../../src/core/lm/LM.js';
-import {DummyProvider} from '../../../src/core/lm/DummyProvider.js';
+import {LMRuleFactory} from '../../../src/lm/LMRuleFactory.js';
+import {LM} from '../../../src/lm/LM.js';
+import {DummyProvider} from '../../../src/lm/DummyProvider.js';
 
 describe('LMRuleFactory', () => {
     let lm;

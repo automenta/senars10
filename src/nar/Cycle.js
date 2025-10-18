@@ -3,8 +3,8 @@
  * Orchestrates task selection, rule application, and memory updates
  */
 
-import {Logger} from '../../util/Logger.js';
-import {sortByPriority} from '../../util/common.js';
+import {Logger} from '../util/Logger.js';
+import {sortByPriority} from '../util/common.js';
 
 export class Cycle {
     constructor({memory, focus, ruleEngine, taskManager, config}) {

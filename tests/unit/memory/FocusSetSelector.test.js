@@ -1,7 +1,7 @@
-import {FocusSetSelector} from '../../../src/core/memory/FocusSetSelector.js';
-import {Task} from '../../../src/core/task/Task.js';
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
-import {ArrayStamp} from '../../../src/core/Stamp.js';
+import {FocusSetSelector} from '../../../src/memory/FocusSetSelector.js';
+import {Task} from '../../../src/task/Task.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
+import {ArrayStamp} from '../../../src/Stamp.js';
 
 describe('FocusSetSelector', () => {
     let selector;

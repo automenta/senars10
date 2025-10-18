@@ -3,8 +3,8 @@
  * Tests the complete input → processing → memory storage cycle
  */
 
-import {NAR} from '../../src/core/nar/NAR.js';
-import {TermFactory} from '../../src/core/term/TermFactory.js';
+import {NAR} from '../../src/nar/NAR.js';
+import {TermFactory} from '../../src/term/TermFactory.js';
 
 describe('NAR Integration Tests', () => {
     let nar;

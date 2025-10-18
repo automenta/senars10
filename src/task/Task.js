@@ -1,6 +1,6 @@
 import {Stamp} from '../Stamp.js';
 import {Term} from '../term/Term.js';
-import {clamp} from '../../util/common.js';
+import {clamp} from '../util/common.js';
 
 const PUNCTUATION_TYPE_MAP = {'.': 'BELIEF', '!': 'GOAL', '?': 'QUESTION'};
 

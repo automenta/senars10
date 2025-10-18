@@ -1,6 +1,6 @@
-import {ModelSelector} from '../../../src/core/lm/ModelSelector.js';
-import {ProviderRegistry} from '../../../src/core/lm/ProviderRegistry.js';
-import {DummyProvider} from '../../../src/core/lm/DummyProvider.js';
+import {ModelSelector} from '../../../src/lm/ModelSelector.js';
+import {ProviderRegistry} from '../../../src/lm/ProviderRegistry.js';
+import {DummyProvider} from '../../../src/lm/DummyProvider.js';
 
 describe('ModelSelector', () => {
     let registry;

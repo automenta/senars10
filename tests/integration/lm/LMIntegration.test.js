@@ -1,5 +1,5 @@
-import {NAR} from '../../../src/core/nar/NAR.js';
-import {DummyProvider} from '../../../src/core/lm/DummyProvider.js';
+import {NAR} from '../../../src/nar/NAR.js';
+import {DummyProvider} from '../../../src/lm/DummyProvider.js';
 
 describe('LM Integration Tests', () => {
     test('NAR should initialize with LM when enabled in config', () => {

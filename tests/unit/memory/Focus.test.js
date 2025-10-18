@@ -1,6 +1,6 @@
-import {Focus} from '../../../src/core/memory/Focus.js';
-import {Task} from '../../../src/core/task/Task.js';
-import {TermFactory} from '../../../src/core/term/TermFactory.js';
+import {Focus} from '../../../src/memory/Focus.js';
+import {Task} from '../../../src/task/Task.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
 
 describe('Focus', () => {
     let focus;
