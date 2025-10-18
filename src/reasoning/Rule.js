@@ -59,14 +59,12 @@ export class Rule {
         return this._updateIfChanged('_config', {...this._config, ...config});
     }
 
-    // Helper methods for common operations
-    _updateIfChanged(propName, newValue) {
-        if (propName === '_enabled') {
-            // Special handling: _enabled maps to 'enabled' in config
-            const newConfig = {...this._config, enabled: newValue};
-            return this._enabled === newValue ? this : this._clone({}, newConfig);
+    _updateIfChanged(prop, val) {
+        if (prop === '_enabled') {
+            const newConfig = {...this._config, enabled: val};
+            return this._enabled === val ? this : this._clone({}, newConfig);
         }
-        return this[propName] === newValue ? this : this._clone({[propName]: newValue});
+        return this[prop] === val ? this : this._clone({[prop]: val});
     }
 
     canApply(task) {

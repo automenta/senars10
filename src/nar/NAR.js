@@ -47,7 +47,7 @@ export class NAR {
             focus: this._focus,
             ruleEngine: this._ruleEngine,
             taskManager: this._taskManager,
-            config: this._config.cycle
+            config: this._config.get('cycle')
         });
 
         this._isRunning = false;
@@ -127,7 +127,7 @@ export class NAR {
                 this.logger.error('Error in reasoning cycle:', error);
                 this._eventBus.emit('cycle.error', {error: error.message});
             }
-        }, this._config.cycle.delay);
+        }, this._config.get('cycle.delay'));
 
         this._eventBus.emit('system.started', {timestamp: Date.now()});
         return true;

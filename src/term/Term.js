@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import {freezeObject} from '../util/common.js';
+import {freeze} from '../util/common.js';
 
 export const TermType = {
     ATOM: 'atom',
@@ -10,19 +10,12 @@ export class Term {
     constructor(type, name, components = [], operator = null) {
         this._type = type;
         this._name = name;
-
-        // For atomic terms, components should include the name itself
-        // For compound terms, use provided components
-        const actualComponents = type === TermType.ATOM && components.length === 0
-            ? freezeObject([name])
-            : freezeObject(components);
-
         this._operator = operator;
-        this._components = actualComponents;
+        this._components = freeze(type === TermType.ATOM && components.length === 0 ? [name] : components);
         this._complexity = this._calculateComplexity();
         this._id = this._calculateId();
         this._hash = Term.computeHash(this._id);
-        return freezeObject(this);
+        return freeze(this);
     }
 
     get type() {
@@ -61,36 +54,24 @@ export class Term {
         return this._type === TermType.COMPOUND;
     }
 
-    static computeHash(str) {
-        return crypto.createHash('sha256').update(str).digest('hex');
+    static computeHash(str) { return crypto.createHash('sha256').update(str).digest('hex'); }
+
+    _calculateId() { return this._type === TermType.ATOM ? this._name : `${this._operator}_${this._name}`; }
+
+    equals(other) { return other instanceof Term && this.id === other.id; }
+
+    toString() { return this.name; }
+
+    visit(visitor, order = 'pre-order') {
+        order === 'pre-order' && visitor(this);
+        this._components.forEach(comp => comp instanceof Term && comp.visit(visitor, order));
+        order === 'post-order' && visitor(this);
     }
 
-    _calculateId() {
-        return this._type === TermType.ATOM ? this._name : `${this._operator}_${this._name}`;
-    }
-
-    equals(other) {
-        return other instanceof Term && this.id === other.id;
-    }
-
-    toString() {
-        return this.name;
-    }
-
-    visit(visitorFn, order = 'pre-order') {
-        order === 'pre-order' && visitorFn(this);
-        this._components.forEach(comp =>
-            comp instanceof Term && comp.visit(visitorFn, order)
-        );
-        order === 'post-order' && visitorFn(this);
-    }
-
-    reduce(reducerFn, initialValue) {
-        let result = reducerFn(initialValue, this);
+    reduce(reducer, initial) {
+        let result = reducer(initial, this);
         for (const comp of this._components) {
-            if (comp instanceof Term) {
-                result = comp.reduce(reducerFn, result);
-            }
+            if (comp instanceof Term) result = comp.reduce(reducer, result);
         }
         return result;
     }

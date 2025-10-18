@@ -11,22 +11,11 @@ export class Stamp {
         }
     }
 
-    /**
-     * Creates a new Stamp for a task derived from user input.
-     */
-    static createInput() {
-        return new ArrayStamp({source: 'INPUT'});
-    }
+    static createInput() { return new ArrayStamp({source: 'INPUT'}); }
 
-    /**
-     * Creates a new Stamp for a task derived from other tasks.
-     * @param {Stamp[]} parentStamps - The stamps of the parent tasks.
-     */
     static derive(parentStamps = []) {
         const allDerivations = parentStamps.flatMap(s => s.derivations ? [s.id, ...s.derivations] : [s.id]);
-        return new ArrayStamp({
-            derivations: [...new Set(allDerivations)],
-        });
+        return new ArrayStamp({derivations: [...new Set(allDerivations)]});
     }
 }
 

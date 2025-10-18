@@ -8,40 +8,20 @@ export class ConfigurableComponent {
         this._config = {...defaultConfig};
     }
 
-    /**
-     * Get current configuration
-     */
-    get config() {
-        return {...this._config};
+    get config() { return {...this._config}; }
+    get defaultConfig() { return {...this._defaultConfig}; }
+
+    configure(cfg) {
+        this._config = {...this._config, ...cfg};
+        return this;
     }
 
-    /**
-     * Get default configuration
-     */
-    get defaultConfig() {
-        return {...this._defaultConfig};
+    getConfigValue(key, defaultVal) {
+        return this._config[key] !== undefined ? this._config[key] : defaultVal;
     }
 
-    /**
-     * Update configuration with new values
-     */
-    configure(newConfig) {
-        this._config = {...this._config, ...newConfig};
-        return this;  // Allow chaining
-    }
-
-    /**
-     * Get specific configuration value
-     */
-    getConfigValue(key, defaultValue = undefined) {
-        return this._config[key] !== undefined ? this._config[key] : defaultValue;
-    }
-
-    /**
-     * Set specific configuration value
-     */
-    setConfigValue(key, value) {
-        this._config[key] = value;
+    setConfigValue(key, val) {
+        this._config[key] = val;
         return this;
     }
 }

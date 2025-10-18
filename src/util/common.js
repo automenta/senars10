@@ -1,41 +1,28 @@
-// Bounded value utility
-export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+// Value utilities
+export const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+export const normalize = (val, max) => Math.min(val / max, 1);
 
-// Normalize value to 0-1 range
-export const normalize = (value, max) => Math.min(value / max, 1);
-
-// Execute function safely, returning null on error
+// Execution utilities
 export const safeExecute = (fn, ...args) => {
-    try {
-        return fn(...args);
-    } catch (error) {
-        return null;
-    }
+    try { return fn(...args); } catch { return null; }
 };
 
-// Object freezing utility
-export const freezeObject = Object.freeze;
-
-// Deep freeze utility
-export const deepFreeze = (obj) => {
+// Object utilities
+export const freeze = Object.freeze;
+export const deepFreeze = obj => {
     if (obj === null || typeof obj !== 'object') return obj;
-
     Object.getOwnPropertyNames(obj).forEach(prop => {
-        if (obj[prop] !== null && typeof obj[prop] === 'object') {
-            deepFreeze(obj[prop]);
-        }
+        if (obj[prop] !== null && typeof obj[prop] === 'object') deepFreeze(obj[prop]);
     });
-
-    return freezeObject(obj);
+    return freeze(obj);
 };
 
-// Clamp and freeze object properties
-export const clampAndFreeze = (obj, min = 0, max = 1) => {
-    if (typeof obj === 'number') return clamp(obj, min, max);
+// Object transformation utilities
+export const clampAndFreeze = (obj, min = 0, max = 1) =>
+    typeof obj === 'number' ? freeze(clamp(obj, min, max)) :
+    freeze(Object.fromEntries(Object.entries(obj).map(([k, v]) =>
+        [k, typeof v === 'number' ? clamp(v, min, max) : v])));
 
-    const clamped = {...obj};
-    for (const [key, value] of Object.entries(clamped)) {
-        if (typeof value === 'number') clamped[key] = clamp(value, min, max);
-    }
-    return freezeObject(clamped);
-};
+// Configuration utilities
+export const mergeConfig = (base, ...overrides) =>
+    freeze(overrides.reduce((acc, cfg) => ({...acc, ...cfg}), {...base}));

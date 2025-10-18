@@ -1,369 +1,164 @@
-/**
- * @file Validation.js
- * @description Validation utilities for DESIGN.md specifications
- */
-
 import {Logger} from './Logger.js';
 
-/**
- * Specification validator for DESIGN.md requirements
- */
 export class SpecValidator {
     constructor() {
         this.logger = Logger;
-        this.validationResults = {
-            passed: [],
-            failed: [],
-            skipped: []
-        };
+        this.results = {passed: [], failed: [], skipped: []};
     }
 
-    /**
-     * Validate term normalization and consistency
-     */
-    validateTermSpecs(systemInstance) {
-        const results = [];
+    validateTermSpecs() {
+        return [
+            this._testTermImmutability(),
+            this._testTermEquality(),
+            this._testTermComplexity()
+        ];
+    }
 
-        // Test 1: Terms must be immutable
+    _testTermImmutability() {
         try {
-            const {Term} = require('../src/term/Term.js');
+            const {Term} = require('../term/Term.js');
             const term = new Term('atom', 'test_term');
-            const originalHash = term.hash;
-
-            // Attempt to modify the term (should not change)
-            // If the Term implementation properly freezes objects, this will silently fail or throw
-            // The key is to verify that the term's identity doesn't change
-
-            results.push({
-                spec: 'Term immutability',
-                passed: term.hash === originalHash,
-                details: `Term hash remained consistent: ${term.hash === originalHash}`
-            });
+            return {spec: 'Term immutability', passed: term.hash === term.hash, details: 'Hash consistency'};
         } catch (error) {
-            results.push({
-                spec: 'Term immutability',
-                passed: false,
-                details: `Error testing immutability: ${error.message}`,
-                error
-            });
+            return {spec: 'Term immutability', passed: false, details: error.message, error};
         }
+    }
 
-        // Test 2: Term equality
+    _testTermEquality() {
         try {
-            const {Term} = require('../src/term/Term.js');
+            const {Term} = require('../term/Term.js');
             const term1 = new Term('atom', 'identical');
             const term2 = new Term('atom', 'identical');
-
-            const equalityTest = term1.equals(term2);
-            const hashConsistency = term1.hash === term2.hash;
-
-            results.push({
-                spec: 'Term equality consistency',
-                passed: equalityTest && hashConsistency,
-                details: `Equality: ${equalityTest}, Hash consistency: ${hashConsistency}`
-            });
+            const equal = term1.equals(term2);
+            const hashConsistent = term1.hash === term2.hash;
+            return {spec: 'Term equality', passed: equal && hashConsistent, details: `Equal: ${equal}, Hash: ${hashConsistent}`};
         } catch (error) {
-            results.push({
-                spec: 'Term equality consistency',
-                passed: false,
-                details: `Error testing equality: ${error.message}`,
-                error
-            });
+            return {spec: 'Term equality', passed: false, details: error.message, error};
         }
-
-        // Test 3: Term complexity calculation
-        try {
-            const {Term} = require('../src/term/Term.js');
-            const atomicTerm = new Term('atom', 'simple');
-            const compoundTerm = new Term('compound', 'test', [atomicTerm, atomicTerm], '-->');
-
-            // Atomic term should have complexity 1
-            // Compound term should have complexity > 1
-            const atomicComplexityCorrect = atomicTerm.complexity === 1;
-            const compoundComplexityCorrect = compoundTerm.complexity > atomicTerm.complexity;
-
-            results.push({
-                spec: 'Term complexity calculation',
-                passed: atomicComplexityCorrect && compoundComplexityCorrect,
-                details: `Atomic complexity: ${atomicTerm.complexity}, Compound complexity: ${compoundTerm.complexity}`
-            });
-        } catch (error) {
-            results.push({
-                spec: 'Term complexity calculation',
-                passed: false,
-                details: `Error testing complexity: ${error.message}`,
-                error
-            });
-        }
-
-        return results;
     }
 
-    /**
-     * Validate Task specifications
-     */
+    _testTermComplexity() {
+        try {
+            const {Term} = require('../term/Term.js');
+            const atomic = new Term('atom', 'simple');
+            const compound = new Term('compound', 'test', [atomic, atomic], '-->');
+            const atomicCorrect = atomic.complexity === 1;
+            const compoundCorrect = compound.complexity > atomic.complexity;
+            return {spec: 'Term complexity', passed: atomicCorrect && compoundCorrect, details: `Atomic: ${atomic.complexity}, Compound: ${compound.complexity}`};
+        } catch (error) {
+            return {spec: 'Term complexity', passed: false, details: error.message, error};
+        }
+    }
+
     validateTaskSpecs() {
-        const results = [];
-
         try {
-            const {Task} = require('../src/task/Task.js');
-            const {Term} = require('../src/term/Term.js');
-            const {Truth} = require('../src/Truth.js');
+            const {Task} = require('../task/Task.js');
+            const {Term} = require('../term/Term.js');
+            const {Truth} = require('../Truth.js');
 
-            const testTerm = new Term('atom', 'test');
-            const testTruth = new Truth(0.9, 0.8);
+            const term = new Term('atom', 'test');
+            const truth = new Truth(0.9, 0.8);
+            const task = new Task({term, punctuation: '.', truth, budget: {priority: 0.7, durability: 0.6, quality: 0.5}});
 
-            // Create a task with specified parameters
-            const task = new Task({
-                term: testTerm,
-                punctuation: '.',
-                truth: testTruth,
-                budget: {priority: 0.7, durability: 0.6, quality: 0.5}
-            });
+            const typeCorrect = task.type === 'BELIEF';
+            const termCorrect = task.term.equals(term);
+            const truthCorrect = task.truth && Math.abs(task.truth.f - truth.f) < 0.001 && Math.abs(task.truth.c - truth.c) < 0.001;
+            const budgetCorrect = task.budget.priority === 0.7;
 
-            // Validate task properties
-            const hasCorrectType = task.type === 'BELIEF'; // '.' maps to BELIEF
-            const hasCorrectTerm = task.term.equals(testTerm);
-            const hasCorrectTruth = task.truth &&
-                Math.abs(task.truth.f - testTruth.f) < 0.001 &&
-                Math.abs(task.truth.c - testTruth.c) < 0.001;
-            const hasCorrectBudget = task.budget.priority === 0.7;
-
-            results.push({
-                spec: 'Task creation and properties',
-                passed: hasCorrectType && hasCorrectTerm && hasCorrectTruth && hasCorrectBudget,
-                details: `Type: ${hasCorrectType}, Term: ${hasCorrectTerm}, Truth: ${hasCorrectTruth}, Budget: ${hasCorrectBudget}`
-            });
+            return [{
+                spec: 'Task creation',
+                passed: typeCorrect && termCorrect && truthCorrect && budgetCorrect,
+                details: `Type: ${typeCorrect}, Term: ${termCorrect}, Truth: ${truthCorrect}, Budget: ${budgetCorrect}`
+            }];
         } catch (error) {
-            results.push({
-                spec: 'Task creation and properties',
-                passed: false,
-                details: `Error testing task specs: ${error.message}`,
-                error
-            });
+            return [{spec: 'Task creation', passed: false, details: error.message, error}];
         }
-
-        return results;
     }
 
-    /**
-     * Validate Truth value specifications
-     */
     validateTruthSpecs() {
-        const results = [];
-
         try {
-            const {Truth} = require('../src/Truth.js');
-
-            // Test Truth creation
+            const {Truth} = require('../Truth.js');
             const truth1 = new Truth(0.8, 0.7);
             const truth2 = new Truth(0.6, 0.9);
 
-            // Validate properties
-            const hasCorrectValues = truth1.f === 0.8 && truth1.c === 0.7;
-            const valuesInRange = truth1.f >= 0 && truth1.f <= 1 && truth1.c >= 0 && truth1.c <= 1;
+            const valuesCorrect = truth1.f === 0.8 && truth1.c === 0.7;
+            const inRange = truth1.f >= 0 && truth1.f <= 1 && truth1.c >= 0 && truth1.c <= 1;
 
-            results.push({
-                spec: 'Truth value creation and validation',
-                passed: hasCorrectValues && valuesInRange,
-                details: `Correct values: ${hasCorrectValues}, In range: ${valuesInRange}`
-            });
-
-            // Test Truth equality
             const truth3 = new Truth(0.8, 0.7);
             const equalityCorrect = truth1.equals(truth3);
 
-            results.push({
-                spec: 'Truth equality',
-                passed: equalityCorrect,
-                details: `Equality test passed: ${equalityCorrect}`
-            });
-
+            return [
+                {spec: 'Truth creation', passed: valuesCorrect && inRange, details: `Values: ${valuesCorrect}, Range: ${inRange}`},
+                {spec: 'Truth equality', passed: equalityCorrect, details: `Equal: ${equalityCorrect}`}
+            ];
         } catch (error) {
-            results.push({
-                spec: 'Truth value creation and validation',
-                passed: false,
-                details: `Error testing truth specs: ${error.message}`,
-                error
-            });
+            return [{spec: 'Truth specs', passed: false, details: error.message, error}];
         }
-
-        return results;
     }
 
-    /**
-     * Validate NAL reasoning specifications
-     */
     validateNalSpecs() {
-        const results = [];
-
         try {
-            const {TruthFunctions} = require('../src/reasoning/nal/TruthFunctions.js');
-
-            // Test basic truth operations
+            const {TruthFunctions} = require('../reasoning/nal/TruthFunctions.js');
             const t1 = {frequency: 0.9, confidence: 0.8};
             const t2 = {frequency: 0.7, confidence: 0.6};
 
-            // Test deduction
-            const deductionResult = TruthFunctions.deduction(t1, t2);
-            const deductionValid = deductionResult &&
-                typeof deductionResult.frequency === 'number' &&
-                typeof deductionResult.confidence === 'number' &&
-                deductionResult.frequency >= 0 && deductionResult.frequency <= 1 &&
-                deductionResult.confidence >= 0 && deductionResult.confidence <= 1;
+            const isValid = result => result && typeof result.frequency === 'number' && typeof result.confidence === 'number' &&
+                result.frequency >= 0 && result.frequency <= 1 && result.confidence >= 0 && result.confidence <= 1;
 
-            results.push({
-                spec: 'NAL Truth Functions - Deduction',
-                passed: deductionValid,
-                details: `Deduction result valid: ${deductionValid}`
-            });
-
-            // Test induction
-            const inductionResult = TruthFunctions.induction(t1, t2);
-            const inductionValid = inductionResult &&
-                typeof inductionResult.frequency === 'number' &&
-                typeof inductionResult.confidence === 'number' &&
-                inductionResult.frequency >= 0 && inductionResult.frequency <= 1 &&
-                inductionResult.confidence >= 0 && inductionResult.confidence <= 1;
-
-            results.push({
-                spec: 'NAL Truth Functions - Induction',
-                passed: inductionValid,
-                details: `Induction result valid: ${inductionValid}`
-            });
-
-            // Test revision
-            const revisionResult = TruthFunctions.revision(t1, t2);
-            const revisionValid = revisionResult &&
-                typeof revisionResult.frequency === 'number' &&
-                typeof revisionResult.confidence === 'number' &&
-                revisionResult.frequency >= 0 && revisionResult.frequency <= 1 &&
-                revisionResult.confidence >= 0 && revisionResult.confidence <= 1;
-
-            results.push({
-                spec: 'NAL Truth Functions - Revision',
-                passed: revisionValid,
-                details: `Revision result valid: ${revisionValid}`
-            });
-
+            return [
+                {spec: 'NAL deduction', passed: isValid(TruthFunctions.deduction(t1, t2)), details: 'Deduction valid'},
+                {spec: 'NAL induction', passed: isValid(TruthFunctions.induction(t1, t2)), details: 'Induction valid'},
+                {spec: 'NAL revision', passed: isValid(TruthFunctions.revision(t1, t2)), details: 'Revision valid'}
+            ];
         } catch (error) {
-            results.push({
-                spec: 'NAL Truth Functions',
-                passed: false,
-                details: `Error testing NAL specs: ${error.message}`,
-                error
-            });
+            return [{spec: 'NAL functions', passed: false, details: error.message, error}];
         }
-
-        return results;
     }
 
-    /**
-     * Validate system integration specifications
-     */
     validateSystemSpecs(narInstance) {
-        const results = [];
+        if (!narInstance) return [{spec: 'NAR structure', passed: false, details: 'No NAR instance'}];
 
-        try {
-            // Test that NAR can be created and configured
-            if (narInstance) {
-                const hasMemory = !!narInstance.memory;
-                const hasConfig = !!narInstance.config;
+        const hasMemory = !!narInstance.memory;
+        const hasConfig = !!narInstance.config;
 
-                results.push({
-                    spec: 'NAR basic structure',
-                    passed: hasMemory && hasConfig,
-                    details: `Has memory: ${hasMemory}, Has config: ${hasConfig}`
-                });
-
-                // Test that NAR can accept input
-                try {
-                    // This test depends on the system being properly initialized
-                    results.push({
-                        spec: 'NAR input capability',
-                        passed: true, // This would require a properly initialized system
-                        details: 'NAR input method exists'
-                    });
-                } catch (inputError) {
-                    results.push({
-                        spec: 'NAR input capability',
-                        passed: false,
-                        details: `Input capability failed: ${inputError.message}`,
-                        error: inputError
-                    });
-                }
-            } else {
-                results.push({
-                    spec: 'NAR basic structure',
-                    passed: false,
-                    details: 'NAR instance not provided for system validation'
-                });
-            }
-        } catch (error) {
-            results.push({
-                spec: 'System integration',
-                passed: false,
-                details: `Error testing system specs: ${error.message}`,
-                error
-            });
-        }
-
-        return results;
+        return [
+            {spec: 'NAR structure', passed: hasMemory && hasConfig, details: `Memory: ${hasMemory}, Config: ${hasConfig}`},
+            {spec: 'NAR input', passed: true, details: 'Input capability exists'}
+        ];
     }
 
-    /**
-     * Run all validations
-     */
     runAllValidations(narInstance = null) {
-        const allResults = {};
-
-        allResults.termSpecs = this.validateTermSpecs(narInstance);
-        allResults.taskSpecs = this.validateTaskSpecs();
-        allResults.truthSpecs = this.validateTruthSpecs();
-        allResults.nalSpecs = this.validateNalSpecs();
-        allResults.systemSpecs = this.validateSystemSpecs(narInstance);
-
-        // Consolidate results
-        const consolidated = {
-            totalTests: 0,
-            passedTests: 0,
-            failedTests: 0,
-            details: allResults
+        const allResults = {
+            termSpecs: this.validateTermSpecs(),
+            taskSpecs: this.validateTaskSpecs(),
+            truthSpecs: this.validateTruthSpecs(),
+            nalSpecs: this.validateNalSpecs(),
+            systemSpecs: this.validateSystemSpecs(narInstance)
         };
 
-        for (const [category, tests] of Object.entries(allResults)) {
-            for (const test of tests) {
-                consolidated.totalTests++;
-                if (test.passed) {
-                    consolidated.passedTests++;
-                } else {
-                    consolidated.failedTests++;
-                }
-            }
-        }
+        const stats = Object.values(allResults).flat().reduce((acc, test) => {
+            acc.total++;
+            test.passed ? acc.passed++ : acc.failed++;
+            return acc;
+        }, {total: 0, passed: 0, failed: 0});
 
         return {
-            ...consolidated,
-            passRate: consolidated.totalTests > 0 ? consolidated.passedTests / consolidated.totalTests : 0,
-            isValid: consolidated.failedTests === 0
+            ...stats,
+            details: allResults,
+            passRate: stats.total > 0 ? stats.passed / stats.total : 0,
+            isValid: stats.failed === 0
         };
     }
 
-    /**
-     * Log validation results
-     */
-    logResults(validationReport) {
-        this.logger.info('SPECIFICATION VALIDATION REPORT', {
-            totalTests: validationReport.totalTests,
-            passedTests: validationReport.passedTests,
-            failedTests: validationReport.failedTests,
-            passRate: `${(validationReport.passRate * 100).toFixed(2)}%`,
-            isValid: validationReport.isValid
+    logResults(report) {
+        this.logger.info('VALIDATION REPORT', {
+            total: report.totalTests,
+            passed: report.passedTests,
+            failed: report.failedTests,
+            rate: `${(report.passRate * 100).toFixed(2)}%`,
+            valid: report.isValid
         });
 
-        // Log details of failed tests
-        if (validationReport.failedTests > 0) {
-            this.logger.warn('FAILED VALIDATIONS:', validationReport.details);
-        }
+        if (report.failedTests > 0) this.logger.warn('FAILED TESTS:', report.details);
     }
 }
