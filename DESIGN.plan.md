@@ -538,6 +538,9 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Implement comprehensive validation for term equality, hashing, and structural integrity
 - [ ] Validate proper caching mechanisms for terms in TermFactory
 - [ ] Implement and test hashcode consistency across different Term implementations
+- [ ] Implement comprehensive validation for all DESIGN.md specifications
+- [ ] Create performance and stress tests under production-like conditions
+- [ ] Implement security vulnerability tests and penetration testing
 
 #### 8.2 Advanced Memory and Focus Management
 
@@ -577,6 +580,8 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create demonstrations of Bag data structure with priority-based selection and capacity management
 - [ ] Implement rule matching and application algorithms with structural pattern matching
 - [ ] Implement proper attention scoring with configurable parameters
+- [ ] Implement attention scoring mechanisms with configurable parameters for priority, urgency, and diversity factors
+- [ ] Create demonstrations of advanced focus set management with multiple named focus sets
 
 #### 8.3 NAL Reasoning Implementation and Advanced Components
 
@@ -689,6 +694,10 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create tests for input validation and security sanitization
 - [ ] Create tests for memory management and garbage collection strategies
 - [ ] Create tests for caching effectiveness at multiple levels (terms, rules, inferences, queries)
+- [ ] Create tests for proxy-based component access and dynamic method resolution
+- [ ] Create tests for unified messages system handling both events and commands
+- [ ] Create tests for component lifecycle management (initialize/start/stop/destroy)
+- [ ] Create tests for plugin system with hot reloading support
 
 **Implementation:**
 
@@ -710,6 +719,11 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Implement component health monitoring and issue detection
 - [ ] Implement system-wide metrics collection and reporting
 - [ ] Implement security validation and input sanitization throughout the system
+- [ ] Implement proxy-based component access for direct property access to registered components
+- [ ] Implement dynamic method resolution for runtime discovery of component capabilities
+- [ ] Implement unified messages system handling both events and commands with middleware pipeline
+- [ ] Implement component lifecycle management with standardized initialize/start/stop/destroy methods
+- [ ] Implement plugin system with hot reloading support and error isolation
 
 #### 8.7 Tool Execution and Multi-Modal Integration
 
@@ -720,6 +734,9 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create demonstrations of command execution with sandboxing
 - [ ] Create demonstrations of API integration tools
 - [ ] Create demonstrations of embedding generation and similarity search
+- [ ] Create tests for media processing (PDF, image analysis with OCR)
+- [ ] Create tests for parameter validation and timeout handling
+- [ ] Create tests for execution safety features (timeout, sandboxing, validation)
 
 **Implementation:**
 
@@ -730,6 +747,9 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Show embedding generation and similarity search capabilities
 - [ ] Demonstrate multi-modal reasoning integration
 - [ ] Show tool execution history and statistics
+- [ ] Implement media processing capabilities (PDF processing, image analysis with OCR)
+- [ ] Implement comprehensive safety features: timeout handling, parameter validation, sandboxing
+- [ ] Implement execution statistics and monitoring for all tools
 
 #### 8.8 Interactive and Non-Interactive User Interfaces
 
@@ -790,6 +810,9 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create comprehensive regression tests comparing with current codebase functionality
 - [ ] Create performance and stress tests under production-like conditions
 - [ ] Create security vulnerability tests and penetration testing
+- [ ] Create tests for all cognitive architecture patterns (dual memory, attention, activation propagation)
+- [ ] Create tests for reasoning cycle performance under different load conditions
+- [ ] Create validation tests for component-based architecture patterns
 
 **Implementation:**
 
@@ -806,6 +829,9 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create stress tests for system under various load conditions
 - [ ] Implement property-based testing for all major algorithms
 - [ ] Validate all DESIGN.md specifications through comprehensive testing
+- [ ] Implement comprehensive validation for cognitive architecture patterns (dual memory, attention, activation propagation)
+- [ ] Create performance benchmarks for reasoning cycle under different conditions
+- [ ] Implement validation tests for component-based architecture patterns and metaprogramming features
 
 ### Acceptance Criteria for Phase 8
 
@@ -853,6 +879,17 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Stress tests for system under various load conditions passed
 - [ ] All DESIGN.md specifications validated and tested through comprehensive TestNAR framework
 - [ ] All property-based tests for major algorithms implemented and passing
+- [ ] Proxy-based component access for direct property access to registered components implemented
+- [ ] Dynamic method resolution for runtime discovery of component capabilities implemented
+- [ ] Unified messages system handling both events and commands with middleware pipeline implemented
+- [ ] Component lifecycle management with standardized initialize/start/stop/destroy methods implemented
+- [ ] Plugin system with hot reloading support and error isolation implemented
+- [ ] Media processing capabilities (PDF processing, image analysis with OCR) implemented
+- [ ] Comprehensive safety features: timeout handling, parameter validation, sandboxing implemented
+- [ ] Execution statistics and monitoring for all tools implemented
+- [ ] Comprehensive validation for cognitive architecture patterns (dual memory, attention, activation propagation) implemented
+- [ ] Performance benchmarks for reasoning cycle under different conditions established
+- [ ] Validation tests for component-based architecture patterns and metaprogramming features implemented
 
 ----
 
@@ -966,3 +1003,12 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] All cognitive diversity and attention mechanisms implemented and validated
 - [ ] Comprehensive property-based testing for all core algorithms
 - [ ] Complete security validation and input sanitization implemented
+- [ ] Component-based architecture with standardized interfaces implemented and validated
+- [ ] Metaprogramming-driven design with proxy-based access implemented
+- [ ] Winnowing-based rule evaluation with pre-filtering implemented
+- [ ] Unified communication architecture with single messages system implemented
+- [ ] Multi-modal intelligence integration with multiple LM providers implemented
+- [ ] Tool execution framework with web automation, file operations, and command execution implemented
+- [ ] Cognitive architecture patterns (dual memory, attention, activation propagation) demonstrated
+- [ ] Self-optimization using system's own facilities ("dogfooding") demonstrated
+- [ ] Performance benchmarks for reasoning cycle under different conditions established
