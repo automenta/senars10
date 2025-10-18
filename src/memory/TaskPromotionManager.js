@@ -20,7 +20,8 @@ export class TaskPromotionManager extends ConfigurableComponent {
         };
 
         super(defaultConfig);
-        this.configure(config);
+        // The `configure` method returns a new instance.
+        // Configuration should be handled by the caller.
     }
 
     /**

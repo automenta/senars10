@@ -1,4 +1,4 @@
-import {sortByPriority} from '../../../util/common.js';
+import {sortByProperty} from '../../util/collections.js';
 
 export class RuleManager {
     constructor() {
@@ -216,7 +216,7 @@ export class RuleManager {
         const enabledRules = this.getEnabled();
 
         // Sort rules by priority
-        const sortedRules = sortByPriority(enabledRules);
+        const sortedRules = sortByProperty(enabledRules, 'priority', true);
 
         for (const rule of sortedRules) {
             if (rule.canApply && rule.canApply(task, context)) {

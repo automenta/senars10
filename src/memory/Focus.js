@@ -2,7 +2,8 @@
  * Focus class - manages attention focus sets (short-term memory)
  * Implements focus set management as specified in DESIGN.md
  */
-import {clamp, sortByPriority} from '../util/common.js';
+import {clamp} from '../util/common.js';
+import {sortByProperty} from '../util/collections.js';
 
 export class Focus {
     constructor(config = {}) {
@@ -228,7 +229,7 @@ class FocusSet {
         const taskEntries = Array.from(this._tasks.values());
 
         // Sort by priority (highest first)
-        const sortedTaskEntries = sortByPriority(taskEntries);
+        const sortedTaskEntries = sortByProperty(taskEntries, 'priority', true);
 
         return sortedTaskEntries.slice(0, count).map(entry => entry.task);
     }

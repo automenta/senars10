@@ -4,7 +4,7 @@
  */
 
 import {Logger} from '../util/Logger.js';
-import {sortByPriority} from '../util/common.js';
+import {sortByProperty} from '../util/collections.js';
 
 export class Cycle {
     constructor({memory, focus, ruleEngine, taskManager, config}) {
@@ -87,7 +87,7 @@ export class Cycle {
             if (selectedTasks.length >= maxTasks) break;
 
             // Get highest priority tasks from this concept
-            const conceptTasks = sortByPriority(concept.getAllTasks());
+            const conceptTasks = sortByProperty(concept.getAllTasks(), 'priority', true);
 
             for (const task of conceptTasks) {
                 if (selectedTasks.length >= maxTasks) break;

@@ -1,5 +1,6 @@
 import {Task} from './Task.js';
-import {collectTasksFromAllConcepts, sortByPriority} from '../util/common.js';
+import {collectTasksFromAllConcepts} from '../util/memory.js';
+import {sortByProperty} from '../util/collections.js';
 
 export class TaskManager {
     constructor(memory, focus, config) {

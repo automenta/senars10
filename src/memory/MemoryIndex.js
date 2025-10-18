@@ -1,337 +1,153 @@
 export class MemoryIndex {
     constructor() {
-        this._inheritanceIndex = new Map(); // Map<predicate, Set<subject>>
-        this._implicationIndex = new Map(); // Map<premise, Set<conclusion>>
-        this._similarityIndex = new Map(); // Map<term1, Set<term2>>
-        this._compoundIndex = new Map(); // Map<operator, Set<terms>>
-        this._termIndex = new Map(); // Map<termHash, concept>
-        this._totalConcepts = 0; // Track total number of concept objects added
+        this._indexes = {
+            inheritance: new Map(), // Map<predicate, Set<subject>>
+            implication: new Map(), // Map<premise, Set<conclusion>>
+            similarity: new Map(),  // Map<term, Set<related>>
+            compound: new Map(),    // Map<operator, Set<terms>>
+            term: new Map()         // Map<termHash, concept>
+        };
+        this._totalConcepts = 0;
+    }
+
+    _addToIndex(index, key, value) {
+        if (!this._indexes[index].has(key)) {
+            this._indexes[index].set(key, new Set());
+        }
+        this._indexes[index].get(key).add(value);
+    }
+
+    _removeFromIndex(index, key, value) {
+        if (this._indexes[index].has(key)) {
+            const set = this._indexes[index].get(key);
+            set.delete(value);
+            if (set.size === 0) {
+                this._indexes[index].delete(key);
+            }
+        }
     }
 
     addConcept(concept) {
-        const term = concept.term;
+        const {term} = concept;
         const termId = term.id;
 
-        // Update total concept counter
         this._totalConcepts++;
+        this._addToIndex('term', termId, concept);
 
-        // Add to main term index - store as array to handle multiple concepts per term
-        if (!this._termIndex.has(termId)) {
-            this._termIndex.set(termId, []);
-        }
-        const conceptsArray = this._termIndex.get(termId);
-        conceptsArray.push(concept);
-
-        // Index by term type
-        if (term.isAtomic) {
-            this._indexAtomicTerm(term, concept);
-        } else {
+        if (!term.isAtomic) {
             this._indexCompoundTerm(term, concept);
         }
     }
 
-    /**
-     * Remove concept from indexes
-     */
     removeConcept(concept) {
-        const term = concept.term;
+        const {term} = concept;
         const termId = term.id;
 
-        // Remove from main term index - handle array of concepts
-        if (this._termIndex.has(termId)) {
-            const concepts = this._termIndex.get(termId);
-            if (Array.isArray(concepts)) {
-                const index = concepts.indexOf(concept);
-                if (index !== -1) {
-                    concepts.splice(index, 1);
-                    this._totalConcepts--;
-
-                    // If array is empty, remove the entry
-                    if (concepts.length === 0) {
-                        this._termIndex.delete(termId);
-                    }
-                }
-            } else {
-                // Backwards compatibility with old direct storage
-                this._termIndex.delete(termId);
-                this._totalConcepts--;
-            }
+        if (this._indexes.term.has(termId)) {
+            this._removeFromIndex('term', termId, concept);
+            this._totalConcepts--;
         }
 
-        // Remove from specialized indexes
-        if (term.isAtomic) {
-            this._removeAtomicTermIndex(term);
-        } else {
+        if (!term.isAtomic) {
             this._removeCompoundTermIndex(term, concept);
         }
     }
 
-    /**
-     * Index atomic terms
-     * @private
-     */
-    _indexAtomicTerm(term, concept) {
-        // Atomic terms are primarily indexed by their string representation
-        // Could be enhanced with semantic indexing in the future
-    }
-
-    /**
-     * Index compound terms by their structure
-     * @private
-     */
     _indexCompoundTerm(term, concept) {
-        const operator = term.operator;
+        this._addToIndex('compound', term.operator, term);
 
-        // Initialize operator index if needed
-        if (!this._compoundIndex.has(operator)) {
-            this._compoundIndex.set(operator, new Set());
-        }
-        this._compoundIndex.get(operator).add(term);
-
-        // Index by specific operator types
-        switch (operator) {
-            case '-->':
-                this._indexInheritance(term, concept);
-                break;
-            case '==>':
-                this._indexImplication(term, concept);
-                break;
-            case '<->':
-                this._indexSimilarity(term, concept);
-                break;
+        switch (term.operator) {
+            case '-->': this._indexInheritance(term, concept); break;
+            case '==>': this._indexImplication(term, concept); break;
+            case '<->': this._indexSimilarity(term, concept); break;
         }
 
-        // Recursively index any compound components
-        if (term.components) {
-            for (const component of term.components) {
-                if (component.isCompound) {
-                    this._indexCompoundTerm(component, concept);
-                }
-            }
-        }
+        term.components?.forEach(comp => {
+            if (comp.isCompound) this._indexCompoundTerm(comp, concept);
+        });
     }
 
-    /**
-     * Index inheritance relationships (A --> B)
-     * @private
-     */
     _indexInheritance(term, concept) {
         if (term.components.length >= 2) {
-            const predicate = term.components[1];
-
-            if (!this._inheritanceIndex.has(predicate)) {
-                this._inheritanceIndex.set(predicate, new Set());
-            }
-            this._inheritanceIndex.get(predicate).add(concept);
+            this._addToIndex('inheritance', term.components[1], concept);
         }
     }
 
-    /**
-     * Index implication relationships (A ==> B)
-     * @private
-     */
     _indexImplication(term, concept) {
         if (term.components.length >= 2) {
-            const premise = term.components[0];
-
-            if (!this._implicationIndex.has(premise)) {
-                this._implicationIndex.set(premise, new Set());
-            }
-            this._implicationIndex.get(premise).add(concept);
+            this._addToIndex('implication', term.components[0], concept);
         }
     }
 
-    /**
-     * Index similarity relationships (A <-> B)
-     * @private
-     */
     _indexSimilarity(term, concept) {
         if (term.components.length >= 2) {
-            const term1 = term.components[0];
-            const term2 = term.components[1];
-
-            if (!this._similarityIndex.has(term1)) {
-                this._similarityIndex.set(term1, new Set());
-            }
-            if (!this._similarityIndex.has(term2)) {
-                this._similarityIndex.set(term2, new Set());
-            }
-
-            this._similarityIndex.get(term1).add(concept);
-            this._similarityIndex.get(term2).add(concept);
+            this._addToIndex('similarity', term.components[0], concept);
+            this._addToIndex('similarity', term.components[1], concept);
         }
     }
 
-    /**
-     * Remove atomic term from indexes
-     * @private
-     */
-    _removeAtomicTermIndex(term) {
-        // Atomic terms don't need special cleanup
-    }
-
-    /**
-     * Remove compound term from indexes
-     * @private
-     */
     _removeCompoundTermIndex(term, concept) {
-        const operator = term.operator;
+        this._removeFromIndex('compound', term.operator, term);
 
-        // Remove from operator index
-        if (this._compoundIndex.has(operator)) {
-            this._compoundIndex.get(operator).delete(term);
-            if (this._compoundIndex.get(operator).size === 0) {
-                this._compoundIndex.delete(operator);
-            }
-        }
-
-        // Remove from specific indexes
-        switch (operator) {
-            case '-->':
-                this._removeInheritanceIndex(term, concept);
-                break;
-            case '==>':
-                this._removeImplicationIndex(term, concept);
-                break;
-            case '<->':
-                this._removeSimilarityIndex(term, concept);
-                break;
+        switch (term.operator) {
+            case '-->': this._removeInheritanceIndex(term, concept); break;
+            case '==>': this._removeImplicationIndex(term, concept); break;
+            case '<->': this._removeSimilarityIndex(term, concept); break;
         }
     }
 
-    /**
-     * Remove inheritance index entries
-     * @private
-     */
     _removeInheritanceIndex(term, concept) {
         if (term.components.length >= 2) {
-            const predicate = term.components[1];
-
-            if (this._inheritanceIndex.has(predicate)) {
-                this._inheritanceIndex.get(predicate).delete(concept);
-                if (this._inheritanceIndex.get(predicate).size === 0) {
-                    this._inheritanceIndex.delete(predicate);
-                }
-            }
+            this._removeFromIndex('inheritance', term.components[1], concept);
         }
     }
 
-    /**
-     * Remove implication index entries
-     * @private
-     */
     _removeImplicationIndex(term, concept) {
         if (term.components.length >= 2) {
-            const premise = term.components[0];
-
-            if (this._implicationIndex.has(premise)) {
-                this._implicationIndex.get(premise).delete(concept);
-                if (this._implicationIndex.get(premise).size === 0) {
-                    this._implicationIndex.delete(premise);
-                }
-            }
+            this._removeFromIndex('implication', term.components[0], concept);
         }
     }
 
-    /**
-     * Remove similarity index entries
-     * @private
-     */
     _removeSimilarityIndex(term, concept) {
         if (term.components.length >= 2) {
-            const term1 = term.components[0];
-            const term2 = term.components[1];
-
-            if (this._similarityIndex.has(term1)) {
-                this._similarityIndex.get(term1).delete(concept);
-                if (this._similarityIndex.get(term1).size === 0) {
-                    this._similarityIndex.delete(term1);
-                }
-            }
-
-            if (this._similarityIndex.has(term2)) {
-                this._similarityIndex.get(term2).delete(concept);
-                if (this._similarityIndex.get(term2).size === 0) {
-                    this._similarityIndex.delete(term2);
-                }
-            }
+            this._removeFromIndex('similarity', term.components[0], concept);
+            this._removeFromIndex('similarity', term.components[1], concept);
         }
     }
 
-    /**
-     * Find concepts with inheritance relationships
-     */
-    findInheritanceConcepts(predicate) {
-        const concepts = this._inheritanceIndex.get(predicate) || new Set();
-        return Array.from(concepts);
-    }
+    findInheritanceConcepts = (predicate) => Array.from(this._indexes.inheritance.get(predicate) || []);
+    findImplicationConcepts = (premise) => Array.from(this._indexes.implication.get(premise) || []);
+    findSimilarityConcepts = (term) => Array.from(this._indexes.similarity.get(term) || []);
 
-    /**
-     * Find concepts with implication relationships
-     */
-    findImplicationConcepts(premise) {
-        const concepts = this._implicationIndex.get(premise) || new Set();
-        return Array.from(concepts);
-    }
-
-    /**
-     * Find concepts with similarity relationships
-     */
-    findSimilarityConcepts(term) {
-        const concepts = this._similarityIndex.get(term) || new Set();
-        return Array.from(concepts);
-    }
-
-    /**
-     * Find concepts by operator type
-     */
     findConceptsByOperator(operator) {
-        const terms = this._compoundIndex.get(operator) || new Set();
+        const terms = this._indexes.compound.get(operator) || new Set();
         return Array.from(terms)
-            .map(term => this._termIndex.get(term.id))
-            .filter(concept => concept !== undefined);
+            .flatMap(term => Array.from(this._indexes.term.get(term.id) || []))
+            .filter(Boolean);
     }
 
-    /**
-     * Get concept by term hash
-     */
     getConcept(termHash) {
-        const concepts = this._termIndex.get(termHash);
-        return Array.isArray(concepts) && concepts.length > 0 ? concepts[concepts.length - 1] : concepts;
+        const concepts = Array.from(this._indexes.term.get(termHash) || []);
+        return concepts.length > 0 ? concepts[concepts.length - 1] : undefined;
     }
 
-    /**
-     * Get all indexed concepts
-     */
-    getAllConcepts() {
-        return Array.from(this._termIndex.values());
-    }
+    getAllConcepts = () => Array.from(this._indexes.term.values()).flat();
 
-    /**
-     * Get index statistics
-     */
     getStats() {
         return {
             totalConcepts: this._totalConcepts,
-            inheritanceEntries: this._inheritanceIndex.size,
-            implicationEntries: this._implicationIndex.size,
-            similarityEntries: this._similarityIndex.size,
-            operatorEntries: this._compoundIndex.size,
+            inheritanceEntries: this._indexes.inheritance.size,
+            implicationEntries: this._indexes.implication.size,
+            similarityEntries: this._indexes.similarity.size,
+            operatorEntries: this._indexes.compound.size,
             compoundTermsByOperator: Object.fromEntries(
-                Array.from(this._compoundIndex.entries()).map(([op, terms]) => [op, terms.size])
+                Array.from(this._indexes.compound.entries()).map(([op, terms]) => [op, terms.size])
             )
         };
     }
 
-    /**
-     * Clear all indexes
-     */
     clear() {
-        this._inheritanceIndex.clear();
-        this._implicationIndex.clear();
-        this._similarityIndex.clear();
-        this._compoundIndex.clear();
-        this._termIndex.clear();
+        Object.values(this._indexes).forEach(index => index.clear());
         this._totalConcepts = 0;
     }
 }
