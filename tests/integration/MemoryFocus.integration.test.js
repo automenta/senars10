@@ -10,7 +10,7 @@ import {MemoryIndex} from '../../src/memory/MemoryIndex.js';
 import {MemoryConsolidation} from '../../src/memory/MemoryConsolidation.js';
 import {Task} from '../../src/task/Task.js';
 import {TermFactory} from '../../src/term/TermFactory.js';
-import {Stamp} from '../../src/Stamp.js';
+import {ArrayStamp} from '../../src/Stamp.js';
 import {Concept} from '../../src/memory/Concept.js';
 
 describe('Memory and Focus Management Integration', () => {
@@ -124,15 +124,15 @@ describe('Memory and Focus Management Integration', () => {
             // Note: The convenience constructor doesn't support custom stamps, so keep original for these
             const recentTask = new Task({
                 term: simpleTerm,
-                type: 'BELIEF',
-                priority: 0.7,
-                stamp: new Stamp({id: 'recent', creationTime: currentTime - 1000, source: 'INPUT'}),
+                punctuation: '.',
+                budget: {priority: 0.7},
+                stamp: new ArrayStamp({id: 'recent', creationTime: currentTime - 1000, source: 'INPUT'}),
             });
             const oldTask = new Task({
                 term: complexTerm,
-                type: 'BELIEF',
-                priority: 0.5,
-                stamp: new Stamp({id: 'old', creationTime: currentTime - 10000, source: 'INPUT'}),
+                punctuation: '.',
+                budget: {priority: 0.5},
+                stamp: new ArrayStamp({id: 'old', creationTime: currentTime - 10000, source: 'INPUT'}),
             });
 
             const tasks = [recentTask, oldTask];

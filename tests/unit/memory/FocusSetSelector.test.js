@@ -1,7 +1,7 @@
 import {FocusSetSelector} from '../../../src/memory/FocusSetSelector.js';
 import {Task} from '../../../src/task/Task.js';
 import {TermFactory} from '../../../src/term/TermFactory.js';
-import {Stamp} from '../../../src/Stamp.js';
+import {ArrayStamp} from '../../../src/Stamp.js';
 
 describe('FocusSetSelector', () => {
     let selector;
@@ -66,21 +66,21 @@ describe('FocusSetSelector', () => {
             term: term1,
             punctuation: '.',
             budget: {priority: 0.8},
-            stamp: new Stamp({id: 'id1', creationTime: currentTime - 1000, source: 'INPUT'}),
+            stamp: new ArrayStamp({id: 'id1', creationTime: currentTime - 1000, source: 'INPUT'}),
         });
 
         const task2 = new Task({
             term: term2,
             punctuation: '.',
             budget: {priority: 0.6},
-            stamp: new Stamp({id: 'id2', creationTime: currentTime - 500, source: 'INPUT'}),
+            stamp: new ArrayStamp({id: 'id2', creationTime: currentTime - 500, source: 'INPUT'}),
         });
 
         const task3 = new Task({
             term: term3,
             punctuation: '.',
             budget: {priority: 0.4},
-            stamp: new Stamp({id: 'id3', creationTime: currentTime - 2000, source: 'INPUT'}),
+            stamp: new ArrayStamp({id: 'id3', creationTime: currentTime - 2000, source: 'INPUT'}),
         });
 
         const selected = selector.select([task1, task2, task3], currentTime);
@@ -98,7 +98,7 @@ describe('FocusSetSelector', () => {
                 term,
             punctuation: '.',
             budget: {priority: 0.5 + (i * 0.1)},
-            stamp: new Stamp({id: `id${i}`, creationTime: currentTime - (i * 100), source: 'INPUT'}),
+            stamp: new ArrayStamp({id: `id${i}`, creationTime: currentTime - (i * 100), source: 'INPUT'}),
             });
             tasks.push(task);
         }
@@ -114,14 +114,14 @@ describe('FocusSetSelector', () => {
             term,
             punctuation: '.',
             budget: {priority: 0.5},
-            stamp: new Stamp({id: 'recent', creationTime: currentTime - 100, source: 'INPUT'}),
+            stamp: new ArrayStamp({id: 'recent', creationTime: currentTime - 100, source: 'INPUT'}),
         });
 
         const oldTask = new Task({
             term,
             punctuation: '.',
             budget: {priority: 0.5},
-            stamp: new Stamp({id: 'old', creationTime: currentTime - 10000, source: 'INPUT'}),
+            stamp: new ArrayStamp({id: 'old', creationTime: currentTime - 10000, source: 'INPUT'}),
         });
 
         const selected = selector.select([recentTask, oldTask], currentTime);

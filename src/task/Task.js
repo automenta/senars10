@@ -1,5 +1,5 @@
 import {Truth} from '../Truth.js';
-import {Stamp} from '../Stamp.js';
+import {ArrayStamp} from '../Stamp.js';
 import {Term} from '../term/Term.js';
 
 const PUNCTUATION_TO_TYPE = {'.': 'BELIEF', '!': 'GOAL', '?': 'QUESTION'};
@@ -20,7 +20,7 @@ export class Task {
         this.type = PUNCTUATION_TO_TYPE[punctuation] || 'BELIEF';
         this.truth = truth instanceof Truth ? truth : (truth ? new Truth(truth.f, truth.c) : null);
         this.budget = Object.freeze({...budget});
-        this.stamp = stamp || Stamp.createInput();
+        this.stamp = stamp || ArrayStamp.createInput();
 
         Object.freeze(this);
     }

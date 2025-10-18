@@ -1,39 +1,67 @@
 import {v4 as uuidv4} from 'uuid';
 
+/**
+ * Abstract base class for Stamps.
+ * A Stamp provides a unique identity for a Task.
+ */
 export class Stamp {
+    constructor() {
+        if (this.constructor === Stamp) {
+            throw new Error("Abstract classes can't be instantiated.");
+        }
+    }
+
+    /**
+     * Creates a new Stamp for a task derived from user input.
+     */
+    static createInput() {
+        return new ArrayStamp({ source: 'INPUT' });
+    }
+
+    /**
+     * Creates a new Stamp for a task derived from other tasks.
+     * @param {Stamp[]} parentStamps - The stamps of the parent tasks.
+     */
+    static derive(parentStamps = []) {
+        const allDerivations = parentStamps.flatMap(s => s.derivations ? [s.id, ...s.derivations] : [s.id]);
+        return new ArrayStamp({
+            derivations: [...new Set(allDerivations)],
+        });
+    }
+}
+
+/**
+ * A concrete implementation of Stamp using an array to track derivations.
+ */
+export class ArrayStamp extends Stamp {
     constructor({id, creationTime, source, derivations = []} = {}) {
-        this.id = id || Stamp.generateId();
+        super();
+        this.id = id || uuidv4();
         this.creationTime = creationTime || Date.now();
-        this.source = source || 'DERIVED'; // INPUT, DERIVED, etc.
+        this.source = source || 'DERIVED';
         this.derivations = Object.freeze([...new Set(derivations)]);
         Object.freeze(this);
     }
 
-    static generateId() {
-        return uuidv4();
-    }
-
-    static createInput() {
-        const now = Date.now();
-        return new Stamp({
-            id: Stamp.generateId(),
-            creationTime: now,
-            source: 'INPUT',
-        });
-    }
-
-    static derive(parentStamps = []) {
-        const allDerivations = parentStamps.flatMap(s => [s.id, ...s.derivations]);
-        return new Stamp({
-            derivations: [...new Set(allDerivations)],
-        });
+    get occurrenceTime() {
+        return this.creationTime;
     }
 
     equals(other) {
-        return other instanceof Stamp && this.id === other.id;
+        return other instanceof ArrayStamp && this.id === other.id;
     }
 
     toString() {
         return `Stamp(${this.id}, ${this.creationTime}, ${this.source})`;
+    }
+}
+
+/**
+ * A placeholder for a future Stamp implementation using Bloom filters.
+ */
+export class BloomStamp extends Stamp {
+    constructor() {
+        super();
+        throw new Error("BloomStamp is not yet implemented.");
     }
 }
