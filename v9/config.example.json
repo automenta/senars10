@@ -1,0 +1,42 @@
+{
+  "server": {
+    "websocket": {
+      "port": 8080,
+      "enabled": true,
+      "host": "localhost",
+      "heartbeatInterval": 30000,
+      "maxConnectionsPerIP": 10,
+      "maxTotalConnections": 1000,
+      "maxConnectionRate": 10
+    }
+  },
+  "system": {
+    "bootstrap": {
+      "plan_file": "NEXT.md",
+      "priority_level": 2,
+      "maxBootstrapIterations": 100,
+      "goalConfidenceThreshold": 0.7,
+      "enableSelfImprovement": true,
+      "watchPlanFiles": true
+    }
+  },
+  "components": {
+    "webSocketServer": {
+      "port": 8080,
+      "enabled": true,
+      "host": "localhost",
+      "heartbeatInterval": 30000
+    },
+    "bootstrap": {
+      "maxBootstrapIterations": 100,
+      "goalConfidenceThreshold": 0.7,
+      "enableSelfImprovement": true,
+      "watchPlanFiles": true
+    },
+    "messages": {
+      "maxRetries": 3,
+      "retryDelay": 1000,
+      "middlewareTimeout": 5000
+    }
+  }
+}

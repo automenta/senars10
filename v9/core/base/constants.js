@@ -1,0 +1,66 @@
+export const DEFAULTS = {
+  CACHE_SIZE: 1000,
+  FOCUS_SIZE: 50,
+  ATTENTION_DECAY: 0.9,
+  PRIORITY_LEVELS: 10,
+  QUERY_LIMIT: 100,
+  ACCESS_WEIGHT: 100,
+  DECAY_HOURS: 24,
+  MAX_RETRIES: 3,
+  RETRY_DELAY: 1000,
+  BACKOFF_MULTIPLIER: 2,
+  MIDDLEWARE_TIMEOUT: 5000,
+  MESSAGE_TIMEOUT: 10000,
+  MAX_HISTORY_SIZE: 1000,
+  DEFAULT_PRIORITY: 0.5,
+  QUESTION_PRIORITY: 0.7,
+  QUESTION_TIMEOUT: 30000,
+  BELIEF_PRIORITY: 0.6,
+  GOAL_PRIORITY: 0.8,
+  DEFAULT_FREQUENCY: 1.0,
+  DEFAULT_CONFIDENCE: 0.9,
+  CYCLE_INTERVAL: 100,
+  BOOTSTRAP_MAX_ITERATIONS: 100,
+  BOOTSTRAP_GOAL_CONFIDENCE_THRESHOLD: 0.7,
+  BOOTSTRAP_ENABLE_SELF_IMPROVEMENT: true,
+  BOOTSTRAP_WATCH_PLAN_FILES: true,
+  PATTERN_TEMPORAL_WINDOW: 60000, // 1 minute
+  PATTERN_SIMILARITY_THRESHOLD: 0.7,
+  PATTERN_MIN_FREQUENCY: 2,
+  PATTERN_MAX_LENGTH: 10,
+  PATTERN_ENABLE_LEARNING: true,
+};
+
+export const STATES = {
+  UNINITIALIZED: 'uninitialized',
+  INITIALIZING: 'initializing',
+  INITIALIZED: 'initialized',
+  RUNNING: 'running',
+  STOPPED: 'stopped',
+  DESTROYED: 'destroyed',
+};
+
+export const COMPLEXITY_LEVELS = { simple: 1, medium: 2, complex: 3 };
+export const MAX_PRIORITY = 10;
+
+export const RETRYABLE_ERRORS = [
+  'TimeoutError',
+  'NetworkError',
+  'ConnectionError',
+  'TemporaryFailure',
+  'RateLimitError',
+];
+
+export const MESSAGE_TYPES = {
+  COMMAND: 'command',
+  EVENT: 'event',
+};
+
+export const STORAGE_NAMESPACES = {
+  DEFAULT: 'storage',
+  EVENTS: 'events',
+  COMMANDS: 'commands',
+  PROCESSORS: 'processors',
+  ERROR_HANDLERS: 'errorHandlers',
+  RETRY_POLICIES: 'retryPolicies',
+};

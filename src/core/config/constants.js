@@ -1,0 +1,45 @@
+// Configuration constants for the NARS system
+export const PRIORITY = {
+    CONFIDENCE_MULTIPLIER: 0.3,
+    GOAL_BOOST: 0.2,
+    QUESTION_BOOST: 0.1
+};
+
+export const LM = {
+    DEFAULT_TEMPERATURE: 0.7,
+    DEFAULT_MAX_TOKENS: 1000,
+    MOCK_RESPONSE_TOKENS: 150,
+    MOCK_CONTENT_TRUNCATION: 100,
+    DEFAULT_PROVIDER: 'ollama'
+};
+
+export const TRUTH = {
+    DEFAULT_FREQUENCY: 0.5,
+    DEFAULT_CONFIDENCE: 0.9,
+    MAX_CONFIDENCE: 1.0,
+    MIN_PRIORITY: 0.0,
+    MAX_PRIORITY: 1.0
+};
+
+export const SYSTEM = {
+    DEFAULT_CYCLE_DELAY: 100,
+    DEFAULT_PRIORITY: 0.5,
+    METRIC_HISTORY_LIMIT: 1000,
+    MAX_CONCEPTS: 10000,
+    MAX_TASKS_PER_CONCEPT: 500
+};
+
+export const TASK = {
+    DEFAULT_BUDGET: 1.0,
+    DEFAULT_PRIORITY: 0.5,
+    MAX_PRIORITY: 1.0,
+    MIN_PRIORITY: 0.0
+};
+
+export const MEMORY = {
+    DEFAULT_DECAY_RATE: 0.01,
+    DEFAULT_ACTIVATION_BOOST: 0.1,
+    MAX_ACTIVATION: 1.0,
+    MIN_QUALITY: 0,
+    MAX_QUALITY: 1
+};

@@ -1,0 +1,525 @@
+import Component from '../base/Component.js';
+import { Logger } from '../base/utilities.js';
+import { DEFAULTS } from '../base/constants.js';
+
+class PlanProcessor extends Component {
+  constructor(lm = null, htnPlanner = null) {
+    super();
+    this.lm = lm;
+    this.htnPlanner = htnPlanner;
+
+    this.supportedFormats = {
+      '.md': 'markdown', '.markdown': 'markdown', '.json': 'json',
+      '.yaml': 'yaml', '.yml': 'yaml', '.txt': 'text', '.text': 'text',
+      '.js': 'javascript', '.ts': 'typescript', '.file': 'text'
+    };
+
+    this.goalPatterns = [
+      /to achieve (.+?)(?:,|\.|;)/gi, /goal(?: is to)? (.+?)(?:,|\.|;)/gi,
+      /objective(?: is)? (.+?)(?:,|\.|;)/gi, /aim(?: is to)? (.+?)(?:,|\.|;)/gi,
+      /need to (.+?)(?:,|\.|;)/gi, /want to (.+?)(?:,|\.|;)/gi,
+      /should (.+?)(?:,|\.|;)/gi, /must (.+?)(?:,|\.|;)/gi,
+      /will (.+?)(?:,|\.|;)/gi
+    ];
+
+    this.dependencyKeywords = [
+      'depends on', 'requires', 'after', 'before', 'first', 'then',
+      'once', 'when', 'if', 'prerequisite', 'precondition'
+    ];
+
+    this.config = {
+      maxGoals: DEFAULTS.PLAN_PROCESSOR_MAX_GOALS || 50,
+      confidenceThreshold: DEFAULTS.PLAN_PROCESSOR_CONFIDENCE_THRESHOLD || 0.7,
+      enableLMProcessing: DEFAULTS.PLAN_PROCESSOR_ENABLE_LM !== false
+    };
+
+    this.stats = {
+      documentsProcessed: 0, goalsExtracted: 0, goalsConverted: 0,
+      dependenciesAnalyzed: 0, lmProcessings: 0
+    };
+  }
+
+  async initialize(config = {}) {
+    await super.initialize(config);
+    Object.assign(this.config, config);
+    this.resetStats();
+  }
+
+  async processDocument(document, format = null, options = {}) {
+    const { content, detectedFormat } = await this._parseDocumentInput(document, format);
+    if (!detectedFormat) throw new Error('Document format not detected');
+
+    this.stats.documentsProcessed++;
+
+    const formatProcessors = {
+      'markdown': () => this._processMarkdown(content, options),
+      'json': () => this._processJSON(content, options),
+      'yaml': () => this._processYAML(content, options),
+      'text': () => this._processText(content, options),
+      'javascript': () => this._processText(content, options),
+      'typescript': () => this._processText(content, options)
+    };
+
+    if (!formatProcessors[detectedFormat]) throw new Error(`Unsupported format: ${detectedFormat}`);
+
+    const goals = await formatProcessors[detectedFormat]();
+    const filteredGoals = goals.filter(goal => goal.confidence >= this.config.confidenceThreshold);
+    const dependencies = await this._analyzeDependencies(filteredGoals, options);
+    const prioritizedGoals = await this._prioritizeGoals(filteredGoals, dependencies, options);
+
+    return {
+      goals: prioritizedGoals,
+      dependencies,
+      metadata: {
+        format: detectedFormat,
+        totalGoals: goals.length,
+        filteredGoals: filteredGoals.length,
+        confidenceThreshold: this.config.confidenceThreshold,
+        timestamp: Date.now()
+      }
+    };
+  }
+
+  async _parseDocumentInput(document, format) {
+    let content, detectedFormat = format;
+
+    if (typeof document === 'string') {
+      const filePathPatterns = [/^\.\//, /^\.\.\//, /^[a-zA-Z]:/, /^\//, /\//];
+      const looksLikeFilePath = filePathPatterns.some(pattern => pattern.test(document)) &&
+                               document.includes('.') && document.length > 2;
+
+      if (looksLikeFilePath) {
+        const extension = document.substring(document.lastIndexOf('.')).toLowerCase();
+        detectedFormat = detectedFormat || this.supportedFormats[extension];
+        content = await this._readDocumentFromFile(document);
+      } else {
+        content = document;
+        detectedFormat = detectedFormat || 'text';
+      }
+    } else {
+      content = JSON.stringify(document);
+      detectedFormat = detectedFormat || 'json';
+    }
+
+    return { content, detectedFormat };
+  }
+
+  async _processMarkdown(content, options) {
+    const headerGoals = this._extractFromHeaders(content, options);
+    const textGoals = await this._extractFromText(content, options);
+    return [...headerGoals, ...textGoals];
+  }
+
+  async _processJSON(content, options) {
+    let data;
+    try {
+      data = typeof content === 'string' ? JSON.parse(content) : content;
+    } catch (error) {
+      throw new Error('Invalid JSON content');
+    }
+
+    const goals = [];
+    const goalKeys = ['goal', 'goals', 'objective', 'objectives', 'task', 'tasks', 'plan', 'plans', 'todo', 'todos'];
+
+    for (const key of goalKeys) {
+      if (data[key]) {
+        goals.push(...this._extractGoalsFromJSONData(data[key], key));
+      }
+    }
+
+    return goals;
+  }
+
+  async _processYAML(content, options) {
+    const lines = content.split('\n');
+    const goals = [];
+
+    for (const line of lines) {
+      const match = line.match(/^\s*([a-zA-Z_][a-zA-Z0-9_-]*):\s*(.+)$/);
+      if (match) {
+        const key = match[1].toLowerCase();
+        const value = match[2].trim();
+
+        if (['goal', 'objective', 'task', 'todo', 'plan'].includes(key)) {
+          goals.push({
+            text: value,
+            source: `YAML:${key}`,
+            confidence: 0.8,
+            priority: 0.5,
+            timestamp: Date.now()
+          });
+        }
+      }
+    }
+
+    const textGoals = await this._extractFromText(content, options);
+    return [...goals, ...textGoals];
+  }
+
+  async _processText(content, options) {
+    return await this._extractFromText(content, options);
+  }
+
+  _extractFromHeaders(content, options) {
+    const goals = [];
+    const headerRegex = /^(#{1,6})\s+(.+)$/gm;
+
+    for (const match of content.matchAll(headerRegex)) {
+      const level = match[1].length;
+      const headerText = match[2].trim();
+      const priority = Math.max(0.1, 1.0 - (level - 1) * 0.15);
+
+      for (const pattern of this.goalPatterns) {
+        pattern.lastIndex = 0;
+        const goalMatch = pattern.exec(headerText);
+        if (goalMatch) {
+          goals.push({
+            text: goalMatch[1],
+            source: `header-level-${level}`,
+            confidence: Math.min(1.0, priority + 0.2),
+            priority,
+            timestamp: Date.now()
+          });
+          break;
+        }
+      }
+
+      if (level <= 2) {
+        goals.push({
+          text: headerText,
+          source: `header-level-${level}`,
+          confidence: priority,
+          priority,
+          timestamp: Date.now()
+        });
+      }
+    }
+
+    return goals;
+  }
+
+  async _extractFromText(content, options) {
+    const goals = [];
+    const uniqueGoals = new Map();
+    const actionWords = ['implement', 'create', 'build', 'develop', 'design', 'test', 'deploy', 'optimize'];
+
+    for (const pattern of this.goalPatterns) {
+      pattern.lastIndex = 0;
+
+      for (const match of content.matchAll(pattern)) {
+        const goalText = match[1].trim();
+        if (!goalText || uniqueGoals.has(goalText.toLowerCase())) continue;
+
+        let confidence = 0.7;
+        if (actionWords.some(word => goalText.toLowerCase().includes(word))) {
+          confidence = Math.min(1.0, confidence + 0.15);
+        }
+
+        const goal = {
+          text: goalText,
+          source: 'pattern_match',
+          confidence,
+          priority: 0.5,
+          timestamp: Date.now()
+        };
+
+        goals.push(goal);
+        uniqueGoals.set(goalText.toLowerCase(), goal);
+      }
+    }
+
+    if (this.lm && this.config.enableLMProcessing) {
+      return await this._extractWithLM(content, goals, options);
+    }
+
+    return goals;
+  }
+
+  async _extractWithLM(content, existingGoals, options) {
+    this.stats.lmProcessings++;
+
+    try {
+      const prompt = `Extract specific, actionable goals from: ${content}
+Return as JSON array with text, confidence, priority fields.`;
+
+      const response = await this.lm.generateText(prompt, { temperature: 0.3, maxTokens: 500 });
+      const extractedGoals = this._parseJSONResponse(response) || [];
+
+      const processedGoals = extractedGoals.map(goal => ({
+        text: goal.text,
+        source: 'lm_extraction',
+        confidence: goal.confidence || 0.8,
+        priority: goal.priority || 0.5,
+        timestamp: Date.now()
+      }));
+
+      const allGoals = [...existingGoals];
+      const textSet = new Set(existingGoals.map(g => g.text.toLowerCase()));
+
+      for (const goal of processedGoals) {
+        if (!textSet.has(goal.text.toLowerCase())) {
+          allGoals.push(goal);
+          textSet.add(goal.text.toLowerCase());
+        }
+      }
+
+      this.stats.goalsExtracted += processedGoals.length;
+      return allGoals;
+    } catch (error) {
+      Logger.error('LM extraction failed', error);
+      return existingGoals;
+    }
+  }
+
+  async _readDocumentFromFile(filePath) {
+    const fs = await import('fs/promises');
+    try {
+      return await fs.readFile(filePath, 'utf8');
+    } catch (error) {
+      throw new Error(`Failed to read file ${filePath}: ${error.message}`);
+    }
+  }
+
+  _parseJSONResponse(response) {
+    try {
+      const jsonStart = response.indexOf('[');
+      const jsonEnd = response.lastIndexOf(']') + 1;
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        return JSON.parse(response.substring(jsonStart, jsonEnd));
+      }
+      const cleaned = response.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(cleaned);
+    } catch (error) {
+      Logger.warn('JSON parsing failed', error);
+      return null;
+    }
+  }
+
+  _extractGoalsFromJSONData(data, parentKey = '') {
+    const goals = [];
+
+    if (Array.isArray(data)) {
+      for (const item of data) {
+        goals.push(...this._extractGoalsFromJSONData(item, parentKey));
+      }
+    } else if (typeof data === 'object' && data !== null) {
+      for (const [key, value] of Object.entries(data)) {
+        if (typeof value === 'string') {
+          for (const pattern of this.goalPatterns) {
+            pattern.lastIndex = 0;
+            const match = pattern.exec(value);
+            if (match) {
+              goals.push({
+                text: match[1],
+                source: `JSON:${parentKey}.${key}`,
+                confidence: 0.8,
+                priority: 0.5,
+                timestamp: Date.now()
+              });
+              break;
+            }
+          }
+
+          if (['name', 'description', 'title'].includes(key.toLowerCase())) {
+            goals.push({
+              text: value,
+              source: `JSON:${parentKey}.${key}`,
+              confidence: 0.6,
+              priority: 0.5,
+              timestamp: Date.now()
+            });
+          }
+        } else {
+          goals.push(...this._extractGoalsFromJSONData(value, `${parentKey}.${key}`));
+        }
+      }
+    } else if (typeof data === 'string') {
+      for (const pattern of this.goalPatterns) {
+        pattern.lastIndex = 0;
+        const match = pattern.exec(data);
+        if (match) {
+          goals.push({
+            text: match[1],
+            source: `JSON:${parentKey}`,
+            confidence: 0.7,
+            priority: 0.5,
+            timestamp: Date.now()
+          });
+          break;
+        }
+      }
+    }
+
+    return goals;
+  }
+
+  async _analyzeDependencies(goals, options) {
+    this.stats.dependenciesAnalyzed++;
+    const dependencies = {};
+
+    for (let i = 0; i < goals.length; i++) {
+      const goalA = goals[i];
+      dependencies[goalA.text] = [];
+
+      for (let j = 0; j < goals.length; j++) {
+        if (i === j) continue;
+        const goalB = goals[j];
+
+        if (this._checkDependency(goalA.text, goalB.text)) {
+          dependencies[goalA.text].push(goalB.text);
+        }
+      }
+    }
+
+    if (this.lm && this.config.enableLMProcessing) {
+      return await this._analyzeDependenciesWithLM(goals, dependencies, options);
+    }
+
+    return dependencies;
+  }
+
+  _checkDependency(goalA, goalB) {
+    const goalLowerA = goalA.toLowerCase();
+    const goalLowerB = goalB.toLowerCase();
+
+    for (const keyword of this.dependencyKeywords) {
+      if (goalLowerA.includes(keyword) && goalLowerB.includes(keyword.split(' ')[0])) {
+        return true;
+      }
+    }
+
+    const wordsA = goalLowerA.split(/\s+/);
+    const wordsB = goalLowerB.split(/\s+/);
+    const commonWords = wordsA.filter(word =>
+      wordsB.includes(word) &&
+      !['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'].includes(word)
+    );
+
+    return commonWords.length >= 2;
+  }
+
+  async _analyzeDependenciesWithLM(goals, existingDependencies, options) {
+    this.stats.lmProcessings++;
+
+    try {
+      const goalsText = goals.map((g, i) => `Goal ${i + 1}: ${g.text}`).join('\n');
+      const prompt = `Analyze dependencies between goals: ${goalsText}
+Return as JSON object mapping goals to their dependencies array.`;
+
+      const response = await this.lm.generateText(prompt, { temperature: 0.2, maxTokens: 600 });
+      const dependencyAnalysis = this._parseJSONResponse(response) || {};
+
+      const finalDependencies = { ...existingDependencies };
+      for (const [goal, deps] of Object.entries(dependencyAnalysis)) {
+        if (Array.isArray(deps)) {
+          const actualGoal = goals.find(g => g.text.includes(goal) || goal.includes(g.text));
+          if (actualGoal) {
+            finalDependencies[actualGoal.text] = deps;
+          } else {
+            finalDependencies[goal] = deps;
+          }
+        }
+      }
+
+      return finalDependencies;
+    } catch (error) {
+      Logger.error('LM dependency analysis failed', error);
+      return existingDependencies;
+    }
+  }
+
+  async _prioritizeGoals(goals, dependencies, options) {
+    if (this.htnPlanner) {
+      for (const goal of goals) {
+        try {
+          const complexity = this._estimateGoalComplexity(goal.text, dependencies);
+          goal.priority = Math.max(0.1, Math.min(1.0, 1.0 - (complexity * 0.3) + (goal.confidence * 0.4)));
+        } catch (error) {
+          goal.priority = goal.priority || 0.5;
+        }
+      }
+    }
+
+    return goals.sort((a, b) => b.priority - a.priority);
+  }
+
+  _estimateGoalComplexity(goalText, dependencies) {
+    let complexity = 0.5;
+    const dependencyCount = dependencies[goalText]?.length || 0;
+    complexity += (dependencyCount * 0.2);
+
+    if (goalText.length > 100) complexity += 0.2;
+
+    const technicalKeywords = ['implement', 'develop', 'build', 'integrate', 'refactor', 'optimize', 'debug'];
+    if (technicalKeywords.some(keyword => goalText.toLowerCase().includes(keyword))) {
+      complexity += 0.2;
+    }
+
+    return Math.min(1.0, complexity);
+  }
+
+  convertGoalsToTasks(goals) {
+    const tasks = [];
+
+    for (const goal of goals) {
+      tasks.push({
+        term: `({SELF} * {${this._sanitizeTerm(goal.text)}})`,
+        type: 'goal',
+        punctuation: '!',
+        truth: { frequency: goal.confidence, confidence: 0.9 },
+        priority: goal.priority,
+        creationTime: goal.timestamp,
+        source: goal.source || 'PlanProcessor',
+        metadata: {
+          originalText: goal.text,
+          extractedFrom: goal.source,
+          confidence: goal.confidence
+        }
+      });
+
+      this.stats.goalsConverted++;
+    }
+
+    return tasks;
+  }
+
+  _sanitizeTerm(text) {
+    return text
+      .replace(/[(){}<>,.!?]/g, '_')
+      .replace(/\s+/g, '_')
+      .substring(0, 50)
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+  }
+
+  async processToTasks(document, options = {}) {
+    const result = await this.processDocument(document, null, options);
+    const tasks = this.convertGoalsToTasks(result.goals);
+
+    return {
+      tasks,
+      metadata: result.metadata,
+      dependencies: result.dependencies
+    };
+  }
+
+  getStats() {
+    return {
+      ...this.stats,
+      confidenceThreshold: this.config.confidenceThreshold,
+      maxGoals: this.config.maxGoals,
+      lmEnabled: this.config.enableLMProcessing,
+      hasLM: !!this.lm,
+      hasHTNPlanner: !!this.htnPlanner
+    };
+  }
+
+  resetStats() {
+    this.stats = {
+      documentsProcessed: 0, goalsExtracted: 0, goalsConverted: 0,
+      dependenciesAnalyzed: 0, lmProcessings: 0
+    };
+  }
+}
+
+export default PlanProcessor;
