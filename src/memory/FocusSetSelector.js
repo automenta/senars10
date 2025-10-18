@@ -28,12 +28,12 @@ export class FocusSetSelector extends ConfigurableComponent {
         if (!tasks?.length) return [];
 
         // Filter by priority threshold
-        const candidates = tasks.filter(task => task.priority >= this.getConfigValue('priorityThreshold'));
+        const candidates = tasks.filter(task => task.budget.priority >= this.getConfigValue('priorityThreshold'));
         if (!candidates.length) return [];
 
         // Calculate normalization factors
-        const maxUrgency = Math.max(...candidates.map(task => currentTime - task.stamp.occurrenceTime));
-        const maxComplexity = Math.max(...candidates.map(task => task.term.complexity));
+        const maxUrgency = Math.max(...candidates.map(task => currentTime - task.stamp.creationTime));
+        const maxComplexity = Math.max(...candidates.map(task => task.term.complexity || 1));
 
         // Calculate composite scores
         const scoredTasks = candidates.map(task => ({
@@ -53,10 +53,10 @@ export class FocusSetSelector extends ConfigurableComponent {
      * @private
      */
     _calculateCompositeScore(task, currentTime, maxUrgency, maxComplexity) {
-        const urgency = maxUrgency > 0 ? (currentTime - task.stamp.occurrenceTime) / maxUrgency : 0;
-        const diversity = maxComplexity > 0 ? task.term.complexity / maxComplexity : 0;
+        const urgency = maxUrgency > 0 ? (currentTime - task.stamp.creationTime) / maxUrgency : 0;
+        const diversity = maxComplexity > 0 ? (task.term.complexity || 1) / maxComplexity : 0;
 
-        return task.priority * this.getConfigValue('priorityWeight') +
+        return task.budget.priority * this.getConfigValue('priorityWeight') +
             urgency * this.getConfigValue('urgencyWeight') +
             diversity * this.getConfigValue('diversityWeight');
     }

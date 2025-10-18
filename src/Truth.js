@@ -3,122 +3,75 @@ import {clamp} from './util/common.js';
 
 export class Truth {
     constructor(f = TRUTH.DEFAULT_FREQUENCY, c = TRUTH.DEFAULT_CONFIDENCE) {
-        this._f = clamp(f, 0, 1);
-        this._c = clamp(c, 0, 1);
+        this.f = clamp(f, 0, 1);
+        this.c = clamp(c, 0, 1);
         Object.freeze(this);
     }
 
-    get f() {
-        return this._f;
+    static op(t1, t2, opFn) {
+        return (t1 && t2) ? opFn(t1, t2) : null;
     }
 
-    get c() {
-        return this._c;
+    static unaryOp(truth, opFn) {
+        return truth ? opFn(truth) : null;
     }
 
-    static _applyOperation(t1, t2, operation) {
-        return t1 && t2 ? operation(t1, t2) : null;
-    }
-
-    static _applyUnaryOperation(truth, operation) {
-        return truth ? operation(truth) : null;
-    }
-
-    static _applyBinaryTruthFunction(t1, t2, fFn, cFn) {
-        if (!t1 || !t2) return null;
-        return new Truth(fFn(t1, t2), cFn(t1, t2));
-    }
-
-    // Truth value operations
-    static deduction(t1, t2) {
-        return this._applyOperation(t1, t2, (t1, t2) => new Truth(t1.f * t2.f, t1.c * t2.c));
-    }
-
-    static induction(t1, t2) {
-        return this._applyOperation(t1, t2, (t1, t2) => new Truth(t1.f, this._weak(t1.c * t2.c) * t2.f));
-    }
-
-    static abduction(t1, t2) {
-        return this._applyOperation(t1, t2, (t1, t2) => new Truth(t2.f, this._weak(t1.c * t2.c) * t1.f));
-    }
-
-    static detachment(t1, t2) {
-        return this._applyOperation(t1, t2, (t1, t2) => new Truth(t2.f, (t1.c * t2.c) * t1.f));
-    }
+    static deduction = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(t.f * u.f, t.c * u.c));
+    static induction = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(u.f, Truth.weak(t.c * u.c) * t.f));
+    static abduction = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(t.f, Truth.weak(t.c * u.c) * u.f));
+    static detachment = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(u.f, t.f * t.c * u.c));
 
     static revision(t1, t2) {
         if (!t1 || !t2) return t1 || t2;
         const {f: f1, c: c1} = t1, {f: f2, c: c2} = t2;
-        return new Truth((f1 * c1 + f2 * c2) / (c1 + c2), Math.min(1.0, c1 + c2));
+        const c_sum = c1 + c2;
+        return new Truth(
+            c_sum > 0 ? (f1 * c1 + f2 * c2) / c_sum : 0,
+            clamp(c_sum, 0, 1)
+        );
     }
 
-    static negation(truth) {
-        return this._applyUnaryOperation(truth, t => new Truth(1 - t.f, t.c));
-    }
-
-    static expectation(truth) {
-        return truth ? truth.f * truth.c : 0;
-    }
-
-    // Additional truth functions
-    static exemplification(t1, t2) {
-        return this._applyBinaryTruthFunction(t1, t2,
-            (t1, t2) => this._averageFrequency(t1.f, t2.f),
-            (t1, t2) => this._combineConfidence(t1.c, t2.c));
-    }
+    static negation = (t) => Truth.unaryOp(t, (t) => new Truth(1 - t.f, t.c));
+    static expectation = (t) => t ? t.f * t.c : 0;
 
     static comparison(t1, t2) {
-        return this._applyOperation(t1, t2, (t1, t2) => {
-            const {f: f1, c: c1} = t1, {f: f2, c: c2} = t2;
+        return Truth.op(t1, t2, (t, u) => {
+            const f_prod = t.f * u.f;
             return new Truth(
-                this._safeDivide(f1 * f2, f1 * f2 + (1 - f1) * (1 - f2)), 
-                this._combineConfidence(c1, c2)
-            );
-        });
-    }
-
-    static contraposition(t1, t2) {
-        return this._applyOperation(t1, t2, (t1, t2) => {
-            const {f: f1, c: c1} = t1, {f: f2, c: c2} = t2;
-            return new Truth(
-                this._safeDivide(f2 * (1 - f1), f2 * (1 - f1) + (1 - f2) * f1),
-                this._combineConfidence(c1, c2)
+                Truth.safeDiv(f_prod, f_prod + (1 - t.f) * (1 - u.f)),
+                t.c * u.c
             );
         });
     }
 
     static analogy(t1, t2) {
-        return this._applyOperation(t1, t2, (t1, t2) => {
-            const {f: f1, c: c1} = t1, {f: f2, c: c2} = t2;
-            const f = (f1 * f2 + (1 - f1) * (1 - f2)) / (f1 + f2);
-            return new Truth(this._safeDivide(f, 1), this._combineConfidence(c1, c2));
+        return Truth.op(t1, t2, (t, u) => new Truth(t.f * u.f, t.c * u.c * u.f));
+    }
+
+    static resemblance = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth((t.f + u.f) / 2, t.c * u.c));
+
+    static contraposition(t1, t2) {
+        return Truth.op(t1, t2, (t, u) => {
+            const f_contra = u.f * (1 - t.f);
+            return new Truth(
+                Truth.safeDiv(f_contra, f_contra + (1 - u.f) * t.f),
+                t.c * u.c
+            );
         });
     }
 
-    static resemblance(t1, t2) {
-        return this._applyBinaryTruthFunction(t1, t2,
-            (t1, t2) => this._averageFrequency(t1.f, t2.f),
-            (t1, t2) => this._combineConfidence(t1.c, t2.c));
-    }
-
-    static isMoreConfident = (t1, t2) => t1 && t2 && t1.c > t2.c;
-
     static isStronger = (t1, t2) => Truth.expectation(t1) > Truth.expectation(t2);
 
-    // Helper functions
-    static _combineConfidence = (c1, c2) => Math.min(c1, c2);
-    static _averageFrequency = (f1, f2) => clamp((f1 + f2) / 2, 0, 1);
-    static _safeDivide = (numerator, denominator) =>
-        denominator === 0 ? TRUTH.DEFAULT_FREQUENCY : clamp(numerator / denominator, 0, 1);
-    static _weak = (c) => clamp(c / (c + 1.0), 0, 1);
+    static weak = (c) => clamp(c / (c + TRUTH.WEAKENING_FACTOR), 0, 1);
+    static safeDiv = (num, den) => den === 0 ? 0 : clamp(num / den, 0, 1);
 
     equals(other) {
         return other instanceof Truth &&
-            Math.abs(this.f - other.f) < 1e-10 &&
-            Math.abs(this.c - other.c) < 1e-10;
+            Math.abs(this.f - other.f) < TRUTH.EPSILON &&
+            Math.abs(this.c - other.c) < TRUTH.EPSILON;
     }
 
     toString() {
-        return `%${this.f.toFixed(2)};${this.c.toFixed(2)}%`;
+        return `%${this.f.toFixed(TRUTH.PRECISION)};${this.c.toFixed(TRUTH.PRECISION)}%`;
     }
 }

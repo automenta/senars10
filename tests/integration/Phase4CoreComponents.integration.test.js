@@ -43,22 +43,22 @@ describe('Phase 4 Core Components Integration', () => {
     });
 
     test('Task should be created with proper validation', () => {
-        const testTerm = termFactory.create('dog');
+        const testTerm = termFactory.create({name: 'dog'});
         const testTruth = new Truth(0.9, 0.8);
-        const testTask = new Task(testTerm, '.', testTruth, 0.8);
+        const testTask = new Task({term: testTerm, punctuation: '.', truth: testTruth, budget: {priority: 0.8}});
 
         expect(testTask).toBeDefined();
         expect(testTask.term).toBe(testTerm);
         expect(testTask.type).toBe('BELIEF');
         expect(testTask.truth).toBe(testTruth);
-        expect(testTask.priority).toBe(0.8);
+        expect(testTask.budget.priority).toBe(0.8);
         expect(testTask.toString()).toContain('dog.');
     });
 
     test('Memory should handle proper configuration and task operations', () => {
-        const testTerm = termFactory.create('dog');
+        const testTerm = termFactory.create({name: 'dog'});
         const testTruth = new Truth(0.9, 0.8);
-        const testTask = new Task(testTerm, '.', testTruth, 0.8);
+        const testTask = new Task({term: testTerm, punctuation: '.', truth: testTruth, budget: {priority: 0.8}});
 
         const memory = new Memory({priorityThreshold: 0.5});
 
@@ -111,12 +111,12 @@ describe('Phase 4 Core Components Integration', () => {
 
     test('Integration of all core components should work together', () => {
         // Create terms
-        const subjectTerm = termFactory.create('dog');
-        const predicateTerm = termFactory.create('animal');
+        const subjectTerm = termFactory.create({name: 'dog'});
+        const predicateTerm = termFactory.create({name: 'animal'});
         const inheritanceTerm = termFactory.create({operator: '-->', components: [subjectTerm, predicateTerm]});
 
         // Create task
-        const task = new Task(inheritanceTerm, '.', new Truth(0.9, 0.8), 0.7);
+        const task = new Task({term: inheritanceTerm, punctuation: '.', truth: new Truth(0.9, 0.8), budget: {priority: 0.7}});
 
         // Create memory and add task
         const memory = new Memory({priorityThreshold: 0.5});
@@ -130,7 +130,7 @@ describe('Phase 4 Core Components Integration', () => {
 
         // Verify through focus as well
         const focus = new Focus({defaultFocusSetSize: 5});
-        const wasAddedToFocus = focus.addTaskToFocus(task, 0.7);
+        const wasAddedToFocus = focus.addTaskToFocus(task);
         expect(wasAddedToFocus).toBe(true);
     });
 });

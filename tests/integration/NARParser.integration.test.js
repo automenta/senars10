@@ -1,4 +1,5 @@
 import {NAR} from '../../src/nar/NAR.js';
+import {Truth} from '../../src/Truth.js';
 
 describe('NAR Parser Integration', () => {
     let nar;
@@ -49,7 +50,7 @@ describe('NAR Parser Integration', () => {
             expect(result).toBe(true);
 
             const beliefs = nar.getBeliefs();
-            expect(beliefs[0].truthValue).toEqual({frequency: 1.00, confidence: 0.90});
+            expect(beliefs[0].truth).toEqual(new Truth(1.00, 0.90));
         });
 
         test('accepts compound inheritance statements', async () => {
@@ -131,9 +132,9 @@ describe('NAR Parser Integration', () => {
             const beliefs = nar.getBeliefs();
             expect(beliefs[0]).toHaveProperty('term');
             expect(beliefs[0]).toHaveProperty('type');
-            expect(beliefs[0]).toHaveProperty('truthValue');
+            expect(beliefs[0]).toHaveProperty('truth');
             expect(beliefs[0]).toHaveProperty('stamp');
-            expect(beliefs[0]).toHaveProperty('creationTime');
+            expect(beliefs[0].stamp).toHaveProperty('creationTime');
         });
 
         test('processes tasks through reasoning cycle', async () => {

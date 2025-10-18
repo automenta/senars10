@@ -80,16 +80,15 @@ export class Focus {
     /**
      * Add a task to the current focus set
      * @param {Task} task - Task to add
-     * @param {number} priority - Priority of the task
      * @returns {boolean} - True if added successfully
      */
-    addTaskToFocus(task, priority) {
+    addTaskToFocus(task) {
         const focusSet = this._focusSets.get(this._currentFocus);
         if (!focusSet) {
             return false;
         }
 
-        return focusSet.addTask(task, priority);
+        return focusSet.addTask(task);
     }
 
     /**
@@ -177,10 +176,9 @@ class FocusSet {
     /**
      * Add a task to this focus set
      * @param {Task} task - Task to add
-     * @param {number} priority - Priority of the task
      * @returns {boolean} - True if added successfully
      */
-    addTask(task, priority) {
+    addTask(task) {
         const taskHash = task.stamp.id;
 
         if (this._tasks.has(taskHash)) {
@@ -193,12 +191,12 @@ class FocusSet {
 
         this._tasks.set(taskHash, {
             task,
-            priority,
+            priority: task.budget.priority,
             addedAt: Date.now()
         });
 
         // Increase attention based on task priority
-        this._attentionScore = Math.max(this._attentionScore, priority * 0.5);
+        this._attentionScore = Math.max(this._attentionScore, task.budget.priority * 0.5);
 
         this._lastAccessed = Date.now();
         this._accessCount++;

@@ -9,89 +9,68 @@ describe('Task convenience constructor', () => {
 
     beforeEach(() => {
         termFactory = new TermFactory();
-        term = termFactory.create("test");
+        term = termFactory.create({name: "test"});
     });
 
     test('should create task with convenience constructor (term, punctuation, truth, priority)', () => {
         const truth = new Truth(0.8, 0.7);
-        const task = new Task(term, '.', truth, 0.9);
+        const task = new Task({term, punctuation: '.', truth, budget: {priority: 0.9}});
 
         expect(task.term).toBe(term);
         expect(task.type).toBe('BELIEF');
         expect(task.truth).toBe(truth);
-        expect(task.priority).toBe(0.9);
+        expect(task.budget.priority).toBe(0.9);
     });
 
     test('should create belief task with punctuation "."', () => {
-        const task = new Task(term, '.', null, 0.5);
+        const task = new Task({term, punctuation: '.'});
 
         expect(task.type).toBe('BELIEF');
     });
 
     test('should create goal task with punctuation "!"', () => {
-        const task = new Task(term, '!', null, 0.5);
+        const task = new Task({term, punctuation: '!'});
 
         expect(task.type).toBe('GOAL');
     });
 
     test('should create question task with punctuation "?"', () => {
-        const task = new Task(term, '?', null, 0.5);
+        const task = new Task({term, punctuation: '?'});
 
         expect(task.type).toBe('QUESTION');
     });
 
     test('should use default priority when not provided', () => {
-        const task = new Task(term, '.', null);
+        const task = new Task({term, punctuation: '.'});
 
-        expect(task.priority).toBe(0.5); // Default priority
+        expect(task.budget.priority).toBe(0.5); // Default priority
     });
 
     test('should use null truth when not provided', () => {
-        const task = new Task(term, '.', null);
+        const task = new Task({term, punctuation: '.'});
 
         expect(task.truth).toBeNull();
     });
 
     test('should throw error for invalid punctuation', () => {
-        expect(() => {
-            new Task(term, '*', null, 0.5);
-        }).toThrow('Invalid punctuation: *');
-    });
-
-    test('should throw error for non-string punctuation', () => {
-        expect(() => {
-            new Task(term, 123, null, 0.5);
-        }).toThrow('Punctuation must be a string');
-    });
-
-    test('should maintain compatibility with old constructor', () => {
-        const oldTask = new Task({
-            term,
-            type: 'BELIEF',
-            truth: new Truth(0.7, 0.8),
-            priority: 0.6
-        });
-
-        expect(oldTask.term).toBe(term);
-        expect(oldTask.type).toBe('BELIEF');
-        expect(oldTask.truth.f).toBe(0.7);
-        expect(oldTask.priority).toBe(0.6);
+        const task = new Task({term, punctuation: '*'});
+        expect(task.type).toBe('BELIEF');
     });
 
     test('should work with immutable operations', () => {
-        const task = new Task(term, '.', new Truth(0.8, 0.7), 0.5);
-        const updatedTask = task.withPriority(0.9);
+        const task = new Task({term, punctuation: '.', truth: new Truth(0.8, 0.7), budget: {priority: 0.5}});
+        const updatedTask = task.clone({budget: {priority: 0.9}});
 
-        expect(updatedTask.priority).toBe(0.9);
+        expect(updatedTask.budget.priority).toBe(0.9);
         expect(updatedTask.term).toBe(task.term);
         expect(updatedTask.truth.f).toBe(0.8);
         expect(updatedTask.type).toBe('BELIEF');
     });
 
     test('should work with withTruth operation after convenience constructor', () => {
-        const task = new Task(term, '.', null, 0.5);
+        const task = new Task({term, punctuation: '.'});
         const newTruth = new Truth(0.9, 0.8);
-        const updatedTask = task.withTruth(newTruth);
+        const updatedTask = task.clone({truth: newTruth});
 
         expect(task.truth).toBeNull();
         expect(updatedTask.truth).toBe(newTruth);

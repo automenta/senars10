@@ -28,7 +28,7 @@ describe('Concept', () => {
     });
 
     test('should add a task correctly', () => {
-        const task = new Task(term, '.', new Truth(0.9, 0.8));
+        const task = new Task({term, punctuation: '.', truth: new Truth(0.9, 0.8)});
         const added = concept.addTask(task);
         expect(added).toBe(true);
         expect(concept.totalTasks).toBe(1);
@@ -36,7 +36,7 @@ describe('Concept', () => {
     });
 
     test('should not add a duplicate task', () => {
-        const task = new Task(term, '.', new Truth(0.9, 0.8));
+        const task = new Task({term, punctuation: '.', truth: new Truth(0.9, 0.8)});
         concept.addTask(task);
         const added = concept.addTask(task);
         expect(added).toBe(false);
@@ -44,8 +44,8 @@ describe('Concept', () => {
     });
 
     test('should retrieve tasks by type', () => {
-        const belief = new Task(term, '.', new Truth(0.9, 0.8));
-        const goal = new Task(term, '!');
+        const belief = new Task({term, punctuation: '.', truth: new Truth(0.9, 0.8)});
+        const goal = new Task({term, punctuation: '!'});
         concept.addTask(belief);
         concept.addTask(goal);
         const beliefs = concept.getTasksByType('BELIEF');
@@ -54,7 +54,7 @@ describe('Concept', () => {
     });
 
     test('should remove a task correctly', () => {
-        const task = new Task(term, '.', new Truth(0.9, 0.8));
+        const task = new Task({term, punctuation: '.', truth: new Truth(0.9, 0.8)});
         concept.addTask(task);
         const removed = concept.removeTask(task);
         expect(removed).toBe(true);
@@ -89,8 +89,8 @@ describe('Concept', () => {
     });
 
     test('should return correct average priority', () => {
-        const task1 = new Task(term, '.', null, 0.8);
-        const task2 = new Task(term, '.', null, 0.6);
+        const task1 = new Task({term, budget: {priority: 0.8}});
+        const task2 = new Task({term, budget: {priority: 0.6}});
         concept.addTask(task1);
         concept.addTask(task2);
         expect(concept.averagePriority).toBe(0.7);

@@ -33,8 +33,8 @@ describe('Memory', () => {
         const task = new Task({
             term,
             truth: {frequency: 0.9, confidence: 0.8},
-            type: 'BELIEF',
-            priority: 0.7
+            punctuation: '.',
+            budget: {priority: 0.7}
         });
 
         const added = memory.addTask(task);
@@ -52,14 +52,14 @@ describe('Memory', () => {
         const task1 = new Task({
             term,
             truth: {frequency: 0.9, confidence: 0.8},
-            type: 'BELIEF',
-            priority: 0.7
+            punctuation: '.',
+            budget: {priority: 0.7}
         });
         const task2 = new Task({
             term,
             truth: {frequency: 0.8, confidence: 0.7},
-            type: 'BELIEF',
-            priority: 0.6
+            punctuation: '.',
+            budget: {priority: 0.6}
         });
 
         memory.addTask(task1);
@@ -74,7 +74,7 @@ describe('Memory', () => {
         const task = new Task({
             term,
             truth: {frequency: 0.9, confidence: 0.8},
-            type: 'BELIEF'
+            punctuation: '.'
         });
 
         memory.addTask(task);
@@ -113,13 +113,13 @@ describe('Memory', () => {
 
         const highPriorityTask = new Task({
             term: termA,
-            type: 'BELIEF',
-            priority: 0.8
+            punctuation: '.',
+            budget: {priority: 0.8}
         });
         const lowPriorityTask = new Task({
             term: termB,
-            type: 'BELIEF',
-            priority: 0.3
+            punctuation: '.',
+            budget: {priority: 0.3}
         });
 
         memory.addTask(highPriorityTask);
@@ -138,8 +138,8 @@ describe('Memory', () => {
         const termA = newAtom('A');
         const termB = newAtom('B');
 
-        const taskA = new Task({term: termA, type: 'BELIEF', priority: 0.9});
-        const taskB = new Task({term: termB, type: 'BELIEF', priority: 0.7});
+        const taskA = new Task({term: termA, punctuation: '.', budget: {priority: 0.9}});
+        const taskB = new Task({term: termB, punctuation: '.', budget: {priority: 0.7}});
 
         memory.addTask(taskA);
         memory.addTask(taskB);
@@ -152,8 +152,8 @@ describe('Memory', () => {
         const term = newAtom('A');
         const task = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.8
+            punctuation: '.',
+            budget: {priority: 0.8}
         });
 
         memory.addTask(task);
@@ -177,8 +177,8 @@ describe('Memory', () => {
         const term = newAtom('A');
         const task = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.8
+            punctuation: '.',
+            budget: {priority: 0.8}
         });
 
         memory.addTask(task);
@@ -194,8 +194,8 @@ describe('Memory', () => {
         const term = newAtom('A');
         const task = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.8
+            punctuation: '.',
+            budget: {priority: 0.8}
         });
 
         memory.addTask(task);
@@ -212,8 +212,8 @@ describe('Memory', () => {
         const term = newAtom('A');
         const task = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.8
+            punctuation: '.',
+            budget: {priority: 0.8}
         });
 
         memory.addTask(task);
@@ -230,8 +230,8 @@ describe('Memory', () => {
         const term = newAtom('A');
         const task = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.8
+            punctuation: '.',
+            budget: {priority: 0.8}
         });
 
         memory.addTask(task);
@@ -248,8 +248,8 @@ describe('Memory', () => {
         const term = newAtom('A');
         const task = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.8
+            punctuation: '.',
+            budget: {priority: 0.8}
         });
 
         memory.addTask(task);
@@ -269,7 +269,7 @@ describe('Memory', () => {
 
         expect(memory.hasConcept(term)).toBe(false);
 
-        memory.addTask(new Task({term, type: 'BELIEF'}));
+        memory.addTask(new Task({term, punctuation: '.'}));
         expect(memory.hasConcept(term)).toBe(true);
         expect(memory.hasConcept(nonExistentTerm)).toBe(false);
     });
@@ -278,7 +278,7 @@ describe('Memory', () => {
         expect(memory.getTotalTaskCount()).toBe(0);
 
         const term = newAtom('A');
-        const task = new Task({term, type: 'BELIEF'});
+        const task = new Task({term, punctuation: '.'});
 
         memory.addTask(task);
         expect(memory.getTotalTaskCount()).toBe(1);
@@ -290,13 +290,13 @@ describe('Memory', () => {
 
         const highPriorityTask = new Task({
             term: termA,
-            type: 'BELIEF',
-            priority: 0.8 // Above threshold
+            punctuation: '.',
+            budget: {priority: 0.8} // Above threshold
         });
         const lowPriorityTask = new Task({
             term: termB,
-            type: 'BELIEF',
-            priority: 0.3 // Below threshold
+            punctuation: '.',
+            budget: {priority: 0.3} // Below threshold
         });
 
         memory.addTask(highPriorityTask);

@@ -1,55 +1,75 @@
-import {ArrayStamp, BloomStamp, Stamp} from '../../src/Stamp.js';
+import {Stamp} from '../../src/Stamp.js';
 
 describe('Stamp', () => {
-    test('should not allow instantiation of the abstract Stamp class', () => {
-        expect(() => new Stamp()).toThrow("Abstract classes can't be instantiated.");
-    });
+    let stamp;
 
-    describe('ArrayStamp', () => {
-        let stamp1;
-
-        beforeEach(() => {
-            stamp1 = new ArrayStamp('s1', 12345, 'INPUT');
-        });
-
-        test('should create an ArrayStamp instance', () => {
-            expect(stamp1).toBeInstanceOf(ArrayStamp);
-            expect(stamp1.id).toBe('s1');
-            expect(stamp1.occurrenceTime).toBe(12345);
-            expect(stamp1.source).toBe('INPUT');
-            expect(stamp1.derivations).toEqual([]);
-        });
-
-        test('should be immutable', () => {
-            expect(() => {
-                stamp1.id = 's2';
-            }).toThrow();
-            expect(() => {
-                stamp1.derivations.push('s3');
-            }).toThrow();
-        });
-
-        test('should correctly derive a new stamp', () => {
-            const stamp2 = new ArrayStamp('s2', 12346, 'INPUT');
-            const derivedStamp = ArrayStamp.derive([stamp1, stamp2]);
-
-            expect(derivedStamp).toBeInstanceOf(ArrayStamp);
-            expect(derivedStamp.source).toBe('INFERENCE');
-            expect(derivedStamp.derivations).toContain('s1');
-            expect(derivedStamp.derivations).toContain('s2');
-        });
-
-        test('should correctly check for equality', () => {
-            const stamp1_clone = new ArrayStamp('s1', 12345, 'INPUT');
-            const stamp2 = new ArrayStamp('s2', 12345, 'INPUT');
-            expect(stamp1.equals(stamp1_clone)).toBe(true);
-            expect(stamp1.equals(stamp2)).toBe(false);
+    beforeEach(() => {
+        stamp = new Stamp({
+            id: 'test-id',
+            creationTime: 12345,
+            source: 'INPUT',
+            derivations: ['d1', 'd2'],
         });
     });
 
-    describe('BloomStamp', () => {
-        test('should be an incomplete placeholder', () => {
-            expect(() => new BloomStamp()).toThrow('BloomStamp is not yet implemented.');
-        });
+    test('should create a Stamp instance with specified properties', () => {
+        expect(stamp).toBeInstanceOf(Stamp);
+        expect(stamp.id).toBe('test-id');
+        expect(stamp.creationTime).toBe(12345);
+        expect(stamp.source).toBe('INPUT');
+        expect(stamp.derivations).toEqual(['d1', 'd2']);
+    });
+
+    test('should be immutable', () => {
+        expect(() => {
+            stamp.id = 'new-id';
+        }).toThrow();
+        expect(() => {
+            stamp.derivations.push('d3');
+        }).toThrow();
+    });
+
+    test('should create an input stamp using static factory', () => {
+        const inputStamp = Stamp.createInput();
+        expect(inputStamp).toBeInstanceOf(Stamp);
+        expect(inputStamp.source).toBe('INPUT');
+        expect(inputStamp.derivations.length).toBe(0);
+        expect(inputStamp.creationTime).toBeCloseTo(Date.now(), -2);
+    });
+
+    test('should derive a new stamp from parents', () => {
+        const parent1 = new Stamp({id: 'p1', derivations: ['d1']});
+        const parent2 = new Stamp({id: 'p2', derivations: ['d2']});
+        const derivedStamp = Stamp.derive([parent1, parent2]);
+
+        expect(derivedStamp).toBeInstanceOf(Stamp);
+        expect(derivedStamp.source).toBe('DERIVED');
+        expect(derivedStamp.derivations).toEqual(expect.arrayContaining(['p1', 'p2', 'd1', 'd2']));
+        expect(derivedStamp.derivations.length).toBe(4);
+    });
+
+    test('should handle derivation with overlapping parent derivations', () => {
+        const parent1 = new Stamp({id: 'p1', derivations: ['d1', 'd2']});
+        const parent2 = new Stamp({id: 'p2', derivations: ['d2', 'd3']});
+        const derivedStamp = Stamp.derive([parent1, parent2]);
+
+        expect(derivedStamp.derivations).toEqual(expect.arrayContaining(['p1', 'p2', 'd1', 'd2', 'd3']));
+        expect(derivedStamp.derivations.length).toBe(5); // Set logic prevents duplicates
+    });
+
+    test('should correctly check for equality', () => {
+        const stamp1 = new Stamp({id: 's1'});
+        const stamp1Clone = new Stamp({id: 's1'});
+        const stamp2 = new Stamp({id: 's2'});
+
+        expect(stamp1.equals(stamp1Clone)).toBe(true);
+        expect(stamp1.equals(stamp2)).toBe(false);
+        expect(stamp1.equals(null)).toBe(false);
+    });
+
+    test('should generate a unique ID if none is provided', () => {
+        const stamp1 = new Stamp();
+        const stamp2 = new Stamp();
+        expect(stamp1.id).not.toBe(stamp2.id);
     });
 });

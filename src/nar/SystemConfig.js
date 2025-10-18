@@ -28,6 +28,11 @@ export class SystemConfig {
                 defaultPriority: 0.5,
                 defaultBudget: 1.0,
                 priorityThreshold: 0.1,
+                priority: {
+                    confidenceMultiplier: 0.1,
+                    goalBoost: 0.1,
+                    questionBoost: 0.05,
+                },
                 ...config.taskManager
             },
 
@@ -60,7 +65,8 @@ export class SystemConfig {
                 defaultProvider: null,
                 autoRegister: true, // Auto-register basic providers if available
                 ...config.lm
-            }
+            },
+
         };
 
         // Freeze the configuration to ensure immutability

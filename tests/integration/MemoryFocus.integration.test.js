@@ -10,7 +10,7 @@ import {MemoryIndex} from '../../src/memory/MemoryIndex.js';
 import {MemoryConsolidation} from '../../src/memory/MemoryConsolidation.js';
 import {Task} from '../../src/task/Task.js';
 import {TermFactory} from '../../src/term/TermFactory.js';
-import {ArrayStamp} from '../../src/Stamp.js';
+import {Stamp} from '../../src/Stamp.js';
 import {Concept} from '../../src/memory/Concept.js';
 
 describe('Memory and Focus Management Integration', () => {
@@ -63,17 +63,17 @@ describe('Memory and Focus Management Integration', () => {
             focus.createFocusSet('secondary', 3);
 
             // Add tasks to different focus sets
-            const term1 = termFactory.create({components: ['urgent']});
-            const term2 = termFactory.create({components: ['normal']});
+            const term1 = termFactory.create({name: 'urgent'});
+            const term2 = termFactory.create({name: 'normal'});
 
-            const urgentTask = new Task(term1, '.', null, 0.9);
-            const normalTask = new Task(term2, '.', null, 0.5);
+            const urgentTask = new Task({term: term1, punctuation: '.', budget: {priority: 0.9}});
+            const normalTask = new Task({term: term2, punctuation: '.', budget: {priority: 0.5}});
 
             focus.setFocus('primary');
-            focus.addTaskToFocus(urgentTask, 0.9);
+            focus.addTaskToFocus(urgentTask);
 
             focus.setFocus('secondary');
-            focus.addTaskToFocus(normalTask, 0.5);
+            focus.addTaskToFocus(normalTask);
 
             // Check focus set management
             const stats = focus.getStats();
@@ -91,10 +91,10 @@ describe('Memory and Focus Management Integration', () => {
             focus.createFocusSet('test-set', 5);
             focus.setFocus('test-set');
 
-            const term = termFactory.create({components: ['test']});
-            const task = new Task(term, '.', null, 0.8);
+            const term = termFactory.create({name: 'test'});
+            const task = new Task({term, punctuation: '.', budget: {priority: 0.8}});
 
-            focus.addTaskToFocus(task, 0.8);
+            focus.addTaskToFocus(task);
 
             // Check initial attention
             const initialStats = focus.getStats();
@@ -126,13 +126,13 @@ describe('Memory and Focus Management Integration', () => {
                 term: simpleTerm,
                 type: 'BELIEF',
                 priority: 0.7,
-                stamp: new ArrayStamp('recent', currentTime - 1000, 'INPUT')
+                stamp: new Stamp({id: 'recent', creationTime: currentTime - 1000, source: 'INPUT'}),
             });
             const oldTask = new Task({
                 term: complexTerm,
                 type: 'BELIEF',
                 priority: 0.5,
-                stamp: new ArrayStamp('old', currentTime - 10000, 'INPUT')
+                stamp: new Stamp({id: 'old', creationTime: currentTime - 10000, source: 'INPUT'}),
             });
 
             const tasks = [recentTask, oldTask];
@@ -153,8 +153,8 @@ describe('Memory and Focus Management Integration', () => {
         });
 
         test('should respect priority threshold in selection', () => {
-            const highPriorityTask = new Task(termFactory.create({components: ['high']}), '.', null, 0.8);
-            const lowPriorityTask = new Task(termFactory.create({components: ['low']}), '.', null, 0.1);
+            const highPriorityTask = new Task({term: termFactory.create({name: 'high'}), punctuation: '.', budget: {priority: 0.8}});
+            const lowPriorityTask = new Task({term: termFactory.create({name: 'low'}), punctuation: '.', budget: {priority: 0.1}});
 
             const selected = selector.select([highPriorityTask, lowPriorityTask], currentTime);
 
@@ -250,15 +250,15 @@ describe('Memory and Focus Management Integration', () => {
 
             // Create tasks
             const tasks = [
-                new Task(catAnimalTerm, '.', null, 0.9),
-                new Task(dogAnimalTerm, '.', null, 0.8),
-                new Task(catPetTerm, '.', null, 0.7),
-                new Task(animalMammalTerm, '.', null, 0.6)
+                new Task({term: catAnimalTerm, punctuation: '.', budget: {priority: 0.9}}),
+                new Task({term: dogAnimalTerm, punctuation: '.', budget: {priority: 0.8}}),
+                new Task({term: catPetTerm, punctuation: '.', budget: {priority: 0.7}}),
+                new Task({term: animalMammalTerm, punctuation: '.', budget: {priority: 0.6}})
             ];
 
             // Add some tasks to focus
             focus.setFocus('default');
-            tasks.slice(0, 2).forEach(task => focus.addTaskToFocus(task, task.priority));
+            tasks.slice(0, 2).forEach(task => focus.addTaskToFocus(task));
 
             // Test task selection
             const focusTasks = focus.getTasks(10);
@@ -282,8 +282,8 @@ describe('Memory and Focus Management Integration', () => {
 
             // Create many concepts
             for (let i = 0; i < 100; i++) {
-                const term = termFactory.create({components: [`concept${i}`]});
-                const task = new Task(term, '.', null, 0.5);
+                const term = termFactory.create({name: `concept${i}`});
+                const task = new Task({term, punctuation: '.', budget: {priority: 0.5}});
                 memory.addTask(task, currentTime);
             }
 
@@ -305,9 +305,9 @@ describe('Memory and Focus Management Integration', () => {
 
             // Add many tasks to focus
             for (let i = 0; i < 50; i++) {
-                const term = termFactory.create({components: [`focus_item${i}`]});
-                const task = new Task(term, '.', null, 0.5);
-                focus.addTaskToFocus(task, 0.5);
+                const term = termFactory.create({name: `focus_item${i}`});
+                const task = new Task({term, punctuation: '.', budget: {priority: 0.5}});
+                focus.addTaskToFocus(task);
             }
 
             const endTime = Date.now();
@@ -330,22 +330,22 @@ describe('Memory and Focus Management Integration', () => {
             focus.createFocusSet('small-set', 2);
             focus.setFocus('small-set');
 
-            const term1 = termFactory.create({components: ['A']});
-            const term2 = termFactory.create({components: ['B']});
-            const term3 = termFactory.create({components: ['C']});
+            const term1 = termFactory.create({name: 'A'});
+            const term2 = termFactory.create({name: 'B'});
+            const term3 = termFactory.create({name: 'C'});
 
-            const task1 = new Task(term1, '.', null, 0.8);
-            const task2 = new Task(term2, '.', null, 0.6);
-            const task3 = new Task(term3, '.', null, 0.9);
+            const task1 = new Task({term: term1, punctuation: '.', budget: {priority: 0.8}});
+            const task2 = new Task({term: term2, punctuation: '.', budget: {priority: 0.6}});
+            const task3 = new Task({term: term3, punctuation: '.', budget: {priority: 0.9}});
 
-            focus.addTaskToFocus(task1, 0.8);
-            focus.addTaskToFocus(task2, 0.6);
-            focus.addTaskToFocus(task3, 0.9);
+            focus.addTaskToFocus(task1);
+            focus.addTaskToFocus(task2);
+            focus.addTaskToFocus(task3);
 
             const tasks = focus.getTasks(10);
             expect(tasks.length).toBe(2);
             // Should contain highest priority tasks
-            expect(tasks.some(t => t === task1 || t === task3)).toBe(true);
+            expect(tasks.some(t => t.equals(task1) || t.equals(task3))).toBe(true);
         });
 
         test('should handle consolidation with no concepts', () => {

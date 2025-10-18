@@ -60,15 +60,15 @@ describe('Focus', () => {
     });
 
     test('should add tasks to current focus set', () => {
-        const term = termFactory.create({components: ['A']});
+        const term = termFactory.create({name: 'A'});
         const task = new Task({
             term,
             truth: {frequency: 0.9, confidence: 0.8},
-            type: 'BELIEF',
-            priority: 0.7
+            punctuation: '.',
+            budget: {priority: 0.7}
         });
 
-        const added = focus.addTaskToFocus(task, 0.7);
+        const added = focus.addTaskToFocus(task);
         expect(added).toBe(true);
 
         const tasks = focus.getTasks(10);
@@ -77,16 +77,16 @@ describe('Focus', () => {
     });
 
     test('should not add task with duplicate hash', () => {
-        const term = termFactory.create({components: ['A']});
+        const term = termFactory.create({name: 'A'});
         const task = new Task({
             term,
             truth: {frequency: 0.9, confidence: 0.8},
-            type: 'BELIEF',
-            priority: 0.7
+            punctuation: '.',
+            budget: {priority: 0.7}
         });
 
-        focus.addTaskToFocus(task, 0.7);
-        const addedAgain = focus.addTaskToFocus(task, 0.8);
+        focus.addTaskToFocus(task);
+        const addedAgain = focus.addTaskToFocus(task);
         expect(addedAgain).toBe(false);
 
         const tasks = focus.getTasks(10);
@@ -97,35 +97,35 @@ describe('Focus', () => {
         focus.createFocusSet('small-set', 2);
         focus.setFocus('small-set');
 
-        const term1 = termFactory.create({components: ['A']});
-        const term2 = termFactory.create({components: ['B']});
-        const term3 = termFactory.create({components: ['C']});
+        const term1 = termFactory.create({name: 'A'});
+        const term2 = termFactory.create({name: 'B'});
+        const term3 = termFactory.create({name: 'C'});
 
-        const task1 = new Task({term: term1, type: 'BELIEF', priority: 0.5});
-        const task2 = new Task({term: term2, type: 'BELIEF', priority: 0.3});
-        const task3 = new Task({term: term3, type: 'BELIEF', priority: 0.8});
+        const task1 = new Task({term: term1, punctuation: '.', budget: {priority: 0.5}});
+        const task2 = new Task({term: term2, punctuation: '.', budget: {priority: 0.3}});
+        const task3 = new Task({term: term3, punctuation: '.', budget: {priority: 0.8}});
 
-        focus.addTaskToFocus(task1, 0.5);
-        focus.addTaskToFocus(task2, 0.3);
-        focus.addTaskToFocus(task3, 0.8);
+        focus.addTaskToFocus(task1);
+        focus.addTaskToFocus(task2);
+        focus.addTaskToFocus(task3);
 
         const tasks = focus.getTasks(10);
         expect(tasks).toHaveLength(2);
-        expect(tasks[0].priority).toBe(0.8); // task3
-        expect(tasks[1].priority).toBe(0.5); // task1
+        expect(tasks[0].budget.priority).toBe(0.8); // task3
+        expect(tasks[1].budget.priority).toBe(0.5); // task1
     });
 
     test('should remove task from all focus sets', () => {
         focus.createFocusSet('set1');
         focus.createFocusSet('set2');
 
-        const term = termFactory.create({components: ['A']});
-        const task = new Task({term, type: 'BELIEF', priority: 0.7});
+        const term = termFactory.create({name: 'A'});
+        const task = new Task({term, punctuation: '.', budget: {priority: 0.7}});
 
         focus.setFocus('set1');
-        focus.addTaskToFocus(task, 0.7);
+        focus.addTaskToFocus(task);
         focus.setFocus('set2');
-        focus.addTaskToFocus(task, 0.7);
+        focus.addTaskToFocus(task);
 
         const removed = focus.removeTaskFromFocus(task.stamp.id);
         expect(removed).toBe(true);
@@ -190,6 +190,7 @@ describe('Focus', () => {
 
     test('should handle edge cases gracefully', () => {
         // Test getting tasks from non-existent focus
+        focus.setFocus('non-existent');
         const tasks = focus.getTasks(10);
         expect(tasks).toEqual([]);
 

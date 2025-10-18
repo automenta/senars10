@@ -1,91 +1,39 @@
+import {v4 as uuidv4} from 'uuid';
+
 export class Stamp {
-    constructor() {
-        if (this.constructor === Stamp) {
-            throw new Error("Abstract classes can't be instantiated.");
-        }
-    }
-
-    get fromConcept() {
-        return null;
-    }
-
-    static createInput(creationTime = Date.now(), occurrenceTime = creationTime) {
-        return new ArrayStamp(Stamp.generateId(creationTime), occurrenceTime, 'INPUT', []);
-    }
-
-    static createDerived(parentStamps = [], fromConcept = null) {
-        const creationTime = Date.now();
-        const id = Stamp.generateId(creationTime, parentStamps.map(s => s.id));
-        return new ArrayStamp(id, creationTime, 'DERIVED', parentStamps.map(s => s.id));
-    }
-
-    static generateId(timestamp, parentIds = []) {
-        const randomPart = Math.random().toString(36).substring(2, 9);
-        const parentPart = parentIds.join('-').substring(0, 10);
-        return `${timestamp}-${parentPart}-${randomPart}`;
-    }
-
-    derive(parentStamps) {
-        throw new Error("Method derive must be implemented.");
-    }
-
-    equals(other) {
-        throw new Error("Method equals must be implemented.");
-    }
-
-    toString() {
-        throw new Error("Method toString must be implemented.");
-    }
-}
-
-export class ArrayStamp extends Stamp {
-    constructor(id, occurrenceTime, source, derivations = []) {
-        super();
-        this._id = id;
-        this._occurrenceTime = occurrenceTime;
-        this._source = source;
-        this._derivations = Object.freeze(derivations);
+    constructor({id, creationTime, source, derivations = []} = {}) {
+        this.id = id || Stamp.generateId();
+        this.creationTime = creationTime || Date.now();
+        this.source = source || 'DERIVED'; // INPUT, DERIVED, etc.
+        this.derivations = Object.freeze([...new Set(derivations)]);
         Object.freeze(this);
     }
 
-    get id() {
-        return this._id;
+    static generateId() {
+        return uuidv4();
     }
 
-    get occurrenceTime() {
-        return this._occurrenceTime;
+    static createInput() {
+        const now = Date.now();
+        return new Stamp({
+            id: Stamp.generateId(),
+            creationTime: now,
+            source: 'INPUT',
+        });
     }
 
-    get creationTime() {
-        return this._occurrenceTime;
-    }
-
-    get source() {
-        return this._source;
-    }
-
-    get derivations() {
-        return this._derivations;
-    }
-
-    static derive(parentStamps) {
-        const newId = Math.random().toString(36).substring(2);
-        const newDerivations = [...new Set(parentStamps.flatMap(p => [p.id, ...p.derivations]))];
-        return new ArrayStamp(newId, Date.now(), 'INFERENCE', newDerivations);
+    static derive(parentStamps = []) {
+        const allDerivations = parentStamps.flatMap(s => [s.id, ...s.derivations]);
+        return new Stamp({
+            derivations: [...new Set(allDerivations)],
+        });
     }
 
     equals(other) {
-        return other instanceof ArrayStamp && this.id === other.id;
+        return other instanceof Stamp && this.id === other.id;
     }
 
     toString() {
-        return `Stamp(${this.id},${this.occurrenceTime},${this.source})`;
-    }
-}
-
-export class BloomStamp extends Stamp {
-    constructor() {
-        super();
-        throw new Error("BloomStamp is not yet implemented.");
+        return `Stamp(${this.id}, ${this.creationTime}, ${this.source})`;
     }
 }

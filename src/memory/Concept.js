@@ -1,5 +1,5 @@
 import {Bag} from './Bag.js';
-import {clamp, sortByPriority} from '../util/common.js';
+import {clamp} from '../util/common.js';
 import {ConfigurableComponent} from '../util/ConfigurableComponent.js';
 
 export class Concept extends ConfigurableComponent {
@@ -100,12 +100,31 @@ export class Concept extends ConfigurableComponent {
 
     addTask(task) {
         const storage = this._getStorage(task.type);
-        const added = storage.add(task, task.priority);
+        const added = storage.add(task);
         if (added) {
             this._updateLastAccessed();
             this._useCount++;
         }
         return added;
+    }
+
+    getTask(taskId) {
+        for (const bag of [this._beliefs, this._goals, this._questions]) {
+            for (const task of bag.getItemsInPriorityOrder()) {
+                if (task.stamp.id === taskId) {
+                    return task;
+                }
+            }
+        }
+        return null;
+    }
+
+    replaceTask(oldTask, newTask) {
+        const storage = this._getStorage(oldTask.type);
+        if (storage.remove(oldTask)) {
+            return storage.add(newTask);
+        }
+        return false;
     }
 
     getHighestPriorityTask(taskType) {
@@ -122,14 +141,6 @@ export class Concept extends ConfigurableComponent {
             this._updateLastAccessed();
         }
         return removed || false;
-    }
-
-    updateTaskPriority(task, newPriority) {
-        const updated = this._getStorage(task.type).updatePriority(task, newPriority);
-        if (updated) {
-            this._updateLastAccessed();
-        }
-        return updated || false;
     }
 
     applyDecay(decayRate = this.getConfigValue('defaultDecayRate')) {
@@ -162,7 +173,7 @@ export class Concept extends ConfigurableComponent {
             ...this._goals.getItemsInPriorityOrder(),
             ...this._questions.getItemsInPriorityOrder()
         ];
-        return sortByPriority(allTasks);
+        return allTasks.sort((a, b) => b.budget.priority - a.budget.priority);
     }
 
     getStats() {

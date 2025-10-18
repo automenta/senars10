@@ -12,14 +12,14 @@ export class Bag {
         return this._maxSize;
     }
 
-    add(item, priority) {
+    add(item) {
         if (this._items.has(item)) return false;
 
         if (this.size >= this.maxSize) {
             this._removeLowestPriorityItem();
         }
 
-        this._items.set(item, priority);
+        this._items.set(item, item.budget.priority);
         return true;
     }
 
@@ -61,25 +61,14 @@ export class Bag {
         return sum / this.size;
     }
 
-    applyDecay(decayRate) {
-        const newItems = new Map();
-        for (const [item, priority] of this._items.entries()) {
-            const newPriority = priority * (1 - decayRate);
-            if (typeof item.withPriority === 'function') {
-                newItems.set(item.withPriority(newPriority), newPriority);
-            } else {
-                // If item doesn't support priority update, keep original
-                newItems.set(item, newPriority);
-            }
-        }
-        this._items = newItems;
+    getPriority(item) {
+        return this._items.get(item);
     }
 
-    updatePriority(item, newPriority) {
-        if (!this._items.has(item)) return false;
-
-        this._items.set(item, newPriority);
-        return true;
+    applyDecay(decayRate) {
+        for (const [item, priority] of this._items.entries()) {
+            this._items.set(item, priority * (1 - decayRate));
+        }
     }
 
     _removeLowestPriorityItem() {

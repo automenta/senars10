@@ -60,7 +60,7 @@ export class Memory extends ConfigurableComponent {
         const added = concept.addTask(task);
         if (added) {
             this._stats.totalTasks++;
-            if (task.priority >= this.getConfigValue('priorityThreshold')) {
+            if (task.budget.priority >= this.getConfigValue('priorityThreshold')) {
                 this._focusConcepts.add(concept);
                 this._updateFocusConceptsCount();
             }

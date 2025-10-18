@@ -10,6 +10,8 @@ import {PRIORITY, TRUTH} from '../config/constants.js';
 import {Logger} from '../util/Logger.js';
 import {Focus} from '../memory/Focus.js';
 import {LM} from '../lm/LM.js';
+import {Task} from '../task/Task.js';
+import {Truth} from '../Truth.js';
 
 export class NAR {
     constructor(config = {}) {
@@ -95,18 +97,15 @@ export class NAR {
     }
 
     _createTask(parsed) {
-        const {taskType, term, truthValue} = parsed;
-        const priority = this._calculateInputPriority(parsed);
+        const {term, truthValue, punctuation} = parsed;
+        const budget = {priority: this._calculateInputPriority(parsed)};
 
-        const creators = {
-            'BELIEF': () => this._taskManager.createBelief(term, truthValue, priority),
-            'GOAL': () => this._taskManager.createGoal(term, truthValue, priority),
-            'QUESTION': () => this._taskManager.createQuestion(term, priority)
-        };
-
-        const creator = creators[taskType];
-        if (!creator) throw new Error(`Unknown task type: ${taskType}`);
-        return creator();
+        return new Task({
+            term,
+            punctuation,
+            truth: truthValue ? new Truth(truthValue.frequency, truthValue.confidence) : null,
+            budget,
+        });
     }
 
     start() {
@@ -244,16 +243,22 @@ export class NAR {
         return this._lm.translateFromNarsese(narsese);
     }
 
-    _calculateInputPriority = (parsed) => {
+    _calculateInputPriority(parsed) {
         const {truthValue, taskType} = parsed;
-        const basePriority = this._config.taskManager.defaultPriority;
+        const basePriority = this.config.taskManager.defaultPriority || PRIORITY.DEFAULT;
 
-        // Calculate priority with boosts
-        const confidenceBoost = (truthValue?.confidence || 0) * PRIORITY.CONFIDENCE_MULTIPLIER;
-        const typeBoost = {GOAL: PRIORITY.GOAL_BOOST, QUESTION: PRIORITY.QUESTION_BOOST}[taskType] || 0;
+        if (!truthValue) {
+            return basePriority;
+        }
 
-        return Math.min(TRUTH.MAX_PRIORITY, basePriority + confidenceBoost + typeBoost);
-    };
+        const confidenceBoost = (truthValue.confidence || 0) * (this.config.taskManager.priority.confidenceMultiplier);
+        const typeBoost = {
+            'GOAL': this.config.taskManager.priority.goalBoost,
+            'QUESTION': this.config.taskManager.priority.questionBoost
+        }[taskType] || 0;
+
+        return Math.min(1.0, basePriority + confidenceBoost + typeBoost);
+    }
 
     async _processPendingTasks() {
         for (const task of this._taskManager.processPendingTasks(Date.now())) {

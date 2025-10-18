@@ -1,7 +1,7 @@
 import {FocusSetSelector} from '../../../src/memory/FocusSetSelector.js';
 import {Task} from '../../../src/task/Task.js';
 import {TermFactory} from '../../../src/term/TermFactory.js';
-import {ArrayStamp} from '../../../src/Stamp.js';
+import {Stamp} from '../../../src/Stamp.js';
 
 describe('FocusSetSelector', () => {
     let selector;
@@ -39,16 +39,16 @@ describe('FocusSetSelector', () => {
     });
 
     test('should filter tasks below priority threshold', () => {
-        const term = termFactory.create({components: ['A']});
+        const term = termFactory.create({name: 'A'});
         const lowPriorityTask = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.1 // Below threshold
+            punctuation: '.',
+            budget: {priority: 0.1} // Below threshold
         });
         const highPriorityTask = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.5 // Above threshold
+            punctuation: '.',
+            budget: {priority: 0.5} // Above threshold
         });
 
         const selected = selector.select([lowPriorityTask, highPriorityTask], currentTime);
@@ -57,30 +57,30 @@ describe('FocusSetSelector', () => {
     });
 
     test('should select tasks based on composite scoring', () => {
-        const term1 = termFactory.create({components: ['A']});
-        const term2 = termFactory.create({components: ['B']});
-        const term3 = termFactory.create({components: ['C']});
+        const term1 = termFactory.create({name: 'A'});
+        const term2 = termFactory.create({name: 'B'});
+        const term3 = termFactory.create({name: 'C'});
 
         // Create tasks with different characteristics using stamps with different occurrence times
         const task1 = new Task({
             term: term1,
-            type: 'BELIEF',
-            priority: 0.8,
-            stamp: new ArrayStamp('id1', currentTime - 1000, 'INPUT') // High urgency
+            punctuation: '.',
+            budget: {priority: 0.8},
+            stamp: new Stamp({id: 'id1', creationTime: currentTime - 1000, source: 'INPUT'}),
         });
 
         const task2 = new Task({
             term: term2,
-            type: 'BELIEF',
-            priority: 0.6,
-            stamp: new ArrayStamp('id2', currentTime - 500, 'INPUT') // Medium urgency
+            punctuation: '.',
+            budget: {priority: 0.6},
+            stamp: new Stamp({id: 'id2', creationTime: currentTime - 500, source: 'INPUT'}),
         });
 
         const task3 = new Task({
             term: term3,
-            type: 'BELIEF',
-            priority: 0.4,
-            stamp: new ArrayStamp('id3', currentTime - 2000, 'INPUT') // Low urgency
+            punctuation: '.',
+            budget: {priority: 0.4},
+            stamp: new Stamp({id: 'id3', creationTime: currentTime - 2000, source: 'INPUT'}),
         });
 
         const selected = selector.select([task1, task2, task3], currentTime);
@@ -96,9 +96,9 @@ describe('FocusSetSelector', () => {
             const term = termFactory.create({components: [String.fromCharCode(65 + i)]});
             const task = new Task({
                 term,
-                type: 'BELIEF',
-                priority: 0.5 + (i * 0.1), // Increasing priority
-                stamp: new ArrayStamp(`id${i}`, currentTime - (i * 100), 'INPUT')
+            punctuation: '.',
+            budget: {priority: 0.5 + (i * 0.1)},
+            stamp: new Stamp({id: `id${i}`, creationTime: currentTime - (i * 100), source: 'INPUT'}),
             });
             tasks.push(task);
         }
@@ -112,16 +112,16 @@ describe('FocusSetSelector', () => {
 
         const recentTask = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.5,
-            stamp: new ArrayStamp('recent', currentTime - 100, 'INPUT') // Very recent
+            punctuation: '.',
+            budget: {priority: 0.5},
+            stamp: new Stamp({id: 'recent', creationTime: currentTime - 100, source: 'INPUT'}),
         });
 
         const oldTask = new Task({
             term,
-            type: 'BELIEF',
-            priority: 0.5,
-            stamp: new ArrayStamp('old', currentTime - 10000, 'INPUT') // Very old
+            punctuation: '.',
+            budget: {priority: 0.5},
+            stamp: new Stamp({id: 'old', creationTime: currentTime - 10000, source: 'INPUT'}),
         });
 
         const selected = selector.select([recentTask, oldTask], currentTime);
@@ -132,15 +132,14 @@ describe('FocusSetSelector', () => {
     });
 
     test('should consider term complexity for diversity', () => {
-        const simpleTerm = termFactory.create({components: ['A']});
+        const simpleTerm = termFactory.create({name: 'A'});
         const complexTerm = termFactory.create({
-            components: ['A'],
             operator: '-->',
-            args: [termFactory.create({components: ['B']})]
+            components: [termFactory.create({name: 'A'}), termFactory.create({name: 'B'})]
         });
 
-        const simpleTask = new Task({term: simpleTerm, type: 'BELIEF', priority: 0.5});
-        const complexTask = new Task({term: complexTerm, type: 'BELIEF', priority: 0.5});
+        const simpleTask = new Task({term: simpleTerm, punctuation: '.', budget: {priority: 0.5}});
+        const complexTask = new Task({term: complexTerm, punctuation: '.', budget: {priority: 0.5}});
 
         const selected = selector.select([simpleTask, complexTask], currentTime);
 
@@ -162,11 +161,11 @@ describe('FocusSetSelector', () => {
     });
 
     test('should handle edge case of all tasks having same timestamp', () => {
-        const term1 = termFactory.create({components: ['A']});
-        const term2 = termFactory.create({components: ['B']});
+        const term1 = termFactory.create({name: 'A'});
+        const term2 = termFactory.create({name: 'B'});
 
-        const task1 = new Task({term: term1, type: 'BELIEF', priority: 0.5});
-        const task2 = new Task({term: term2, type: 'BELIEF', priority: 0.8});
+        const task1 = new Task({term: term1, punctuation: '.', budget: {priority: 0.5}});
+        const task2 = new Task({term: term2, punctuation: '.', budget: {priority: 0.8}});
 
         // Same timestamp - urgency should be 0 for both
         const selected = selector.select([task1, task2], currentTime);
@@ -176,8 +175,8 @@ describe('FocusSetSelector', () => {
     });
 
     test('should handle tasks with zero complexity', () => {
-        const term = termFactory.create({components: ['A']});
-        const task = new Task({term, type: 'BELIEF', priority: 0.5});
+        const term = termFactory.create({name: 'A'});
+        const task = new Task({term, punctuation: '.', budget: {priority: 0.5}});
 
         const selected = selector.select([task], currentTime);
         expect(selected).toHaveLength(1);
@@ -185,9 +184,9 @@ describe('FocusSetSelector', () => {
     });
 
     test('should maintain selection stability across multiple calls', () => {
-        const term = termFactory.create({components: ['A']});
-        const task1 = new Task({term, type: 'BELIEF', priority: 0.8});
-        const task2 = new Task({term, type: 'BELIEF', priority: 0.6});
+        const term = termFactory.create({name: 'A'});
+        const task1 = new Task({term, punctuation: '.', budget: {priority: 0.8}});
+        const task2 = new Task({term, punctuation: '.', budget: {priority: 0.6}});
 
         const selected1 = selector.select([task1, task2], currentTime);
         const selected2 = selector.select([task1, task2], currentTime);
