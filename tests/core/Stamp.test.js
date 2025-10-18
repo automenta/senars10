@@ -1,18 +1,15 @@
-import {ArrayStamp, Stamp} from '../../src/Stamp.js';
+import { Stamp, ArrayStamp } from '../../src/Stamp.js';
+import { createStamp } from '../support/factories.js';
 
 describe('Stamp', () => {
-    let stamp;
-
-    beforeEach(() => {
-        stamp = new ArrayStamp({
+    test('should create a Stamp instance with specified properties', () => {
+        const stamp = createStamp({
             id: 'test-id',
             creationTime: 12345,
             source: 'INPUT',
             derivations: ['d1', 'd2'],
         });
-    });
 
-    test('should create a Stamp instance with specified properties', () => {
         expect(stamp).toBeInstanceOf(ArrayStamp);
         expect(stamp.id).toBe('test-id');
         expect(stamp.creationTime).toBe(12345);
@@ -21,12 +18,9 @@ describe('Stamp', () => {
     });
 
     test('should be immutable', () => {
-        expect(() => {
-            stamp.id = 'new-id';
-        }).toThrow();
-        expect(() => {
-            stamp.derivations.push('d3');
-        }).toThrow();
+        const stamp = createStamp();
+        expect(() => { stamp.id = 'new-id'; }).toThrow();
+        expect(() => { stamp.derivations.push('d3'); }).toThrow();
     });
 
     test('should create an input stamp using static factory', () => {
@@ -37,30 +31,28 @@ describe('Stamp', () => {
         expect(inputStamp.creationTime).toBeCloseTo(Date.now(), -2);
     });
 
-    test('should derive a new stamp from parents', () => {
-        const parent1 = new ArrayStamp({id: 'p1', derivations: ['d1']});
-        const parent2 = new ArrayStamp({id: 'p2', derivations: ['d2']});
-        const derivedStamp = Stamp.derive([parent1, parent2]);
+    test('should derive a new stamp from parents, handling overlapping derivations', () => {
+        const parent1 = createStamp({ id: 'p1', derivations: ['d1'] });
+        const parent2 = createStamp({ id: 'p2', derivations: ['d2'] });
+        const derivedStamp1 = Stamp.derive([parent1, parent2]);
 
-        expect(derivedStamp).toBeInstanceOf(ArrayStamp);
-        expect(derivedStamp.source).toBe('DERIVED');
-        expect(derivedStamp.derivations).toEqual(expect.arrayContaining(['p1', 'p2', 'd1', 'd2']));
-        expect(derivedStamp.derivations.length).toBe(4);
-    });
+        expect(derivedStamp1).toBeInstanceOf(ArrayStamp);
+        expect(derivedStamp1.source).toBe('DERIVED');
+        expect(derivedStamp1.derivations).toEqual(expect.arrayContaining(['p1', 'p2', 'd1', 'd2']));
+        expect(derivedStamp1.derivations.length).toBe(4);
 
-    test('should handle derivation with overlapping parent derivations', () => {
-        const parent1 = new ArrayStamp({id: 'p1', derivations: ['d1', 'd2']});
-        const parent2 = new ArrayStamp({id: 'p2', derivations: ['d2', 'd3']});
-        const derivedStamp = Stamp.derive([parent1, parent2]);
+        const parent3 = createStamp({ id: 'p3', derivations: ['d1', 'd2'] });
+        const parent4 = createStamp({ id: 'p4', derivations: ['d2', 'd3'] });
+        const derivedStamp2 = Stamp.derive([parent3, parent4]);
 
-        expect(derivedStamp.derivations).toEqual(expect.arrayContaining(['p1', 'p2', 'd1', 'd2', 'd3']));
-        expect(derivedStamp.derivations.length).toBe(5); // Set logic prevents duplicates
+        expect(derivedStamp2.derivations).toEqual(expect.arrayContaining(['p3', 'p4', 'd1', 'd2', 'd3']));
+        expect(derivedStamp2.derivations.length).toBe(5); // Set logic prevents duplicates
     });
 
     test('should correctly check for equality', () => {
-        const stamp1 = new ArrayStamp({id: 's1'});
-        const stamp1Clone = new ArrayStamp({id: 's1'});
-        const stamp2 = new ArrayStamp({id: 's2'});
+        const stamp1 = createStamp({ id: 's1' });
+        const stamp1Clone = new ArrayStamp({id: 's1'}); // Keep one direct instantiation for variety
+        const stamp2 = createStamp({ id: 's2' });
 
         expect(stamp1.equals(stamp1Clone)).toBe(true);
         expect(stamp1.equals(stamp2)).toBe(false);

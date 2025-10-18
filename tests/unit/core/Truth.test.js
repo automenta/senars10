@@ -1,6 +1,6 @@
-import {Truth} from '../../../src/Truth.js';
-import {TRUTH} from '../../../src/config/constants.js';
-import {createTruth, TEST_CONSTANTS} from '../../support/test-utils.js';
+import { Truth } from '../../../src/Truth.js';
+import { TRUTH } from '../../../src/config/constants.js';
+import { createTruth, TEST_CONSTANTS } from '../../support/factories.js';
 
 describe('Truth', () => {
     test('initializes correctly', () => {
@@ -55,8 +55,10 @@ describe('Truth', () => {
 
         test('revision', () => {
             const result = Truth.revision(t1, t2);
-            expect(result.f).toBeCloseTo((0.8 * 0.9 + 0.6 * 0.7) / (0.9 + 0.7));
-            expect(result.c).toBeCloseTo(1.0);
+            const cSum = t1.c + t2.c;
+            const expectedF = (t1.f * t1.c + t2.f * t2.c) / cSum;
+            expect(result.f).toBeCloseTo(expectedF);
+            expect(result.c).toBeCloseTo(cSum > 1 ? 1 : cSum);
         });
 
         test('negation', () => {

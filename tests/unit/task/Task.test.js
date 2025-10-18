@@ -1,16 +1,16 @@
-import {Task} from '../../../src/task/Task.js';
-import {Stamp} from '../../../src/Stamp.js';
-import {createTask, createTruth, createAtom, TEST_CONSTANTS} from '../../support/test-utils.js';
+import { Task } from '../../../src/task/Task.js';
+import { Stamp } from '../../../src/Stamp.js';
+import { createTask, createTruth, createTerm } from '../../support/factories.js';
 
 describe('Task', () => {
     let term;
 
     beforeEach(() => {
-        term = createAtom('A');
+        term = createTerm('A');
     });
 
     test('creates with defaults', () => {
-        const task = createTask({term});
+        const task = new Task({term});
 
         expect(task.term).toBe(term);
         expect(task.type).toBe('BELIEF');
@@ -21,8 +21,8 @@ describe('Task', () => {
 
     test('creates with custom properties', () => {
         const truth = createTruth();
-        const budget = TEST_CONSTANTS.BUDGET.MEDIUM;
-        const task = createTask({term, punctuation: '!', truth, budget});
+        const budget = {priority: 0.7, durability: 0.6, quality: 0.7};
+        const task = new Task({term, punctuation: '!', truth, budget});
 
         expect(task.type).toBe('GOAL');
         expect(task.truth).toEqual(truth);
@@ -44,7 +44,7 @@ describe('Task', () => {
         const task2 = task1.clone({punctuation: '?', truth: newTruth});
 
         expect(task1.type).toBe('BELIEF');
-        expect(task1.truth).toBeNull();
+        expect(task1.truth).toEqual(createTruth());
         expect(task2.type).toBe('QUESTION');
         expect(task2.truth).toEqual(newTruth);
         expect(task2.term).toBe(task1.term);
@@ -65,7 +65,7 @@ describe('Task', () => {
         const truth1 = createTruth(0.9, 0.9);
         const truth2 = createTruth(0.9, 0.9);
         const truth3 = createTruth(0.8, 0.8);
-        const termB = createAtom('B');
+        const termB = createTerm('B');
 
         const task1 = createTask({term, punctuation: '.', truth: truth1});
         const task2 = createTask({term, punctuation: '.', truth: truth2});

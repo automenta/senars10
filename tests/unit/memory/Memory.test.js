@@ -1,5 +1,5 @@
-import {Memory} from '../../../src/memory/Memory.js';
-import {createAtom, createTask, createMemoryConfig, TEST_CONSTANTS} from '../../support/test-utils.js';
+import { Memory } from '../../../src/memory/Memory.js';
+import { createTerm, createTask, createMemoryConfig, TEST_CONSTANTS } from '../../support/factories.js';
 
 describe('Memory', () => {
     let memory;
@@ -21,7 +21,7 @@ describe('Memory', () => {
 
     test('adds tasks and creates concepts', () => {
         const task = createTask({
-            term: createAtom('A'),
+            term: createTerm('A'),
             truth: TEST_CONSTANTS.TRUTH.HIGH,
             budget: TEST_CONSTANTS.BUDGET.MEDIUM
         });
@@ -35,7 +35,7 @@ describe('Memory', () => {
     });
 
     test('handles duplicate tasks correctly', () => {
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task1 = createTask({term, truth: TEST_CONSTANTS.TRUTH.HIGH, budget: TEST_CONSTANTS.BUDGET.MEDIUM});
         const task2 = createTask({term, truth: TEST_CONSTANTS.TRUTH.MEDIUM, budget: TEST_CONSTANTS.BUDGET.LOW});
 
@@ -47,7 +47,7 @@ describe('Memory', () => {
     });
 
     test('retrieves concepts correctly', () => {
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task = createTask({term, truth: TEST_CONSTANTS.TRUTH.HIGH});
 
         memory.addTask(task);
@@ -59,13 +59,13 @@ describe('Memory', () => {
     });
 
     test('returns null for non-existent concepts', () => {
-        const nonExistentTerm = createAtom('B');
+        const nonExistentTerm = createTerm('B');
         expect(memory.getConcept(nonExistentTerm)).toBeNull();
     });
 
     test('gets all concepts correctly', () => {
-        const taskA = createTask({term: createAtom('A')});
-        const taskB = createTask({term: createAtom('B')});
+        const taskA = createTask({term: createTerm('A')});
+        const taskB = createTask({term: createTerm('B')});
 
         memory.addTask(taskA);
         memory.addTask(taskB);
@@ -75,11 +75,11 @@ describe('Memory', () => {
 
     test('filters concepts by criteria', () => {
         const highPriorityTask = createTask({
-            term: createAtom('A'),
+            term: createTerm('A'),
             budget: TEST_CONSTANTS.BUDGET.HIGH
         });
         const lowPriorityTask = createTask({
-            term: createAtom('B'),
+            term: createTerm('B'),
             budget: TEST_CONSTANTS.BUDGET.LOW
         });
 
@@ -94,8 +94,8 @@ describe('Memory', () => {
     });
 
     test('gets most active concepts', () => {
-        const taskA = createTask({term: createAtom('A'), budget: TEST_CONSTANTS.BUDGET.HIGH});
-        const taskB = createTask({term: createAtom('B'), budget: TEST_CONSTANTS.BUDGET.MEDIUM});
+        const taskA = createTask({term: createTerm('A'), budget: TEST_CONSTANTS.BUDGET.HIGH});
+        const taskB = createTask({term: createTerm('B'), budget: TEST_CONSTANTS.BUDGET.MEDIUM});
 
         memory.addTask(taskA);
         memory.addTask(taskB);
@@ -105,7 +105,7 @@ describe('Memory', () => {
     });
 
     test('removes concepts correctly', () => {
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task = createTask({term, budget: TEST_CONSTANTS.BUDGET.HIGH});
 
         memory.addTask(task);
@@ -120,12 +120,12 @@ describe('Memory', () => {
     });
 
     test('returns false when removing non-existent concept', () => {
-        const removed = memory.removeConcept(createAtom('A'));
+        const removed = memory.removeConcept(createTerm('A'));
         expect(removed).toBe(false);
     });
 
     test('consolidates correctly', () => {
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task = createTask({term, budget: TEST_CONSTANTS.BUDGET.HIGH});
 
         memory.addTask(task);
@@ -137,7 +137,7 @@ describe('Memory', () => {
     });
 
     test('boosts concept activation', () => {
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task = createTask({term, budget: TEST_CONSTANTS.BUDGET.HIGH});
 
         memory.addTask(task);
@@ -150,7 +150,7 @@ describe('Memory', () => {
     });
 
     test('updates concept quality', () => {
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task = createTask({term, budget: TEST_CONSTANTS.BUDGET.HIGH});
 
         memory.addTask(task);
@@ -163,7 +163,7 @@ describe('Memory', () => {
     });
 
     test('provides detailed statistics', () => {
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task = createTask({term, budget: TEST_CONSTANTS.BUDGET.HIGH});
 
         memory.addTask(task);
@@ -177,7 +177,7 @@ describe('Memory', () => {
     });
 
     test('clears correctly', () => {
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task = createTask({term, budget: TEST_CONSTANTS.BUDGET.HIGH});
 
         memory.addTask(task);
@@ -192,8 +192,8 @@ describe('Memory', () => {
     });
 
     test('checks concept existence', () => {
-        const term = createAtom('A');
-        const nonExistentTerm = createAtom('B');
+        const term = createTerm('A');
+        const nonExistentTerm = createTerm('B');
 
         expect(memory.hasConcept(term)).toBe(false);
 
@@ -205,7 +205,7 @@ describe('Memory', () => {
     test('gets total task count', () => {
         expect(memory.getTotalTaskCount()).toBe(0);
 
-        const term = createAtom('A');
+        const term = createTerm('A');
         const task = createTask({term});
 
         memory.addTask(task);
@@ -213,8 +213,8 @@ describe('Memory', () => {
     });
 
     test('handles focus memory by priority threshold', () => {
-        const termA = createAtom('A');
-        const termB = createAtom('B');
+        const termA = createTerm('A');
+        const termB = createTerm('B');
 
         const highPriorityTask = createTask({
             term: termA,

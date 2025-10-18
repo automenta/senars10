@@ -1,20 +1,14 @@
-import {Concept} from '../../../src/memory/Concept.js';
-import {Task} from '../../../src/task/Task.js';
-import {Truth} from '../../../src/Truth.js';
-import {TermFactory} from '../../../src/term/TermFactory.js';
+import { Concept } from '../../../src/memory/Concept.js';
+import { createTask, createTerm } from '../../support/factories.js';
 
 describe('Concept', () => {
     let concept;
     let term;
     let config;
-    let termFactory;
-    let newAtom;
 
     beforeEach(() => {
-        termFactory = new TermFactory();
-        newAtom = name => termFactory.create({components: [name]});
-        term = newAtom('A');
-        config = {priorityDecayRate: 0.9};
+        term = createTerm('A');
+        config = { priorityDecayRate: 0.9 };
         concept = new Concept(term, config);
     });
 
@@ -28,7 +22,7 @@ describe('Concept', () => {
     });
 
     test('should add a task correctly', () => {
-        const task = new Task({term, punctuation: '.', truth: new Truth(0.9, 0.8)});
+        const task = createTask({ term });
         const added = concept.addTask(task);
         expect(added).toBe(true);
         expect(concept.totalTasks).toBe(1);
@@ -36,7 +30,7 @@ describe('Concept', () => {
     });
 
     test('should not add a duplicate task', () => {
-        const task = new Task({term, punctuation: '.', truth: new Truth(0.9, 0.8)});
+        const task = createTask({ term });
         concept.addTask(task);
         const added = concept.addTask(task);
         expect(added).toBe(false);
@@ -44,8 +38,8 @@ describe('Concept', () => {
     });
 
     test('should retrieve tasks by type', () => {
-        const belief = new Task({term, punctuation: '.', truth: new Truth(0.9, 0.8)});
-        const goal = new Task({term, punctuation: '!'});
+        const belief = createTask({ term, punctuation: '.' });
+        const goal = createTask({ term, punctuation: '!' });
         concept.addTask(belief);
         concept.addTask(goal);
         const beliefs = concept.getTasksByType('BELIEF');
@@ -54,7 +48,7 @@ describe('Concept', () => {
     });
 
     test('should remove a task correctly', () => {
-        const task = new Task({term, punctuation: '.', truth: new Truth(0.9, 0.8)});
+        const task = createTask({ term });
         concept.addTask(task);
         const removed = concept.removeTask(task);
         expect(removed).toBe(true);
@@ -89,8 +83,8 @@ describe('Concept', () => {
     });
 
     test('should return correct average priority', () => {
-        const task1 = new Task({term, budget: {priority: 0.8}});
-        const task2 = new Task({term, budget: {priority: 0.6}});
+        const task1 = createTask({ term, budget: { priority: 0.8 } });
+        const task2 = createTask({ term, budget: { priority: 0.6 } });
         concept.addTask(task1);
         concept.addTask(task2);
         expect(concept.averagePriority).toBe(0.7);

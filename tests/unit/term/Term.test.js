@@ -1,18 +1,9 @@
-import {Term, TermType} from '../../../src/term/Term.js';
-import {TermFactory} from '../../../src/term/TermFactory.js';
+import { Term, TermType } from '../../../src/term/Term.js';
+import { createTerm, createCompoundTerm } from '../../support/factories.js';
 
 describe('Term', () => {
-    let termFactory;
-
-    beforeEach(() => {
-        termFactory = new TermFactory();
-    });
-
-    const newAtom = name => termFactory.create({components: [name]});
-    const createCompound = (operator, components) => termFactory.create({operator, components});
-
     test('should create atomic terms with correct properties', () => {
-        const atomA = newAtom('A');
+        const atomA = createTerm('A');
         expect(atomA.type).toBe(TermType.ATOM);
         expect(atomA.name).toBe('A');
         expect(atomA.components).toEqual(['A']); // The component of an atom is its name
@@ -21,9 +12,9 @@ describe('Term', () => {
     });
 
     test('should create compound terms with correct properties', () => {
-        const atomA = newAtom('A');
-        const atomB = newAtom('B');
-        const inheritanceTerm = createCompound('-->', [atomA, atomB]);
+        const atomA = createTerm('A');
+        const atomB = createTerm('B');
+        const inheritanceTerm = createCompoundTerm('-->', [atomA, atomB]);
 
         expect(inheritanceTerm.type).toBe(TermType.COMPOUND);
         expect(inheritanceTerm.name).toBe('(-->, A, B)');
@@ -33,32 +24,32 @@ describe('Term', () => {
     });
 
     test('should maintain strict immutability', () => {
-        const atom = newAtom('A');
+        const atom = createTerm('A');
         expect(() => {
             atom.name = 'B';
         }).toThrow(); // Should throw error in strict mode
 
-        const compound = createCompound('-->', [newAtom('A'), newAtom('B')]);
+        const compound = createCompoundTerm('-->', [createTerm('A'), createTerm('B')]);
         expect(() => {
-            compound.components.push(newAtom('C'));
+            compound.components.push(createTerm('C'));
         }).toThrow();
     });
 
     test('should provide correct string representation', () => {
-        const atom = newAtom('A');
+        const atom = createTerm('A');
         expect(atom.toString()).toBe('A');
 
-        const compound = createCompound('-->', [newAtom('A'), newAtom('B')]);
+        const compound = createCompoundTerm('-->', [createTerm('A'), createTerm('B')]);
         expect(compound.toString()).toBe('(-->, A, B)');
     });
 
     test('should correctly compare terms with equals()', () => {
-        const atomA1 = newAtom('A');
-        const atomA2 = newAtom('A');
-        const atomB = newAtom('B');
-        const compound1 = createCompound('-->', [atomA1, atomB]);
-        const compound2 = createCompound('-->', [atomA1, atomB]);
-        const compound3 = createCompound('<->', [atomA1, atomB]);
+        const atomA1 = createTerm('A');
+        const atomA2 = createTerm('A');
+        const atomB = createTerm('B');
+        const compound1 = createCompoundTerm('-->', [atomA1, atomB]);
+        const compound2 = createCompoundTerm('-->', [atomA1, atomB]);
+        const compound3 = createCompoundTerm('<->', [atomA1, atomB]);
 
         expect(atomA1.equals(atomA2)).toBe(true);
         expect(atomA1.equals(atomB)).toBe(false);
@@ -69,22 +60,22 @@ describe('Term', () => {
     });
 
     test('should generate consistent hash codes', () => {
-        const atomA1 = newAtom('A');
-        const atomA2 = newAtom('A');
+        const atomA1 = createTerm('A');
+        const atomA2 = createTerm('A');
         expect(atomA1.hash).toBe(atomA2.hash);
 
-        const compound1 = createCompound('-->', [newAtom('A'), newAtom('B')]);
-        const compound2 = createCompound('-->', [newAtom('A'), newAtom('B')]);
+        const compound1 = createCompoundTerm('-->', [createTerm('A'), createTerm('B')]);
+        const compound2 = createCompoundTerm('-->', [createTerm('A'), createTerm('B')]);
         expect(compound1.hash).toBe(compound2.hash);
     });
 
     test('should handle complex nested terms', () => {
-        const atomA = newAtom('A');
-        const atomB = newAtom('B');
-        const atomC = newAtom('C');
+        const atomA = createTerm('A');
+        const atomB = createTerm('B');
+        const atomC = createTerm('C');
 
-        const innerTerm = createCompound('-->', [atomA, atomB]);
-        const outerTerm = createCompound('<->', [innerTerm, atomC]);
+        const innerTerm = createCompoundTerm('-->', [atomA, atomB]);
+        const outerTerm = createCompoundTerm('<->', [innerTerm, atomC]);
 
         expect(outerTerm.name).toBe('(<->, (-->, A, B), C)');
         expect(outerTerm.components).toEqual([innerTerm, atomC]);
@@ -92,12 +83,12 @@ describe('Term', () => {
     });
 
     test('should handle commutative operators by sorting components', () => {
-        const atomA = newAtom('A');
-        const atomB = newAtom('B');
+        const atomA = createTerm('A');
+        const atomB = createTerm('B');
 
         // Factory sorts components for commutative operators
-        const term1 = createCompound('&', [atomA, atomB]);
-        const term2 = createCompound('&', [atomB, atomA]);
+        const term1 = createCompoundTerm('&', [atomA, atomB]);
+        const term2 = createCompoundTerm('&', [atomB, atomA]);
 
         // Name should be identical due to canonical sorting
         expect(term1.name).toBe('(&, A, B)');
@@ -106,9 +97,9 @@ describe('Term', () => {
     });
 
     test('should implement visitor pattern correctly', () => {
-        const atomA = newAtom('A');
-        const atomB = newAtom('B');
-        const term = createCompound('-->', [atomA, atomB]);
+        const atomA = createTerm('A');
+        const atomB = createTerm('B');
+        const term = createCompoundTerm('-->', [atomA, atomB]);
 
         const visited = [];
         const visitorFn = t => visited.push(t.name);
@@ -122,9 +113,9 @@ describe('Term', () => {
     });
 
     test('should implement reduce pattern correctly', () => {
-        const atomA = newAtom('A');
-        const atomB = newAtom('B');
-        const term = createCompound('-->', [atomA, atomB]);
+        const atomA = createTerm('A');
+        const atomB = createTerm('B');
+        const term = createCompoundTerm('-->', [atomA, atomB]);
 
         const complexitySum = term.reduce((sum, t) => sum + t.complexity, 0);
         // (--> A, B) is 3, A is 1, B is 1. Total = 5.
@@ -135,28 +126,28 @@ describe('Term', () => {
     });
 
     test('should handle associativity', () => {
-        const atomA = newAtom('A');
-        const atomB = newAtom('B');
-        const atomC = newAtom('C');
+        const atomA = createTerm('A');
+        const atomB = createTerm('B');
+        const atomC = createTerm('C');
 
-        const term1 = createCompound('&', [
+        const term1 = createCompoundTerm('&', [
             atomA,
-            createCompound('&', [atomB, atomC])
+            createCompoundTerm('&', [atomB, atomC])
         ]);
 
         expect(term1.name).toBe('(&, A, B, C)');
     });
 
     test('should handle redundancy', () => {
-        const atomA = newAtom('A');
+        const atomA = createTerm('A');
 
-        const term = createCompound('&', [atomA, atomA]);
+        const term = createCompoundTerm('&', [atomA, atomA]);
         expect(term.name).toBe('(&, A)');
     });
 
     test('should cache identical terms', () => {
-        const term1 = newAtom('A');
-        const term2 = newAtom('A');
+        const term1 = createTerm('A');
+        const term2 = createTerm('A');
         expect(term1).toBe(term2);
     });
 });
