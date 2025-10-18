@@ -256,31 +256,69 @@ focus on core reasoning capabilities.
 
 ### Goals
 
-- Implement comprehensive language model interface with provider management
-- Create robust Narsese↔natural language translation capabilities
+- Implement comprehensive language model interface with concrete provider implementations
+- Create robust Narsese↔natural language translation capabilities with advanced quality improvements
 - Implement hybrid reasoning rules combining NAL and LM capabilities
 
 ### Tasks
 
-#### 5.1. Language Model Infrastructure
+#### 5.1. Concrete LM Provider Implementations
 
 **Tests First:**
 
-- [ ] Write tests for `LM` class with multiple provider registration and selection
-- [ ] Write tests for provider management with metrics tracking
-- [ ] Write tests for Narsese to natural language translation
-- [ ] Write tests for natural language to Narsese translation
-- [ ] Write tests for LM response processing and error handling
+- [ ] Write tests for `LangChainLM` provider with Ollama and OpenAI-compatible models
+- [ ] Write tests for `HuggingFaceLM` provider with MobileBERT and SmolLM-135M models
+- [ ] Write tests for `DummyLM` provider for mocking/debugging and symbolic-mode operation
+- [ ] Write tests for provider management and selection mechanisms
+- [ ] Write tests for metrics tracking across different provider types
 
 **Implementation:**
 
-- [ ] Implement comprehensive `LM` class with provider registry and selection
-- [ ] Add workflow engine for complex LM-based reasoning processes
-- [ ] Create robust Narsese↔natural language translation utilities
-- [ ] Implement metrics tracking for LM usage, tokens, and processing times
-- [ ] Add resource management for LM interactions
+- [ ] Implement `LangChainLM` class extending base `LM` with LangChain.js integration
+- [ ] Add support for Ollama and OpenAI-compatible endpoints in `LangChainLM`
+- [ ] Implement `HuggingFaceLM` class with HuggingFace Transformers integration
+- [ ] Add MobileBERT and SmolLM-135M model support in `HuggingFaceLM`
+- [ ] Implement `DummyLM` class for null operations, mocking/debugging, and symbolic-mode only
+- [ ] Create provider registry with dynamic loading and selection capabilities
+- [ ] Add configuration management for different provider settings
 
-#### 5.2. LM-Enhanced Reasoning Rules
+#### 5.2. Language Model Infrastructure and Translation
+
+**Tests First:**
+
+- [ ] Write comprehensive tests for Narsese to natural language translation
+- [ ] Write comprehensive tests for natural language to Narsese translation
+- [ ] Write tests for translation accuracy with complex term structures
+- [ ] Write tests for error handling in translation processes
+- [ ] Write tests for translation quality metrics and validation
+
+**Implementation:**
+
+- [ ] Enhance `NarseseTranslator` with bidirectional conversion capabilities
+- [ ] Implement advanced translation quality improvements (see section below)
+- [ ] Add validation mechanisms for translation accuracy
+- [ ] Create translation caching for performance optimization
+- [ ] Implement context-aware translation for complex reasoning scenarios
+
+#### 5.3. Advanced Translation Quality Improvements
+
+**Tests First:**
+
+- [ ] Write tests for translation quality metrics and scoring
+- [ ] Write tests for handling ambiguous or complex Narsese structures
+- [ ] Write tests for preserving semantic meaning during translation
+- [ ] Write tests for translation consistency across multiple providers
+- [ ] Write tests for error correction and fallback mechanisms
+
+**Implementation:**
+
+- [ ] Implement quality scoring for translation accuracy
+- [ ] Add semantic preservation algorithms for complex term structures
+- [ ] Create fallback mechanisms for ambiguous translations
+- [ ] Implement iterative refinement for translation quality
+- [ ] Add consistency checks across different translation directions
+
+#### 5.4. LM-Enhanced Reasoning Rules
 
 **Tests First:**
 
@@ -288,6 +326,7 @@ focus on core reasoning capabilities.
 - [ ] Write tests for LM rule configuration with temperature, tokens, and parameters
 - [ ] Write tests for integration of LM-generated content with NAL reasoning
 - [ ] Write tests for validation of LM-generated Narsese terms
+- [ ] Write tests for hybrid NAL-LM reasoning workflows
 
 **Implementation:**
 
@@ -296,14 +335,35 @@ focus on core reasoning capabilities.
 - [ ] Implement response processing to convert LM output to valid tasks
 - [ ] Add validation for LM-generated content before integration with NAL system
 - [ ] Connect LM rules to reasoning cycle with proper error handling
+- [ ] Create hybrid reasoning workflows combining NAL and LM capabilities
 
 ### Acceptance Criteria for Phase 5
 
-- [ ] LM interface supports multiple providers with proper management and metrics
-- [ ] Narsese↔natural language translation works accurately for all supported syntax
+- [ ] All concrete LM providers (LangChainLM, HuggingFaceLM, DummyLM) are implemented and tested
+- [ ] Narsese↔natural language translation works accurately with advanced quality improvements
+- [ ] Advanced translation quality improvements enhance translation accuracy and reliability
 - [ ] LM rules integrate seamlessly with existing rule engine
 - [ ] Hybrid reasoning capabilities enhance system functionality
 - [ ] All LM integration tests pass with proper error handling
+- [ ] System can operate in symbolic-mode only using DummyLM
+
+### Advanced Translation Quality Improvements
+
+The system will implement sophisticated mechanisms to enhance the quality of Narsese↔natural language translation:
+
+1. **Context-Aware Translation**: Translation algorithms will consider the broader reasoning context to produce more accurate conversions, especially for ambiguous terms.
+
+2. **Quality Scoring and Validation**: Each translation will be assigned a confidence score, with validation mechanisms to ensure semantic consistency between the original and translated forms.
+
+3. **Iterative Refinement**: Complex translations will use iterative processes to improve accuracy, with fallback mechanisms when initial translations are insufficient.
+
+4. **Multi-Provider Consistency**: The system will validate translations across different LM providers to ensure consistency and reliability.
+
+5. **Semantic Preservation**: Advanced algorithms will ensure that the core meaning and logical structure of Narsese expressions are preserved during translation to and from natural language.
+
+6. **Error Correction**: The system will implement intelligent error detection and correction for common translation mistakes, particularly for complex compound terms.
+
+7. **Caching and Optimization**: Frequently translated terms and patterns will be cached to improve performance and consistency of translations.
 
 ## Phase 6: Advanced Rules and Reasoning
 
