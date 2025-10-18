@@ -8,44 +8,39 @@ export class Truth {
         Object.freeze(this);
     }
 
-    static op(t1, t2, opFn) { return (t1 && t2) ? opFn(t1, t2) : null; }
-    static unaryOp(truth, opFn) { return truth ? opFn(truth) : null; }
+    static op = (t1, t2, opFn) => t1 && t2 ? opFn(t1, t2) : null;
+    static unaryOp = (truth, opFn) => truth ? opFn(truth) : null;
 
     static deduction = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(t.f * u.f, t.c * u.c));
     static induction = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(u.f, Truth.weak(t.c * u.c) * t.f));
     static abduction = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(t.f, Truth.weak(t.c * u.c) * u.f));
     static detachment = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(u.f, t.f * t.c * u.c));
 
-    static revision(t1, t2) {
+    static revision = (t1, t2) => {
         if (!t1 || !t2) return t1 || t2;
-        const {f: f1, c: c1} = t1, {f: f2, c: c2} = t2;
-        const cSum = c1 + c2;
+        const {f: f1, c: c1} = t1, {f: f2, c: c2} = t2, cSum = c1 + c2;
         return new Truth(cSum > 0 ? (f1 * c1 + f2 * c2) / cSum : 0, clamp(cSum, 0, 1));
-    }
+    };
 
     static negation = t => Truth.unaryOp(t, t => new Truth(1 - t.f, t.c));
     static expectation = t => t ? t.f * t.c : 0;
 
-    static comparison(t1, t2) {
-        return Truth.op(t1, t2, (t, u) => {
-            const fProd = t.f * u.f;
-            return new Truth(Truth.safeDiv(fProd, fProd + (1 - t.f) * (1 - u.f)), t.c * u.c);
-        });
-    }
+    static comparison = (t1, t2) => Truth.op(t1, t2, (t, u) => {
+        const fProd = t.f * u.f;
+        return new Truth(Truth.safeDiv(fProd, fProd + (1 - t.f) * (1 - u.f)), t.c * u.c);
+    });
 
-    static analogy(t1, t2) { return Truth.op(t1, t2, (t, u) => new Truth(t.f * u.f, t.c * u.c * u.f)); }
-    static resemblance(t1, t2) { return Truth.op(t1, t2, (t, u) => new Truth((t.f + u.f) / 2, t.c * u.c)); }
+    static analogy = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth(t.f * u.f, t.c * u.c * u.f));
+    static resemblance = (t1, t2) => Truth.op(t1, t2, (t, u) => new Truth((t.f + u.f) / 2, t.c * u.c));
 
-    static contraposition(t1, t2) {
-        return Truth.op(t1, t2, (t, u) => {
-            const fContra = u.f * (1 - t.f);
-            return new Truth(Truth.safeDiv(fContra, fContra + (1 - u.f) * t.f), t.c * u.c);
-        });
-    }
+    static contraposition = (t1, t2) => Truth.op(t1, t2, (t, u) => {
+        const fContra = u.f * (1 - t.f);
+        return new Truth(Truth.safeDiv(fContra, fContra + (1 - u.f) * t.f), t.c * u.c);
+    });
 
-    static isStronger(t1, t2) { return Truth.expectation(t1) > Truth.expectation(t2); }
-    static weak(c) { return clamp(c / (c + TRUTH.WEAKENING_FACTOR), 0, 1); }
-    static safeDiv(num, den) { return den === 0 ? 0 : clamp(num / den, 0, 1); }
+    static isStronger = (t1, t2) => Truth.expectation(t1) > Truth.expectation(t2);
+    static weak = c => clamp(c / (c + TRUTH.WEAKENING_FACTOR), 0, 1);
+    static safeDiv = (num, den) => den === 0 ? 0 : clamp(num / den, 0, 1);
 
     equals(other) {
         return other instanceof Truth &&

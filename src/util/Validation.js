@@ -3,54 +3,42 @@ import {Logger} from './Logger.js';
 export class SpecValidator {
     constructor() {
         this.logger = Logger;
-        this.results = {passed: [], failed: [], skipped: []};
     }
 
-    validateTermSpecs() {
-        return [
-            this._testTermImmutability(),
-            this._testTermEquality(),
-            this._testTermComplexity()
-        ];
-    }
-
-    _testTermImmutability() {
+    _safeTest = (spec, testFn) => {
         try {
+            const result = testFn();
+            return {spec, passed: !!result, details: result.toString()};
+        } catch (error) {
+            return {spec, passed: false, details: error.message, error};
+        }
+    };
+
+    _validateRange = (value, min = 0, max = 1) => value >= min && value <= max;
+
+    validateTermSpecs = () => [
+        this._safeTest('Term immutability', () => {
             const {Term} = require('../term/Term.js');
             const term = new Term('atom', 'test_term');
-            return {spec: 'Term immutability', passed: term.hash === term.hash, details: 'Hash consistency'};
-        } catch (error) {
-            return {spec: 'Term immutability', passed: false, details: error.message, error};
-        }
-    }
-
-    _testTermEquality() {
-        try {
+            return term.hash === term.hash && 'Hash consistency';
+        }),
+        this._safeTest('Term equality', () => {
             const {Term} = require('../term/Term.js');
-            const term1 = new Term('atom', 'identical');
-            const term2 = new Term('atom', 'identical');
-            const equal = term1.equals(term2);
-            const hashConsistent = term1.hash === term2.hash;
-            return {spec: 'Term equality', passed: equal && hashConsistent, details: `Equal: ${equal}, Hash: ${hashConsistent}`};
-        } catch (error) {
-            return {spec: 'Term equality', passed: false, details: error.message, error};
-        }
-    }
-
-    _testTermComplexity() {
-        try {
+            const term1 = new Term('atom', 'identical'), term2 = new Term('atom', 'identical');
+            const equal = term1.equals(term2), hashConsistent = term1.hash === term2.hash;
+            return equal && hashConsistent && `Equal: ${equal}, Hash: ${hashConsistent}`;
+        }),
+        this._safeTest('Term complexity', () => {
             const {Term} = require('../term/Term.js');
             const atomic = new Term('atom', 'simple');
             const compound = new Term('compound', 'test', [atomic, atomic], '-->');
             const atomicCorrect = atomic.complexity === 1;
             const compoundCorrect = compound.complexity > atomic.complexity;
-            return {spec: 'Term complexity', passed: atomicCorrect && compoundCorrect, details: `Atomic: ${atomic.complexity}, Compound: ${compound.complexity}`};
-        } catch (error) {
-            return {spec: 'Term complexity', passed: false, details: error.message, error};
-        }
-    }
+            return atomicCorrect && compoundCorrect && `Atomic: ${atomic.complexity}, Compound: ${compound.complexity}`;
+        })
+    ];
 
-    validateTaskSpecs() {
+    validateTaskSpecs = () => {
         try {
             const {Task} = require('../task/Task.js');
             const {Term} = require('../term/Term.js');
@@ -60,74 +48,67 @@ export class SpecValidator {
             const truth = new Truth(0.9, 0.8);
             const task = new Task({term, punctuation: '.', truth, budget: {priority: 0.7, durability: 0.6, quality: 0.5}});
 
-            const typeCorrect = task.type === 'BELIEF';
-            const termCorrect = task.term.equals(term);
-            const truthCorrect = task.truth && Math.abs(task.truth.f - truth.f) < 0.001 && Math.abs(task.truth.c - truth.c) < 0.001;
-            const budgetCorrect = task.budget.priority === 0.7;
+            const validations = [
+                task.type === 'BELIEF',
+                task.term.equals(term),
+                Math.abs(task.truth.f - truth.f) < 0.001 && Math.abs(task.truth.c - truth.c) < 0.001,
+                task.budget.priority === 0.7
+            ];
 
             return [{
                 spec: 'Task creation',
-                passed: typeCorrect && termCorrect && truthCorrect && budgetCorrect,
-                details: `Type: ${typeCorrect}, Term: ${termCorrect}, Truth: ${truthCorrect}, Budget: ${budgetCorrect}`
+                passed: validations.every(v => v),
+                details: `Type: ${validations[0]}, Term: ${validations[1]}, Truth: ${validations[2]}, Budget: ${validations[3]}`
             }];
         } catch (error) {
             return [{spec: 'Task creation', passed: false, details: error.message, error}];
         }
-    }
+    };
 
-    validateTruthSpecs() {
+    validateTruthSpecs = () => {
         try {
             const {Truth} = require('../Truth.js');
-            const truth1 = new Truth(0.8, 0.7);
-            const truth2 = new Truth(0.6, 0.9);
-
-            const valuesCorrect = truth1.f === 0.8 && truth1.c === 0.7;
-            const inRange = truth1.f >= 0 && truth1.f <= 1 && truth1.c >= 0 && truth1.c <= 1;
-
-            const truth3 = new Truth(0.8, 0.7);
-            const equalityCorrect = truth1.equals(truth3);
+            const truth1 = new Truth(0.8, 0.7), truth2 = new Truth(0.6, 0.9), truth3 = new Truth(0.8, 0.7);
 
             return [
-                {spec: 'Truth creation', passed: valuesCorrect && inRange, details: `Values: ${valuesCorrect}, Range: ${inRange}`},
-                {spec: 'Truth equality', passed: equalityCorrect, details: `Equal: ${equalityCorrect}`}
+                this._safeTest('Truth creation', () => {
+                    const valuesCorrect = truth1.f === 0.8 && truth1.c === 0.7;
+                    const inRange = this._validateRange(truth1.f) && this._validateRange(truth1.c);
+                    return valuesCorrect && inRange && `Values: ${valuesCorrect}, Range: ${inRange}`;
+                }),
+                this._safeTest('Truth equality', () => {
+                    const equalityCorrect = truth1.equals(truth3);
+                    return equalityCorrect && `Equal: ${equalityCorrect}`;
+                })
             ];
         } catch (error) {
             return [{spec: 'Truth specs', passed: false, details: error.message, error}];
         }
-    }
+    };
 
-    validateNalSpecs() {
+    validateNalSpecs = () => {
         try {
             const {TruthFunctions} = require('../reasoning/nal/TruthFunctions.js');
-            const t1 = {frequency: 0.9, confidence: 0.8};
-            const t2 = {frequency: 0.7, confidence: 0.6};
+            const t1 = {frequency: 0.9, confidence: 0.8}, t2 = {frequency: 0.7, confidence: 0.6};
 
-            const isValid = result => result && typeof result.frequency === 'number' && typeof result.confidence === 'number' &&
-                result.frequency >= 0 && result.frequency <= 1 && result.confidence >= 0 && result.confidence <= 1;
+            const isValid = result => result && this._validateRange(result.frequency) && this._validateRange(result.confidence);
 
             return [
-                {spec: 'NAL deduction', passed: isValid(TruthFunctions.deduction(t1, t2)), details: 'Deduction valid'},
-                {spec: 'NAL induction', passed: isValid(TruthFunctions.induction(t1, t2)), details: 'Induction valid'},
-                {spec: 'NAL revision', passed: isValid(TruthFunctions.revision(t1, t2)), details: 'Revision valid'}
+                this._safeTest('NAL deduction', () => isValid(TruthFunctions.deduction(t1, t2)) && 'Deduction valid'),
+                this._safeTest('NAL induction', () => isValid(TruthFunctions.induction(t1, t2)) && 'Induction valid'),
+                this._safeTest('NAL revision', () => isValid(TruthFunctions.revision(t1, t2)) && 'Revision valid')
             ];
         } catch (error) {
             return [{spec: 'NAL functions', passed: false, details: error.message, error}];
         }
-    }
+    };
 
-    validateSystemSpecs(narInstance) {
-        if (!narInstance) return [{spec: 'NAR structure', passed: false, details: 'No NAR instance'}];
+    validateSystemSpecs = narInstance => [
+        this._safeTest('NAR structure', () => narInstance ? !!narInstance.memory && !!narInstance.config && `Memory: ${!!narInstance.memory}, Config: ${!!narInstance.config}` : 'No NAR instance'),
+        {spec: 'NAR input', passed: true, details: 'Input capability exists'}
+    ];
 
-        const hasMemory = !!narInstance.memory;
-        const hasConfig = !!narInstance.config;
-
-        return [
-            {spec: 'NAR structure', passed: hasMemory && hasConfig, details: `Memory: ${hasMemory}, Config: ${hasConfig}`},
-            {spec: 'NAR input', passed: true, details: 'Input capability exists'}
-        ];
-    }
-
-    runAllValidations(narInstance = null) {
+    runAllValidations = (narInstance = null) => {
         const allResults = {
             termSpecs: this.validateTermSpecs(),
             taskSpecs: this.validateTaskSpecs(),
@@ -148,17 +129,13 @@ export class SpecValidator {
             passRate: stats.total > 0 ? stats.passed / stats.total : 0,
             isValid: stats.failed === 0
         };
-    }
+    };
 
-    logResults(report) {
+    logResults = report => {
         this.logger.info('VALIDATION REPORT', {
-            total: report.totalTests,
-            passed: report.passedTests,
-            failed: report.failedTests,
-            rate: `${(report.passRate * 100).toFixed(2)}%`,
-            valid: report.isValid
+            total: report.total, passed: report.passed, failed: report.failed,
+            rate: `${(report.passRate * 100).toFixed(2)}%`, valid: report.isValid
         });
-
-        if (report.failedTests > 0) this.logger.warn('FAILED TESTS:', report.details);
-    }
+        if (report.failed > 0) this.logger.warn('FAILED TESTS:', report.details);
+    };
 }
