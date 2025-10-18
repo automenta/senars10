@@ -502,7 +502,7 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Full monitoring, logging, and error handling implemented system-wide
 - [ ] All DESIGN.md specifications validated and tested
 
-## Phase 8: Production Readiness and Deployment
+## Phase 9: Production Readiness and Deployment
 
 ### Goals
 
@@ -512,7 +512,7 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 
 ### Tasks
 
-#### 8.1. Final Quality Assurance and Validation
+#### 9.1. Final Quality Assurance and Validation
 
 **Tests First:**
 
@@ -528,7 +528,7 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Perform comprehensive regression testing against current codebase
 - [ ] Validate all performance benchmarks and optimization targets
 
-#### 8.2. Complete Documentation and Examples
+#### 9.2. Complete Documentation and Examples
 
 - [ ] Generate comprehensive API documentation with examples for every public method
 - [ ] Create step-by-step tutorials for common use cases
@@ -536,7 +536,7 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create comprehensive troubleshooting and debugging guides
 - [ ] Add performance optimization guides and best practices
 
-#### 8.3. Production Deployment Infrastructure
+#### 9.3. Production Deployment Infrastructure
 
 - [ ] Create Docker containers with optimized configurations
 - [ ] Set up CI/CD pipelines with automated testing and deployment
@@ -545,14 +545,14 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Complete security hardening and compliance validation
 - [ ] Prepare production launch checklist and rollback procedures
 
-#### 8.4. Migration and Compatibility
+#### 9.4. Migration and Compatibility
 
 - [ ] Create migration tools and processes from current codebase
 - [ ] Validate backward compatibility for essential APIs
 - [ ] Document breaking changes and migration path
 - [ ] Perform final validation that all original functionality is preserved/enhanced
 
-### Acceptance Criteria for Phase 8
+### Acceptance Criteria for Phase 9
 
 - [ ] System is production-ready with 95%+ test coverage and validated performance
 - [ ] Complete documentation suite available for developers and users
@@ -560,6 +560,238 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Migration path clearly defined with tools and procedures
 - [ ] All original functionality preserved with significant improvements
 - [ ] Production security, performance, and reliability standards met
+
+## Phase 8: End-to-End Functionality Demonstration
+
+### Goals
+
+- Demonstrate complete NAL and LM reasoning capabilities working together
+- Create interactive and non-interactive demonstrations of end-to-end functionality
+- Validate that all phases 1-7 work in harmony through practical demonstrations
+- Create user-friendly interfaces for exploring system capabilities during active development
+- Anchor system integrity through comprehensive validation of core algorithms and properties
+- Implement advanced cognitive capabilities from v9 specification (memory, reasoning, self-optimization)
+
+### Tasks
+
+#### 8.1. NAL and LM Integration Demonstrations
+
+**Tests First:**
+
+- [ ] Create demonstration scripts showing pure NAL reasoning chains (syllogisms, modus ponens, etc.)
+- [ ] Create demonstration scripts showing pure LM capabilities (translation, hypothesis generation, etc.)
+- [ ] Create demonstration scripts showing hybrid NAL-LM reasoning workflows
+- [ ] Create demonstration scripts showing complex scenarios requiring both systems
+- [ ] Create cross-validation demonstration showing NAL validating LM outputs and vice versa
+- [ ] Create demonstrations showing advanced reasoning types (temporal, counterfactual, causal)
+
+**Implementation:**
+
+- [ ] Implement end-to-end NAL-only reasoning demonstrations
+- [ ] Implement end-to-end LM-only capability demonstrations  
+- [ ] Implement hybrid reasoning demonstrations with cross-validation
+- [ ] Create example scenarios showing gap detection and LM assistance for NAL
+- [ ] Create example scenarios showing NAL validation of LM outputs
+- [ ] Implement dynamic rule selection demonstrations based on task complexity and evidence
+- [ ] Create demonstrations of temporal reasoning, counterfactual analysis, and causal reasoning
+- [ ] Demonstrate advanced LM integration with multiple provider fallback mechanisms
+
+#### 8.2. Core Algorithm Validation and Property Testing
+
+**Tests First:**
+
+- [ ] Create property-based tests for term normalization (commutativity, associativity, redundancy elimination)
+- [ ] Create property-based tests for truth value operations (consistency, range adherence)
+- [ ] Create property-based tests for memory management (capacity limits, activation dynamics)
+- [ ] Create performance regression tests for critical operations (term creation, rule application, memory access)
+
+**Implementation:**
+
+- [ ] Implement property-based testing framework for term normalization properties
+- [ ] Validate commutativity preservation in compound terms
+- [ ] Validate associativity normalization in nested structures 
+- [ ] Validate redundancy elimination in term components
+- [ ] Implement performance regression testing for key operations
+- [ ] Create benchmark tests for term creation, rule application, and memory access
+
+#### 8.3. Advanced Memory and Focus Management
+
+**Tests First:**
+
+- [ ] Create tests for memory consolidation and forgetting policies
+- [ ] Create tests for focus set management and attention scoring
+- [ ] Create tests for dual memory architecture (short-term/long-term interaction)
+- [ ] Create tests for specialized indexing by relationship type (inheritance, implication, similarity, etc.)
+- [ ] Create tests for task promotion/demotion between memory systems
+- [ ] Create tests for priority-based memory management
+
+**Implementation:**
+
+- [ ] Implement memory consolidation demonstrations with configurable parameters
+- [ ] Create focus management validation showing attention dynamics
+- [ ] Demonstrate dual memory architecture with task promotion/demotion from focus to long-term memory
+- [ ] Validate specialized indexing for different relationship types (implication, inheritance, similarity, temporal)
+- [ ] Show activation propagation and forgetting mechanisms
+- [ ] Demonstrate priority decay and attention mechanisms
+- [ ] Implement advanced task storage and retrieval with flexible querying and selection criteria
+- [ ] Show task aggregation functions (average, weighted, most recent, strongest confidence)
+
+#### 8.4. Advanced Reasoning and Cognitive Components
+
+**Tests First:**
+
+- [ ] Create demonstrations of temporal reasoning capabilities
+- [ ] Create demonstrations of counterfactual reasoning
+- [ ] Create demonstrations of causal reasoning
+- [ ] Create demonstrations of pattern detection and contradiction analysis
+- [ ] Create demonstrations of advanced strategy selection
+
+**Implementation:**
+
+- [ ] Implement temporal reasoning demonstrations
+- [ ] Implement counterfactual reasoning demonstrations
+- [ ] Implement causal reasoning demonstrations
+- [ ] Create PatternDetector demonstrations showing temporal and causal pattern recognition
+- [ ] Create ContradictionAnalyzer demonstrations showing logical consistency checking
+- [ ] Implement dynamic strategy selection based on system context
+- [ ] Demonstrate self-optimization capabilities using system's own facilities
+- [ ] Show advanced rule winnowing and pre-filtering mechanisms
+
+#### 8.5. Tool Execution and Multi-Modal Integration
+
+**Tests First:**
+
+- [ ] Create demonstrations of web automation capabilities
+- [ ] Create demonstrations of file operation tools
+- [ ] Create demonstrations of command execution with sandboxing
+- [ ] Create demonstrations of API integration tools
+- [ ] Create demonstrations of embedding generation and similarity search
+
+**Implementation:**
+
+- [ ] Implement web automation tool demonstrations (navigation, clicking, form filling)
+- [ ] Implement file operation tool demonstrations (read, write, edit)
+- [ ] Demonstrate command execution with sandboxing and safety measures
+- [ ] Implement API request handling demonstrations
+- [ ] Show embedding generation and similarity search capabilities
+- [ ] Demonstrate multi-modal reasoning integration
+- [ ] Show tool execution history and statistics
+
+#### 8.6. System Integration and Self-Optimization
+
+**Tests First:**
+
+- [ ] Create demonstrations of WebSocket real-time communication
+- [ ] Create demonstrations of component introspection capabilities
+- [ ] Create demonstrations of system self-monitoring
+- [ ] Create demonstrations of automated parameter tuning
+
+**Implementation:**
+
+- [ ] Implement WebSocket server integration for real-time system monitoring
+- [ ] Create component introspection and health monitoring demonstrations
+- [ ] Show system statistics aggregation and reporting
+- [ ] Demonstrate adaptive parameter tuning and self-optimization
+- [ ] Implement system status and health monitoring
+- [ ] Demonstrate metaprogramming and self-modification capabilities
+
+#### 8.7. Non-Interactive Demonstrations
+
+**Tests First:**
+
+- [ ] Create demonstration scripts that can run without user interaction
+- [ ] Create demonstrations covering basic to advanced reasoning scenarios
+- [ ] Create demonstrations showing both successful and edge-case behaviors
+- [ ] Create demonstrations validating system stability under various loads
+
+**Implementation:**
+
+- [ ] Implement command-line demonstration scripts with detailed output
+- [ ] Create "story" demonstrations showing complex reasoning over multiple cycles
+- [ ] Create performance benchmark demonstrations
+- [ ] Implement demonstration result validation and reporting
+- [ ] Create stress-test demonstrations to validate system stability
+
+#### 8.8. Interactive REPL (Read-Eval-Print Loop)
+
+**Tests First:**
+
+- [ ] Test REPL command parsing and execution
+- [ ] Test interactive reasoning session continuity
+- [ ] Test user guidance and help functionality
+- [ ] Test real-time reasoning visualization capabilities
+
+**Implementation:**
+
+- [ ] Implement basic REPL interface with Narsese input capability
+- [ ] Add real-time reasoning output display
+- [ ] Implement session state management
+- [ ] Add help and documentation commands
+- [ ] Implement reasoning trace and explanation capabilities
+- [ ] Add visualization of memory and focus set states
+- [ ] Add task and concept inspection tools
+- [ ] Integrate WebSocket-based real-time monitoring into REPL
+
+#### 8.9. System Integrity and Error Handling Validation
+
+**Tests First:**
+
+- [ ] Create tests for input validation and error handling
+- [ ] Create tests for graceful degradation under various failure modes
+- [ ] Create tests for system recovery from rule application errors
+- [ ] Create tests for memory allocation failure scenarios
+- [ ] Create tests for LM provider fallback mechanisms
+
+**Implementation:**
+
+- [ ] Implement comprehensive input validation demonstrations
+- [ ] Create error handling validation showing graceful degradation
+- [ ] Demonstrate recovery mechanisms for various failure modes
+- [ ] Validate task normalization and priority management
+- [ ] Show system metrics and monitoring capabilities
+- [ ] Demonstrate LM provider fallback and redundancy mechanisms
+- [ ] Test component health monitoring and issue detection
+
+#### 8.10. TestNAR End-to-End Validation
+
+**Tests First:**
+
+- [ ] Create comprehensive TestNAR tests for integrated functionality
+- [ ] Create multi-step reasoning sequence tests
+- [ ] Create cross-system validation tests (NAL validating LM, LM assisting NAL)
+- [ ] Create property-based tests using TestNAR framework
+- [ ] Create advanced reasoning pattern tests (temporal, counterfactual, causal)
+
+**Implementation:**
+
+- [ ] Enhance TestNAR to support complex multi-step scenarios
+- [ ] Implement TestNAR support for hybrid reasoning validation
+- [ ] Create extensive scenario-based tests using TestNAR
+- [ ] Validate that all major NAL and LM capabilities work together
+- [ ] Implement property-based testing integration with TestNAR
+- [ ] Create advanced reasoning pattern validation tests
+
+### Acceptance Criteria for Phase 8
+
+- [ ] Working REPL interface allowing interactive exploration of NAL and LM capabilities
+- [ ] Non-interactive demonstrations showing all major system features
+- [ ] TestNAR tests validating end-to-end functionality across all system components
+- [ ] Demonstrations showing successful integration of NAL and LM reasoning
+- [ ] All demonstrations working with reasonable performance and reliability
+- [ ] Users able to clearly understand system capabilities through demonstrations
+- [ ] Property-based tests validating core algorithm integrity (term normalization, truth operations, etc.)
+- [ ] Memory and focus management validated through demonstrations
+- [ ] System integrity and error handling validated under various conditions
+- [ ] Performance benchmarks demonstrating system efficiency under normal and stress conditions
+- [ ] Advanced reasoning capabilities (temporal, counterfactual, causal) demonstrated
+- [ ] Dual memory architecture with proper task promotion/demotion validated
+- [ ] Specialized indexing by relationship type implemented and validated
+- [ ] Tool execution framework with safety measures implemented and demonstrated
+- [ ] WebSocket real-time communication and system monitoring implemented
+- [ ] Self-optimization and metacognition capabilities demonstrated
+- [ ] Multi-modal reasoning and embedding integration validated
+- [ ] System health monitoring and error recovery mechanisms validated
+
 
 ## Risk Management and Success Factors
 
