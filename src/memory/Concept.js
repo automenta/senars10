@@ -3,21 +3,6 @@ import {clamp} from '../util/common.js';
 import {ConfigurableComponent} from '../util/ConfigurableComponent.js';
 
 export class Concept extends ConfigurableComponent {
-    constructor(term, config = {}) {
-        super(Concept.DEFAULT_CONFIG);
-        this.configure(config);
-        
-        this._term = term;
-        this._createdAt = Date.now();
-        this._lastAccessed = Date.now();
-        this._beliefs = new Bag(this.getConfigValue('maxBeliefs'));
-        this._goals = new Bag(this.getConfigValue('maxGoals'));
-        this._questions = new Bag(this.getConfigValue('maxQuestions'));
-        this._activation = 0;
-        this._useCount = 0;
-        this._quality = 0;
-    }
-
     static DEFAULT_CONFIG = {
         maxBeliefs: 100,
         maxGoals: 50,
@@ -28,6 +13,21 @@ export class Concept extends ConfigurableComponent {
         minQuality: 0,
         maxQuality: 1
     };
+
+    constructor(term, config = {}) {
+        super(Concept.DEFAULT_CONFIG);
+        this.configure(config);
+
+        this._term = term;
+        this._createdAt = Date.now();
+        this._lastAccessed = Date.now();
+        this._beliefs = new Bag(this.getConfigValue('maxBeliefs'));
+        this._goals = new Bag(this.getConfigValue('maxGoals'));
+        this._questions = new Bag(this.getConfigValue('maxQuestions'));
+        this._activation = 0;
+        this._useCount = 0;
+        this._quality = 0;
+    }
 
     get term() {
         return this._term;

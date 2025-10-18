@@ -1,4 +1,4 @@
-import {Stamp, ArrayStamp} from '../../src/Stamp.js';
+import {ArrayStamp, Stamp} from '../../src/Stamp.js';
 
 describe('Stamp', () => {
     let stamp;

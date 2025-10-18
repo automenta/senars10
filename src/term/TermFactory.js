@@ -1,4 +1,5 @@
 import {Term, TermType} from './Term.js';
+
 export {Term};
 
 const COMMUTATIVE_OPERATORS = new Set(['&', '|', '+', '*']);

@@ -1,6 +1,5 @@
 import {LMRule} from '../LMRule.js';
 import {Task} from '../../task/Task.js';
-import {Term} from '../../term/Term.js';
 import {Truth} from '../../Truth.js';
 import {NarseseParser} from '../../parser/NarseseParser.js';
 
@@ -17,19 +16,19 @@ export class InferenceLMRule extends LMRule {
             Only respond with the Narsese statement, nothing else.`,
             async (lmResponse, task) => {
                 if (!lmResponse) return [];
-                
+
                 try {
                     // Parse the LM response as Narsese
                     const parser = new NarseseParser();
                     const parsed = parser.parse(lmResponse.trim());
-                    
+
                     if (parsed && parsed.term) {
                         // Create a new task based on the LM's inference
                         const inferredTask = new Task({
                             term: parsed.term,
                             punctuation: parsed.punctuation || '.',
-                            truth: parsed.truthValue ? 
-                                new Truth(parsed.truthValue.frequency, parsed.truthValue.confidence) : 
+                            truth: parsed.truthValue ?
+                                new Truth(parsed.truthValue.frequency, parsed.truthValue.confidence) :
                                 new Truth(0.8, 0.7), // Default truth values for LM-generated inferences
                             budget: {
                                 priority: task.budget.priority * 0.7, // Lower priority than original task
@@ -37,14 +36,14 @@ export class InferenceLMRule extends LMRule {
                                 quality: task.budget.quality * 0.6
                             }
                         });
-                        
+
                         return [inferredTask];
                     }
                 } catch (error) {
                     console.warn('Error parsing LM response:', error);
                     // Return empty array if parsing fails
                 }
-                
+
                 return [];
             },
             0.8, // Priority

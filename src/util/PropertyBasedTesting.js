@@ -30,10 +30,10 @@ export class PropertyBasedTester {
      * Generate random terms for testing
      */
     generateTerm(depth = 0, maxDepth = 3) {
-        const { Term } = require('../src/term/Term.js'); // Dynamically import to avoid circular deps
+        const {Term} = require('../src/term/Term.js'); // Dynamically import to avoid circular deps
         const termTypes = ['atomic', 'compound'];
         const operators = ['-->', '<->', '==>', '<=>', '&', '|', '--'];
-        
+
         if (depth >= maxDepth || (depth > 0 && this.random() < 0.3)) {
             // Generate atomic term
             const name = `term_${Math.floor(this.random() * 1000)}`;
@@ -43,11 +43,11 @@ export class PropertyBasedTester {
             const operator = operators[Math.floor(this.random() * operators.length)];
             const componentCount = operator === '--' ? 1 : 2; // Negation has 1 component, others have 2
             const components = [];
-            
+
             for (let i = 0; i < componentCount; i++) {
                 components.push(this.generateTerm(depth + 1, maxDepth));
             }
-            
+
             const name = `(${components.map(c => c.name).join(` ${operator} `)})`;
             return new Term('compound', name, components, operator);
         }
@@ -69,12 +69,12 @@ export class PropertyBasedTester {
     check(property, generator, options = {}) {
         const maxTests = options.maxTests || this.maxTests;
         let successes = 0;
-        
+
         for (let i = 0; i < maxTests; i++) {
             try {
                 const input = generator(this.random);
                 const result = property(input);
-                
+
                 if (!result) {
                     this.failures.push({
                         testNumber: i,
@@ -94,7 +94,7 @@ export class PropertyBasedTester {
                 return false;
             }
         }
-        
+
         return {
             passed: true,
             successes,
@@ -110,21 +110,21 @@ export class PropertyBasedTester {
         const originalString = term.toString();
         const originalHash = term.hash;
         const originalComponents = term.components ? [...term.components] : null;
-        
+
         // Try to modify properties (should not affect the original)
         try {
             // This should either fail (with proper immutability) or not change the original values
             if (term._name) term._name = 'modified';
             if (term.name !== originalString) return false;
             if (term.hash !== originalHash) return false;
-            
+
             // For compound terms, verify components are also immutable
             if (originalComponents) {
                 for (let i = 0; i < originalComponents.length; i++) {
                     if (term.components[i] !== originalComponents[i]) return false;
                 }
             }
-            
+
             return true;
         } catch (e) {
             // If modification throws an error, that's also a form of immutability
@@ -138,16 +138,16 @@ export class PropertyBasedTester {
     checkEqualityConsistency(terms) {
         const [t1, t2] = terms;
         if (!t1 || !t2) return false;
-        
+
         const eq1 = t1.equals(t2);
         const eq2 = t2.equals(t1);
-        
+
         // Equality should be symmetric
         if (eq1 !== eq2) return false;
-        
+
         // If terms are equal, their hashes should be equal
         if (eq1 && t1.hash !== t2.hash) return false;
-        
+
         return true;
     }
 
@@ -156,24 +156,24 @@ export class PropertyBasedTester {
      */
     checkTruthOperations(truthPair) {
         const [t1, t2] = truthPair;
-        const { TruthFunctions } = require('../src/reasoning/nal/TruthFunctions.js');
-        
+        const {TruthFunctions} = require('../src/reasoning/nal/TruthFunctions.js');
+
         try {
             // Test that operations produce valid truth values
             const deductionResult = TruthFunctions.deduction(t1, t2);
             const inductionResult = TruthFunctions.induction(t1, t2);
             const revisionResult = TruthFunctions.revision(t1, t2);
-            
+
             // Check that results are valid truth values (f and c between 0 and 1)
-            const isValidTruth = (t) => t && typeof t === 'object' && 
-                                     typeof t.frequency === 'number' && 
-                                     typeof t.confidence === 'number' &&
-                                     t.frequency >= 0 && t.frequency <= 1 &&
-                                     t.confidence >= 0 && t.confidence <= 1;
-            
-            return isValidTruth(deductionResult) && 
-                   isValidTruth(inductionResult) && 
-                   isValidTruth(revisionResult);
+            const isValidTruth = (t) => t && typeof t === 'object' &&
+                typeof t.frequency === 'number' &&
+                typeof t.confidence === 'number' &&
+                t.frequency >= 0 && t.frequency <= 1 &&
+                t.confidence >= 0 && t.confidence <= 1;
+
+            return isValidTruth(deductionResult) &&
+                isValidTruth(inductionResult) &&
+                isValidTruth(revisionResult);
         } catch (e) {
             return false;
         }
@@ -193,21 +193,21 @@ export class PropertyBasedTester {
         results.immutability = this.check(
             this.checkImmutability.bind(this),
             () => this.generateTerm(),
-            { maxTests: 50 }
+            {maxTests: 50}
         );
 
         // Test equality consistency
         results.equality = this.check(
             this.checkEqualityConsistency.bind(this),
             () => [this.generateTerm(), this.generateTerm()],
-            { maxTests: 50 }
+            {maxTests: 50}
         );
 
         // Test truth operations
         results.truthOperations = this.check(
             this.checkTruthOperations.bind(this),
             () => [this.generateTruth(), this.generateTruth()],
-            { maxTests: 50 }
+            {maxTests: 50}
         );
 
         return results;

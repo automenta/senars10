@@ -6,12 +6,12 @@ const PUNCTUATION_TO_TYPE = {'.': 'BELIEF', '!': 'GOAL', '?': 'QUESTION'};
 
 export class Task {
     constructor({
-        term,
-        punctuation = '.',
-        truth = null,
-        budget = {priority: 0.5, durability: 0.5, quality: 0.5},
-        stamp = null
-    }) {
+                    term,
+                    punctuation = '.',
+                    truth = null,
+                    budget = {priority: 0.5, durability: 0.5, quality: 0.5},
+                    stamp = null
+                }) {
         if (!(term instanceof Term)) {
             throw new Error('Task must be initialized with a valid Term object.');
         }
@@ -25,6 +25,10 @@ export class Task {
         Object.freeze(this);
     }
 
+    get punctuation() {
+        return Object.keys(PUNCTUATION_TO_TYPE).find(key => PUNCTUATION_TO_TYPE[key] === this.type);
+    }
+
     clone(overrides) {
         return new Task({
             term: this.term,
@@ -34,10 +38,6 @@ export class Task {
             stamp: this.stamp,
             ...overrides,
         });
-    }
-
-    get punctuation() {
-        return Object.keys(PUNCTUATION_TO_TYPE).find(key => PUNCTUATION_TO_TYPE[key] === this.type);
     }
 
     isBelief = () => this.type === 'BELIEF';

@@ -96,9 +96,9 @@ describe('FocusSetSelector', () => {
             const term = termFactory.create({components: [String.fromCharCode(65 + i)]});
             const task = new Task({
                 term,
-            punctuation: '.',
-            budget: {priority: 0.5 + (i * 0.1)},
-            stamp: new ArrayStamp({id: `id${i}`, creationTime: currentTime - (i * 100), source: 'INPUT'}),
+                punctuation: '.',
+                budget: {priority: 0.5 + (i * 0.1)},
+                stamp: new ArrayStamp({id: `id${i}`, creationTime: currentTime - (i * 100), source: 'INPUT'}),
             });
             tasks.push(task);
         }

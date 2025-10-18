@@ -3,7 +3,7 @@
  * @description Simple, robust system configuration with validation
  */
 
-import { deepFreeze } from '../util/common.js';
+import {deepFreeze} from '../util/common.js';
 
 // Simple default configuration
 const DEFAULT_CONFIG = deepFreeze({
@@ -76,39 +76,39 @@ export class SystemConfig {
         this._config = this._deepMerge(DEFAULT_CONFIG, userConfig);
     }
 
+    static from(userConfig = {}) {
+        return new SystemConfig(userConfig);
+    }
+
     // Simple deep merge implementation
     _deepMerge(target, source) {
-        const result = { ...target };
-        
+        const result = {...target};
+
         for (const [key, value] of Object.entries(source)) {
-            if (value && typeof value === 'object' && !Array.isArray(value) && 
+            if (value && typeof value === 'object' && !Array.isArray(value) &&
                 result[key] && typeof result[key] === 'object') {
                 result[key] = this._deepMerge(result[key], value);
             } else {
                 result[key] = value;
             }
         }
-        
+
         return result;
     }
 
     get(path) {
         const pathParts = path.split('.');
         let current = this._config;
-        
+
         for (const part of pathParts) {
             if (current === null || current === undefined) return undefined;
             current = current[part];
         }
-        
+
         return current;
     }
 
     toJSON() {
-        return { ...this._config };
-    }
-
-    static from(userConfig = {}) {
-        return new SystemConfig(userConfig);
+        return {...this._config};
     }
 }

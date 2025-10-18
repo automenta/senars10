@@ -16,19 +16,19 @@ export class HypothesisLMRule extends LMRule {
             Only respond with the Narsese statement, nothing else.`,
             async (lmResponse, task) => {
                 if (!lmResponse) return [];
-                
+
                 try {
                     // Parse the LM response as Narsese
                     const parser = new NarseseParser();
                     const parsed = parser.parse(lmResponse.trim());
-                    
+
                     if (parsed && parsed.term) {
                         // Create a new task based on the LM's hypothesis
                         const hypothesisTask = new Task({
                             term: parsed.term,
                             punctuation: '?', // Hypotheses are typically questions
-                            truth: parsed.truthValue ? 
-                                new Truth(parsed.truthValue.frequency, parsed.truthValue.confidence) : 
+                            truth: parsed.truthValue ?
+                                new Truth(parsed.truthValue.frequency, parsed.truthValue.confidence) :
                                 new Truth(0.5, 0.1), // Lower confidence for hypotheses
                             budget: {
                                 priority: task.budget.priority * 0.5, // Lower priority for hypotheses
@@ -36,14 +36,14 @@ export class HypothesisLMRule extends LMRule {
                                 quality: task.budget.quality * 0.4
                             }
                         });
-                        
+
                         return [hypothesisTask];
                     }
                 } catch (error) {
                     console.warn('Error parsing LM response:', error);
                     // Return empty array if parsing fails
                 }
-                
+
                 return [];
             },
             0.7, // Priority

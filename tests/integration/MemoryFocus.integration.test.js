@@ -153,8 +153,16 @@ describe('Memory and Focus Management Integration', () => {
         });
 
         test('should respect priority threshold in selection', () => {
-            const highPriorityTask = new Task({term: termFactory.create({name: 'high'}), punctuation: '.', budget: {priority: 0.8}});
-            const lowPriorityTask = new Task({term: termFactory.create({name: 'low'}), punctuation: '.', budget: {priority: 0.1}});
+            const highPriorityTask = new Task({
+                term: termFactory.create({name: 'high'}),
+                punctuation: '.',
+                budget: {priority: 0.8}
+            });
+            const lowPriorityTask = new Task({
+                term: termFactory.create({name: 'low'}),
+                punctuation: '.',
+                budget: {priority: 0.1}
+            });
 
             const selected = selector.select([highPriorityTask, lowPriorityTask], currentTime);
 

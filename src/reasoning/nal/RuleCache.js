@@ -88,16 +88,16 @@ export class RuleCache {
     clear() {
         this.cache.clear();
         this.accessTimes.clear();
-        this.stats = { hits: 0, misses: 0, evictions: 0 };
+        this.stats = {hits: 0, misses: 0, evictions: 0};
     }
 
     /**
      * Gets cache statistics
      */
     getStats() {
-        const hitRate = this.stats.hits + this.stats.misses > 0 ? 
+        const hitRate = this.stats.hits + this.stats.misses > 0 ?
             this.stats.hits / (this.stats.hits + this.stats.misses) : 0;
-        
+
         return {
             ...this.stats,
             hitRate,

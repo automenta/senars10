@@ -57,9 +57,15 @@ export class MemoryIndex {
         this._addToIndex('compound', term.operator, term);
 
         switch (term.operator) {
-            case '-->': this._indexInheritance(term, concept); break;
-            case '==>': this._indexImplication(term, concept); break;
-            case '<->': this._indexSimilarity(term, concept); break;
+            case '-->':
+                this._indexInheritance(term, concept);
+                break;
+            case '==>':
+                this._indexImplication(term, concept);
+                break;
+            case '<->':
+                this._indexSimilarity(term, concept);
+                break;
         }
 
         term.components?.forEach(comp => {
@@ -90,9 +96,15 @@ export class MemoryIndex {
         this._removeFromIndex('compound', term.operator, term);
 
         switch (term.operator) {
-            case '-->': this._removeInheritanceIndex(term, concept); break;
-            case '==>': this._removeImplicationIndex(term, concept); break;
-            case '<->': this._removeSimilarityIndex(term, concept); break;
+            case '-->':
+                this._removeInheritanceIndex(term, concept);
+                break;
+            case '==>':
+                this._removeImplicationIndex(term, concept);
+                break;
+            case '<->':
+                this._removeSimilarityIndex(term, concept);
+                break;
         }
     }
 

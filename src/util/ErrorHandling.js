@@ -3,8 +3,8 @@
  * @description Comprehensive error handling with graceful degradation and recovery mechanisms
  */
 
-import { Logger } from './util/Logger.js';
-import { SystemConfig } from './nar/SystemConfig.js';
+import {Logger} from './util/Logger.js';
+import {SystemConfig} from './nar/SystemConfig.js';
 
 /**
  * Centralized error handling with graceful degradation capabilities
@@ -16,7 +16,7 @@ export class ErrorHandling {
         this.errorRegistry = new Map(); // Track error patterns
         this.degradationLevel = 0; // 0 = no degradation, 1 = full degradation
         this.recoveryAttempts = new Map(); // Track recovery attempts per error type
-        
+
         // Error rate tracking
         this.errorRateWindow = [];
         this.maxErrorRate = this.config.get('errorHandling.maxErrorRate');
@@ -57,7 +57,7 @@ export class ErrorHandling {
 
         // Don't re-throw if graceful degradation is enabled
         if (this.config.get('errorHandling.enableGracefulDegradation')) {
-            return { success: false, degraded: true, error: errorInfo };
+            return {success: false, degraded: true, error: errorInfo};
         }
 
         // Re-throw if graceful degradation is disabled
@@ -90,12 +90,18 @@ export class ErrorHandling {
 
         const errorType = this._classifyError(error);
         switch (errorType) {
-            case 'logic': return 'high';
-            case 'network': return 'medium';
-            case 'resource': return 'high';
-            case 'syntax': return 'high';
-            case 'validation': return 'low';
-            default: return 'medium';
+            case 'logic':
+                return 'high';
+            case 'network':
+                return 'medium';
+            case 'resource':
+                return 'high';
+            case 'syntax':
+                return 'high';
+            case 'validation':
+                return 'low';
+            default:
+                return 'medium';
         }
     }
 
@@ -103,9 +109,9 @@ export class ErrorHandling {
      * Log error with appropriate level
      */
     _logError(errorInfo) {
-        const level = errorInfo.severity === 'high' ? 'error' : 
-                     errorInfo.severity === 'medium' ? 'warn' : 'info';
-        
+        const level = errorInfo.severity === 'high' ? 'error' :
+            errorInfo.severity === 'medium' ? 'warn' : 'info';
+
         this.logger[level](`Error [${errorInfo.type}][${errorInfo.severity}]: ${errorInfo.message}`, {
             context: errorInfo.context,
             stack: errorInfo.stack,
@@ -137,11 +143,11 @@ export class ErrorHandling {
      */
     _getErrorRate() {
         if (this.errorRateWindow.length === 0) return 0;
-        
-        const recentErrors = this.errorRateWindow.filter(err => 
+
+        const recentErrors = this.errorRateWindow.filter(err =>
             err.severity === 'high' || err.severity === 'medium'
         );
-        
+
         return recentErrors.length / this.errorRateWindow.length;
     }
 
@@ -150,8 +156,8 @@ export class ErrorHandling {
      */
     _registerError(errorInfo) {
         const key = `${errorInfo.type}:${errorInfo.message.substring(0, 50)}`;
-        const entry = this.errorRegistry.get(key) || { count: 0, lastSeen: 0, instances: [] };
-        
+        const entry = this.errorRegistry.get(key) || {count: 0, lastSeen: 0, instances: []};
+
         entry.count++;
         entry.lastSeen = errorInfo.timestamp;
         entry.instances.push({
@@ -159,10 +165,10 @@ export class ErrorHandling {
             context: errorInfo.context,
             severity: errorInfo.severity
         });
-        
+
         // Keep only recent instances
         entry.instances = entry.instances.slice(-10); // Keep last 10 instances
-        
+
         this.errorRegistry.set(key, entry);
     }
 
@@ -171,7 +177,7 @@ export class ErrorHandling {
      */
     _assessDegradation() {
         const currentErrorRate = this._getErrorRate();
-        
+
         if (currentErrorRate > this.maxErrorRate) {
             this.degradationLevel = Math.min(1, this.degradationLevel + 0.1);
             this.logger.warn(`System degrading due to high error rate (${(currentErrorRate * 100).toFixed(2)}%)`, {
@@ -192,7 +198,7 @@ export class ErrorHandling {
 
         if (attempts >= this.recoveryAttemptsLimit) {
             this.logger.error(`Recovery failed after ${attempts} attempts for error: ${errorInfo.message}`);
-            return { success: false, degraded: true, error: errorInfo };
+            return {success: false, degraded: true, error: errorInfo};
         }
 
         this.recoveryAttempts.set(errorKey, attempts + 1);
@@ -223,7 +229,7 @@ export class ErrorHandling {
             this.logger.error(`Recovery process failed:`, recoveryError);
         }
 
-        return { success: false, degraded: true, error: errorInfo };
+        return {success: false, degraded: true, error: errorInfo};
     }
 
     /**
@@ -232,7 +238,7 @@ export class ErrorHandling {
     async _recoverNetworkError(errorInfo, options) {
         // For network errors, we might try alternative services or retry
         await this._delay(1000); // Wait a bit before retrying
-        return { success: false, needsRetry: true }; // Indicate need for higher-level retry
+        return {success: false, needsRetry: true}; // Indicate need for higher-level retry
     }
 
     /**
@@ -241,7 +247,7 @@ export class ErrorHandling {
     async _recoverResourceError(errorInfo, options) {
         // For resource errors, we might try to free up resources or reduce load
         this.logger.info('Attempting resource recovery - may disable non-critical features');
-        return { success: false, degraded: true }; // System is degraded but operational
+        return {success: false, degraded: true}; // System is degraded but operational
     }
 
     /**
@@ -250,9 +256,9 @@ export class ErrorHandling {
     async _recoverValidationError(errorInfo, options) {
         // For validation errors, we might use default values or skip invalid data
         if (options.defaultValue !== undefined) {
-            return { success: true, value: options.defaultValue };
+            return {success: true, value: options.defaultValue};
         }
-        return { success: false, skip: true }; // Skip this operation
+        return {success: false, skip: true}; // Skip this operation
     }
 
     /**
@@ -261,7 +267,7 @@ export class ErrorHandling {
     async _recoverGenericError(errorInfo, options) {
         // Generic recovery might involve resetting component state
         await this._delay(100); // Brief pause
-        return { success: false, degraded: true };
+        return {success: false, degraded: true};
     }
 
     /**

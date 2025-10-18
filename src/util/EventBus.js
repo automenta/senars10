@@ -52,7 +52,7 @@ export class EventBus {
      * Subscribe to an event and automatically unsubscribe after first emission
      */
     once(eventName, callback, options = {}) {
-        return this.on(eventName, callback, { ...options, once: true });
+        return this.on(eventName, callback, {...options, once: true});
     }
 
     /**
@@ -111,13 +111,13 @@ export class EventBus {
         this._stats.eventsEmitted++;
 
         // Apply middleware
-        let processedData = { ...data, eventName };
+        let processedData = {...data, eventName};
         for (const middleware of this._middleware) {
             try {
                 processedData = await middleware(processedData);
                 if (processedData === null) return; // Middleware can cancel event
             } catch (error) {
-                this._handleError('middleware', error, { eventName, data });
+                this._handleError('middleware', error, {eventName, data});
                 return;
             }
         }
@@ -140,9 +140,9 @@ export class EventBus {
                 } catch (error) {
                     attempts++;
                     this._stats.errors++;
-                    
+
                     if (attempts >= this._deliveryGuarantees.maxRetries) {
-                        this._handleError('listener', error, { eventName, data, listener });
+                        this._handleError('listener', error, {eventName, data, listener});
                     } else {
                         this._stats.retries++;
                         await this._delay(this._deliveryGuarantees.retryDelay * attempts);
@@ -186,7 +186,7 @@ export class EventBus {
      * Get statistics about event bus performance
      */
     getStats() {
-        return { ...this._stats };
+        return {...this._stats};
     }
 
     /**

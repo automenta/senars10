@@ -16,10 +16,21 @@ export class RuleEngine {
         this._typeMetrics = {lmRuleApplications: 0, nalRuleApplications: 0};
     }
 
-    get rules() { return [...this._rules.values()]; }
-    get ruleSets() { return [...this._ruleSets.values()]; }
-    get metrics() { return {...this._metrics, ...this._typeMetrics}; }
-    get lm() { return this._lm; }
+    get rules() {
+        return [...this._rules.values()];
+    }
+
+    get ruleSets() {
+        return [...this._ruleSets.values()];
+    }
+
+    get metrics() {
+        return {...this._metrics, ...this._typeMetrics};
+    }
+
+    get lm() {
+        return this._lm;
+    }
 
     setLM(lm) {
         this._lm = lm;

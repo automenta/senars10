@@ -6,7 +6,7 @@ import {NarseseParser} from '../parser/NarseseParser.js';
 import {EventBus} from '../util/EventBus.js';
 import {RuleEngine} from '../reasoning/RuleEngine.js';
 import {DeductionRule} from '../reasoning/rules/deduction.js';
-import {PRIORITY, TRUTH} from '../config/constants.js';
+import {PRIORITY} from '../config/constants.js';
 import {Logger} from '../util/Logger.js';
 import {Focus} from '../memory/Focus.js';
 import {LM} from '../lm/LM.js';
@@ -17,7 +17,7 @@ export class NAR {
     constructor(config = {}) {
         // Store the desired LM state early before config processing
         const desiredLmEnabled = config.lm?.enabled === true;
-        
+
         this._config = SystemConfig.from(config);
         this.logger = Logger;
 
@@ -31,7 +31,7 @@ export class NAR {
 
         // Initialize LM if enabled in config
         this._lm = null;
-        
+
         // Use the pre-stored LM enabled state to avoid potential config processing issues
         if (desiredLmEnabled) {
             this._lm = new LM();
@@ -260,7 +260,7 @@ export class NAR {
         const confidenceMultiplier = priorityConfig.confidenceMultiplier || 0.3; // Default value
         const goalBoost = priorityConfig.goalBoost || 0.2; // Default value
         const questionBoost = priorityConfig.questionBoost || 0.1; // Default value
-        
+
         const confidenceBoost = (truthValue.confidence || 0) * confidenceMultiplier;
         const typeBoost = {
             'GOAL': goalBoost,

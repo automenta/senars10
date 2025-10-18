@@ -1,6 +1,5 @@
 import {NALRule} from './NALRule.js';
 import {Term} from '../../term/Term.js';
-import {RuleUtils} from './RuleUtils.js';
 
 /**
  * Negation Rule: Creates negated statements
@@ -22,39 +21,39 @@ export class NegationRule extends NALRule {
 
     async _apply(task, context) {
         const results = [];
-        
+
         if (task.term?.isAtomic) {
             // Create a negation term: (--, task.term)
             const negationTerm = new Term(
-                'compound', 
-                `(--,${task.term.name})`, 
-                [task.term], 
+                'compound',
+                `(--,${task.term.name})`,
+                [task.term],
                 '--'
             );
-            
+
             // Calculate truth value using negation logic
             const derivedTruth = this._calculateNegationTruth(task.truth);
-            
+
             const negationTask = this._createDerivedTask(task, {
                 term: negationTerm,
                 truth: derivedTruth,
                 type: task.type, // Preserve the original task type
                 priority: task.budget.priority * this.priority
             });
-            
+
             results.push(negationTask);
         }
-        
+
         return results;
     }
-    
+
     _calculateNegationTruth(truth) {
-        if (!truth) return { f: 0.5, c: 0.9 }; // Default truth for unknown
-        
+        if (!truth) return {f: 0.5, c: 0.9}; // Default truth for unknown
+
         // Negation: flip frequency, preserve confidence
         const frequency = 1 - truth.f;
         const confidence = truth.c;
-        
-        return { f: frequency, c: confidence };
+
+        return {f: frequency, c: confidence};
     }
 }

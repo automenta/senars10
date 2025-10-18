@@ -15,7 +15,7 @@ export class Stamp {
      * Creates a new Stamp for a task derived from user input.
      */
     static createInput() {
-        return new ArrayStamp({ source: 'INPUT' });
+        return new ArrayStamp({source: 'INPUT'});
     }
 
     /**

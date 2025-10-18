@@ -46,7 +46,7 @@ export class HybridReasoningEngine {
         const gaps = this._detectReasoningGaps(task, nalResults, lmResults, context);
         if (gaps.length > 0) {
             results.reasoningPath.push(`Detected ${gaps.length} gaps in reasoning`);
-            
+
             // Fill gaps using the other system
             for (const gap of gaps) {
                 if (gap.requiresLM) {
@@ -130,10 +130,10 @@ export class HybridReasoningEngine {
         const gaps = [];
 
         // Check if NAL reasoning produced low-confidence results
-        const lowConfidenceNAL = nalResults.filter(result => 
+        const lowConfidenceNAL = nalResults.filter(result =>
             result.truth && result.truth.c < this.config.gapDetectionThreshold
         );
-        
+
         if (lowConfidenceNAL.length > 0) {
             gaps.push({
                 type: 'low_confidence_nal',
@@ -144,10 +144,10 @@ export class HybridReasoningEngine {
         }
 
         // Check if LM reasoning produced low-confidence results
-        const lowConfidenceLM = lmResults.filter(result => 
+        const lowConfidenceLM = lmResults.filter(result =>
             result.truth && result.truth.c < this.config.gapDetectionThreshold
         );
-        
+
         if (lowConfidenceLM.length > 0) {
             gaps.push({
                 type: 'low_confidence_lm',
@@ -212,7 +212,7 @@ export class HybridReasoningEngine {
             // Process the response (in a real system, this would parse LM output to tasks)
             // For now, we'll return an empty array as placeholder
             this.logger.info(`LM filled gap: ${gap.description}`);
-            
+
             return []; // Placeholder - would convert LM response to tasks in real implementation
         } catch (error) {
             this.logger.error('Error filling gap with LM:', error);
@@ -246,7 +246,7 @@ export class HybridReasoningEngine {
         for (const nalResult of nalResults) {
             for (const lmResult of lmResults) {
                 const similarity = this._calculateSemanticSimilarity(nalResult, lmResult);
-                
+
                 if (similarity > this.config.confidenceThreshold) {
                     // Results are consistent, boost confidence
                     const enhancedResult = this._boostConsistentResult(nalResult, lmResult);
@@ -273,7 +273,7 @@ export class HybridReasoningEngine {
         // Check for semantic similarity in term structure
         const commonComplexity = Math.min(result1.term?.complexity || 0, result2.term?.complexity || 0);
         const difference = Math.abs((result1.term?.complexity || 0) - (result2.term?.complexity || 0));
-        
+
         // Simple similarity calculation (would be more sophisticated in real implementation)
         return commonComplexity > 0 ? (commonComplexity / (commonComplexity + difference)) : 0.1;
     }

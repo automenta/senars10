@@ -116,7 +116,12 @@ describe('Phase 4 Core Components Integration', () => {
         const inheritanceTerm = termFactory.create({operator: '-->', components: [subjectTerm, predicateTerm]});
 
         // Create task
-        const task = new Task({term: inheritanceTerm, punctuation: '.', truth: new Truth(0.9, 0.8), budget: {priority: 0.7}});
+        const task = new Task({
+            term: inheritanceTerm,
+            punctuation: '.',
+            truth: new Truth(0.9, 0.8),
+            budget: {priority: 0.7}
+        });
 
         // Create memory and add task
         const memory = new Memory({priorityThreshold: 0.5});

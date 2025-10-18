@@ -19,13 +19,13 @@ export const freezeObject = Object.freeze;
 // Deep freeze utility
 export const deepFreeze = (obj) => {
     if (obj === null || typeof obj !== 'object') return obj;
-    
+
     Object.getOwnPropertyNames(obj).forEach(prop => {
         if (obj[prop] !== null && typeof obj[prop] === 'object') {
             deepFreeze(obj[prop]);
         }
     });
-    
+
     return freezeObject(obj);
 };
 

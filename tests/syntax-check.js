@@ -4,9 +4,9 @@
  */
 
 // This file just imports the new modules to ensure they have correct syntax
-import { LangChainProvider } from '../src/lm/LangChainProvider.js';
-import { HuggingFaceProvider } from '../src/lm/HuggingFaceProvider.js';
-import { AdvancedNarseseTranslator } from '../src/lm/AdvancedNarseseTranslator.js';
+import {LangChainProvider} from '../src/lm/LangChainProvider.js';
+import {HuggingFaceProvider} from '../src/lm/HuggingFaceProvider.js';
+import {AdvancedNarseseTranslator} from '../src/lm/AdvancedNarseseTranslator.js';
 
 console.log('All modules imported successfully - syntax appears correct');
 console.log('Available classes:');

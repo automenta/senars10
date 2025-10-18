@@ -5,13 +5,22 @@ import {ConfigurableComponent} from '../util/ConfigurableComponent.js';
 import {clamp} from '../util/common.js';
 
 export class Memory extends ConfigurableComponent {
+    static SCORING_WEIGHTS = {activation: 0.5, useCount: 0.3, taskCount: 0.2};
+    static NORMALIZATION_LIMITS = {useCount: 100, taskCount: 50};
+    static CONSOLIDATION_THRESHOLDS = {
+        activationThreshold: 0.1,
+        minTasksThreshold: 5,
+        decayThreshold: 0.01,
+        minTasksForDecay: 2
+    };
+
     constructor(config = {}) {
         const defaultConfig = {
             priorityThreshold: 0.5,
             priorityDecayRate: 0.01,
             consolidationInterval: 10
         };
-        
+
         super(defaultConfig);
         this.configure(config);
 
@@ -28,12 +37,6 @@ export class Memory extends ConfigurableComponent {
         };
         this._cyclesSinceConsolidation = 0;
     }
-
-    static SCORING_WEIGHTS = {activation: 0.5, useCount: 0.3, taskCount: 0.2};
-
-    static NORMALIZATION_LIMITS = {useCount: 100, taskCount: 50};
-
-    static CONSOLIDATION_THRESHOLDS = {activationThreshold: 0.1, minTasksThreshold: 5, decayThreshold: 0.01, minTasksForDecay: 2};
 
     get config() {
         return {...this._config};
