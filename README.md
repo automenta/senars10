@@ -1,4 +1,4 @@
-# SENARS9.js v10 Reimplementation
+# SeNARS (Semantic Non-axiomatic Reasoning System)
 
 This directory contains the complete reimplementation of SENARS9.js following the phased development plan outlined
 in [DESIGN.plan.md](./DESIGN.plan.md) and based on the specifications in the parent
