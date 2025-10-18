@@ -1,8 +1,5 @@
 export default {
     testEnvironment: 'node',
-    moduleNameMapper: {
-        '^(\\.{1,2}/.*)\\.js$': '$1',
-    },
     testPathIgnorePatterns: [
         'v8/.*',
         'v9/.*',

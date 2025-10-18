@@ -1,4 +1,4 @@
-import {TermFactory} from '../core/term/TermFactory.js';
+import {TermFactory} from '../term/TermFactory.js';
 
 const PUNCTUATION_TYPE_MAP = {'.': 'BELIEF', '!': 'GOAL', '?': 'QUESTION'};
 const OPERATOR_SYMBOL_MAP = {

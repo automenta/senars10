@@ -1,5 +1,5 @@
 import {TRUTH} from './config/constants.js';
-import {clamp} from '../util/common.js';
+import {clamp} from './util/common.js';
 
 export class Truth {
     constructor(f = TRUTH.DEFAULT_FREQUENCY, c = TRUTH.DEFAULT_CONFIDENCE) {

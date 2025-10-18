@@ -1,4 +1,4 @@
-import {Logger} from '../../util/Logger.js';
+import {Logger} from '../util/Logger.js';
 import {Metrics} from '../util/Metrics.js';
 import {ProviderRegistry} from './ProviderRegistry.js';
 import {ModelSelector} from './ModelSelector.js';
