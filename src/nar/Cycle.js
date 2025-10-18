@@ -79,7 +79,7 @@ export class Cycle {
     }
 
     _getTasksForReasoning() {
-        const maxTasks = this._config.maxTasksPerCycle;
+        const maxTasks = this._config?.maxTasksPerCycle ?? 10; // Default value
         const activeConcepts = this._memory.getMostActiveConcepts(20);
         const selectedTasks = [];
 

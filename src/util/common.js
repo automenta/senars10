@@ -16,6 +16,19 @@ export const safeExecute = (fn, ...args) => {
 // Object freezing utility
 export const freezeObject = Object.freeze;
 
+// Deep freeze utility
+export const deepFreeze = (obj) => {
+    if (obj === null || typeof obj !== 'object') return obj;
+    
+    Object.getOwnPropertyNames(obj).forEach(prop => {
+        if (obj[prop] !== null && typeof obj[prop] === 'object') {
+            deepFreeze(obj[prop]);
+        }
+    });
+    
+    return freezeObject(obj);
+};
+
 // Clamp and freeze object properties
 export const clampAndFreeze = (obj, min = 0, max = 1) => {
     if (typeof obj === 'number') return clamp(obj, min, max);

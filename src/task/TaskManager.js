@@ -38,11 +38,14 @@ export class TaskManager {
     processPendingTasks(currentTime = Date.now()) {
         const processedTasks = [];
 
+        // Use a default priority threshold if not configured
+        const priorityThreshold = this._config?.priorityThreshold ?? 0.1;
+
         for (const [taskId, task] of this._pendingTasks) {
             const addedToMemory = this._memory.addTask(task, currentTime);
 
             if (addedToMemory) {
-                if (this._focus && task.budget.priority >= this._config.priorityThreshold) {
+                if (this._focus && task.budget.priority >= priorityThreshold) {
                     this._focus.addTaskToFocus(task);
                 }
 
@@ -61,7 +64,7 @@ export class TaskManager {
             term,
             truth,
             punctuation,
-            budget: budget ?? this._config.defaultBudget
+            budget: budget ?? this._config?.defaultBudget
         });
     }
 

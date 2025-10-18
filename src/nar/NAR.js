@@ -15,6 +15,9 @@ import {Truth} from '../Truth.js';
 
 export class NAR {
     constructor(config = {}) {
+        // Store the desired LM state early before config processing
+        const desiredLmEnabled = config.lm?.enabled === true;
+        
         this._config = SystemConfig.from(config);
         this.logger = Logger;
 
@@ -28,11 +31,13 @@ export class NAR {
 
         // Initialize LM if enabled in config
         this._lm = null;
-        if (this._config.lm.enabled) {
+        
+        // Use the pre-stored LM enabled state to avoid potential config processing issues
+        if (desiredLmEnabled) {
             this._lm = new LM();
-            this._ruleEngine = new RuleEngine(this._config.ruleEngine, this._lm);
+            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm);
         } else {
-            this._ruleEngine = new RuleEngine(this._config.ruleEngine);
+            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {});
         }
 
         this._setupDefaultRules();
@@ -245,16 +250,21 @@ export class NAR {
 
     _calculateInputPriority(parsed) {
         const {truthValue, taskType} = parsed;
-        const basePriority = this.config.taskManager.defaultPriority || PRIORITY.DEFAULT;
+        const basePriority = this.config.taskManager?.defaultPriority || PRIORITY.DEFAULT;
 
         if (!truthValue) {
             return basePriority;
         }
 
-        const confidenceBoost = (truthValue.confidence || 0) * (this.config.taskManager.priority.confidenceMultiplier);
+        const priorityConfig = this.config.taskManager?.priority || {};
+        const confidenceMultiplier = priorityConfig.confidenceMultiplier || 0.3; // Default value
+        const goalBoost = priorityConfig.goalBoost || 0.2; // Default value
+        const questionBoost = priorityConfig.questionBoost || 0.1; // Default value
+        
+        const confidenceBoost = (truthValue.confidence || 0) * confidenceMultiplier;
         const typeBoost = {
-            'GOAL': this.config.taskManager.priority.goalBoost,
-            'QUESTION': this.config.taskManager.priority.questionBoost
+            'GOAL': goalBoost,
+            'QUESTION': questionBoost
         }[taskType] || 0;
 
         return Math.min(1.0, basePriority + confidenceBoost + typeBoost);

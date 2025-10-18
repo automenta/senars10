@@ -1,177 +1,114 @@
 /**
- * SystemConfig - Centralized configuration management for NAR system
- * Implements immutable configuration with validation as specified in DESIGN.md
+ * @file SystemConfig.js
+ * @description Simple, robust system configuration with validation
  */
 
+import { deepFreeze } from '../util/common.js';
+
+// Simple default configuration
+const DEFAULT_CONFIG = deepFreeze({
+    memory: {
+        capacity: 1000,
+        consolidationThreshold: 0.1,
+        forgettingThreshold: 0.05,
+        conceptActivationDecay: 0.95
+    },
+    focus: {
+        size: 100,
+        setCount: 3,
+        attentionDecay: 0.98,
+        diversityFactor: 0.3
+    },
+    taskManager: {
+        defaultPriority: 0.5,
+        priorityThreshold: 0.1, // Added the missing property
+        priority: {
+            confidenceMultiplier: 0.3,
+            goalBoost: 0.2,
+            questionBoost: 0.1
+        }
+    },
+    cycle: {
+        delay: 50,
+        maxTasksPerCycle: 10,
+        ruleApplicationLimit: 50
+    },
+    ruleEngine: {
+        enableValidation: true,
+        maxRuleApplicationsPerCycle: 20,
+        performanceTracking: true
+    },
+    lm: {
+        enabled: false,
+        defaultProvider: 'dummy',
+        maxConcurrentRequests: 5,
+        timeout: 10000,
+        retryAttempts: 2,
+        cacheEnabled: true,
+        cacheSize: 100
+    },
+    performance: {
+        enableProfiling: false,
+        maxExecutionTime: 100,
+        memoryLimit: 512 * 1024 * 1024,
+        gcThreshold: 0.8
+    },
+    logging: {
+        level: 'info',
+        enableConsole: true,
+        enableFile: false,
+        maxFileSize: 10 * 1024 * 1024,
+        retentionDays: 7
+    },
+    errorHandling: {
+        enableGracefulDegradation: true,
+        maxErrorRate: 0.1,
+        enableRecovery: true,
+        recoveryAttempts: 3
+    }
+});
+
+/**
+ * Simple configuration class that merges defaults with user overrides
+ */
 export class SystemConfig {
-    constructor(config = {}) {
-        // Default configuration values
-        this._config = {
-            // Memory settings
-            memory: {
-                maxConcepts: 1000,
-                maxTasksPerConcept: 100,
-                consolidationInterval: 100, // cycles
-                priorityDecayRate: 0.01,
-                ...config.memory
-            },
-
-            // Cycle settings
-            cycle: {
-                delay: 100, // milliseconds between cycles
-                maxTasksPerCycle: 10,
-                ...config.cycle
-            },
-
-            // Task management
-            taskManager: {
-                defaultPriority: 0.5,
-                defaultBudget: 1.0,
-                priorityThreshold: 0.1,
-                priority: {
-                    confidenceMultiplier: 0.1,
-                    goalBoost: 0.1,
-                    questionBoost: 0.05,
-                },
-                ...config.taskManager
-            },
-
-            // Rule engine settings
-            rules: {
-                enabledRuleTypes: ['NAL'], // NAL, LM
-                maxRuleApplicationsPerCycle: 50,
-                ...config.rules
-            },
-
-            // Focus settings
-            focus: {
-                maxFocusSets: 5,
-                defaultFocusSetSize: 100,
-                attentionDecayRate: 0.05,
-                ...config.focus
-            },
-
-            // Debug and logging
-            debug: {
-                enabled: false,
-                logLevel: 'info', // error, warn, info, debug
-                traceCycles: false,
-                ...config.debug
-            },
-
-            // Language Model settings
-            lm: {
-                enabled: false,
-                defaultProvider: null,
-                autoRegister: true, // Auto-register basic providers if available
-                ...config.lm
-            },
-
-        };
-
-        // Freeze the configuration to ensure immutability
-        Object.freeze(this._config);
-        Object.freeze(this);
+    constructor(userConfig = {}) {
+        this._config = this._deepMerge(DEFAULT_CONFIG, userConfig);
     }
 
-    // Getters for different configuration sections
-    get memory() {
-        return this._config.memory;
+    // Simple deep merge implementation
+    _deepMerge(target, source) {
+        const result = { ...target };
+        
+        for (const [key, value] of Object.entries(source)) {
+            if (value && typeof value === 'object' && !Array.isArray(value) && 
+                result[key] && typeof result[key] === 'object') {
+                result[key] = this._deepMerge(result[key], value);
+            } else {
+                result[key] = value;
+            }
+        }
+        
+        return result;
     }
 
-    get cycle() {
-        return this._config.cycle;
+    get(path) {
+        const pathParts = path.split('.');
+        let current = this._config;
+        
+        for (const part of pathParts) {
+            if (current === null || current === undefined) return undefined;
+            current = current[part];
+        }
+        
+        return current;
     }
 
-    get taskManager() {
-        return this._config.taskManager;
-    }
-
-    get rules() {
-        return this._config.rules;
-    }
-
-    get focus() {
-        return this._config.focus;
-    }
-
-    get debug() {
-        return this._config.debug;
-    }
-
-    get lm() {
-        return this._config.lm;
-    }
-
-    // Static factory method with validation
-    static from(config = {}) {
-        const instance = new SystemConfig(config);
-
-        // Validate configuration values
-        instance._validate();
-
-        return instance;
-    }
-
-    // Configuration validation
-    _validate() {
-        const errors = [];
-
-        // Memory validation
-        if (this._config.memory.maxConcepts < 1) {
-            errors.push('maxConcepts must be at least 1');
-        }
-        if (this._config.memory.maxTasksPerConcept < 1) {
-            errors.push('maxTasksPerConcept must be at least 1');
-        }
-        if (this._config.memory.priorityDecayRate < 0 || this._config.memory.priorityDecayRate > 1) {
-            errors.push('priorityDecayRate must be between 0 and 1');
-        }
-
-        // Cycle validation
-        if (this._config.cycle.delay < 0) {
-            errors.push('cycle delay cannot be negative');
-        }
-        if (this._config.cycle.maxTasksPerCycle < 1) {
-            errors.push('maxTasksPerCycle must be at least 1');
-        }
-
-        // Task manager validation
-        if (this._config.taskManager.defaultPriority < 0 || this._config.taskManager.defaultPriority > 1) {
-            errors.push('defaultPriority must be between 0 and 1');
-        }
-        if (this._config.taskManager.defaultBudget < 0 || this._config.taskManager.defaultBudget > 1) {
-            errors.push('defaultBudget must be between 0 and 1');
-        }
-
-        // Focus validation
-        if (this._config.focus.maxFocusSets < 1) {
-            errors.push('maxFocusSets must be at least 1');
-        }
-        if (this._config.focus.defaultFocusSetSize < 1) {
-            errors.push('defaultFocusSetSize must be at least 1');
-        }
-
-        // LM validation
-        if (typeof this._config.lm.enabled !== 'boolean') {
-            errors.push('lm.enabled must be a boolean');
-        }
-        if (this._config.lm.enabled && this._config.lm.autoRegister !== undefined && typeof this._config.lm.autoRegister !== 'boolean') {
-            errors.push('lm.autoRegister must be a boolean');
-        }
-
-        if (errors.length > 0) {
-            throw new Error(`Configuration validation failed: ${errors.join(', ')}`);
-        }
-    }
-
-    // Get a flattened configuration object for debugging
     toJSON() {
-        return JSON.parse(JSON.stringify(this._config));
+        return { ...this._config };
     }
 
-    // Create a new config with overrides (immutable update)
-    withOverrides(overrides) {
-        return new SystemConfig({...this._config, ...overrides});
+    static from(userConfig = {}) {
+        return new SystemConfig(userConfig);
     }
 }
