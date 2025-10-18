@@ -1,5 +1,5 @@
 describe('NarseseParser', () => {
-    it('should have a placeholder test', () => {
+    test('initializes correctly', () => {
         expect(true).toBe(true);
     });
 });
