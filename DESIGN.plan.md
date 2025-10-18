@@ -502,42 +502,45 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Full monitoring, logging, and error handling implemented system-wide
 - [ ] All DESIGN.md specifications validated and tested
 
-## Phase 8: Core Algorithm and Reasoning Validation
+## Phase 8: Symbolic Core Integration & Validation
 
 ### Goals
-- Anchor system integrity through comprehensive validation of core algorithms and properties.
-- Demonstrate and validate the complete NAL reasoning cycle and memory systems.
-- Ensure all foundational components from phases 1-4 and 6 are working in harmony.
+- Solidify and validate the entire symbolic reasoning system to establish a robust, NAL-only baseline.
+- Ensure all core NAL algorithms, data structures, and memory systems function correctly and efficiently together.
+- Demonstrate the system's foundational reasoning capabilities before introducing hybrid components.
 
 ### Tasks
 
-#### 8.1. Core Algorithm Validation (Property-Based Testing)
+#### 8.1. Foundational Integrity (Property-Based Testing)
 - **Term Integrity:**
     - [ ] Implement and pass property-based tests for `Term` normalization (commutativity, associativity, redundancy elimination).
     - [ ] Implement and pass property-based tests for `Term` equality, hashcode consistency, and structural integrity.
     - [ ] Validate proper caching mechanisms for terms in `TermFactory`.
 - **Truth Value Integrity:**
     - [ ] Implement and pass property-based tests for `Truth` value operations (consistency, range adherence, immutability).
-- **Performance Benchmarking:**
-    - [ ] Create and run performance regression tests for critical operations (e.g., Term creation, rule application, memory access).
 
-#### 8.2. Memory and Focus Management Validation
-- **Dual Memory Architecture:**
+#### 8.2. NAL Reasoning Cycle Validation
+- **Comprehensive Rule Coverage:**
+    - [ ] Create integration tests demonstrating all implemented NAL inference rules (e.g., deduction, induction, abduction, conversion, comparison, resemblance, contraposition).
+    - [ ] Validate rule chaining and higher-order reasoning patterns.
+- **Pattern Matching:**
+    - [ ] Write tests for sophisticated pattern matching with variable binding and substitution.
+
+#### 8.3. Memory Architecture Validation
+- **Dual Memory Dynamics:**
     - [ ] Write tests to demonstrate and validate the interaction between short-term (Focus) and long-term memory.
     - [ ] Validate task promotion and demotion between memory stores based on priority.
 - **Cognitive Functions:**
     - [ ] Validate concept activation propagation based on term similarity and relationship strength.
     - [ ] Validate configurable forgetting policies (decay, activation thresholds).
     - [ ] Validate cognitive diversity algorithms based on term complexity metrics.
-- **Indexing:**
+- **Indexing Performance:**
     - [ ] Write tests to validate specialized indexing for different relationship types (inheritance, implication, similarity).
 
-#### 8.3. NAL Reasoning Validation
-- **Comprehensive Rule Coverage:**
-    - [ ] Create integration tests demonstrating all implemented NAL inference rules (e.g., deduction, induction, abduction, conversion, comparison, resemblance, contraposition).
-    - [ ] Validate rule chaining and higher-order reasoning patterns.
-- **Pattern Matching:**
-    - [ ] Write tests for sophisticated pattern matching with variable binding and substitution.
+#### 8.4. Performance Benchmarking & End-to-End Demos
+- **Performance Baselines:**
+    - [ ] Create and run performance regression tests for critical operations (e.g., Term creation, rule application, memory access).
+    - [ ] Establish initial performance benchmarks and targets for the symbolic core.
 - **End-to-End NAL Demonstrations:**
     - [ ] Create demonstration scripts for NAL-only reasoning scenarios (e.g., syllogisms, temporal, counterfactual, and causal reasoning).
 
@@ -546,118 +549,110 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] The dual memory architecture, including focus management and consolidation, is fully validated.
 - [ ] All NAL inference rules are demonstrated to work correctly through integration tests.
 - [ ] Performance benchmarks for core operations are established and meet initial targets.
-- [ ] Cognitive functions like activation propagation, forgetting, and diversity are validated.
+- [ ] NAL-only reasoning demonstrations run successfully, validating the integrated symbolic core.
 
-## Phase 9: Advanced Intelligence and Tool Integration
+
+## Phase 9: Hybrid Intelligence & Tool Integration
 
 ### Goals
-- Integrate and validate the full capabilities of the Language Model and Tool Execution frameworks.
-- Demonstrate sophisticated hybrid reasoning, combining NAL and LM systems.
-- Ensure robust multi-modal and external interaction capabilities.
+- Extend the symbolic core with advanced capabilities by integrating Language Models and an external Tool Execution Framework.
+- Implement and validate the complete hybrid reasoning system, combining NAL, LM, and tool-based actions.
+- Demonstrate sophisticated multi-modal and external interaction capabilities.
 
 ### Tasks
 
-#### 9.1. Language Model and Translation Validation
+#### 9.1. Language Model Integration & Validation
 - **Provider Integration:**
     - [ ] Validate the functionality of all concrete LM provider implementations (`LangChainLM`, `HuggingFaceLM`, `DummyLM`).
-- **Translation Quality:**
+- **Translation Quality Assurance:**
     - [ ] Implement and validate advanced Narsese↔natural language translation quality improvements (e.g., semantic preservation, error correction, multi-provider consistency).
     - [ ] Implement and test translation quality scoring mechanisms.
 - **LM-Enhanced Reasoning:**
-    - [ ] Validate `LMRule` functionality, including prompt generation and response processing.
+    - [ ] Validate `LMRule` functionality, including prompt generation, response processing, and integration into the reasoning cycle.
 
-#### 9.2. Hybrid Reasoning and Cross-Validation
-- **NAL-LM Collaboration:**
-    - [ ] Create integration tests for hybrid reasoning, demonstrating gap detection (NAL identifies a need, LM fills it).
-    - [ ] Create integration tests for cross-validation (NAL validates LM-generated statements).
-- **Workflow and Conflict Resolution:**
-    - [ ] Implement and test intelligent reasoning path selection (choosing between NAL and LM).
-    - [ ] Implement and test conflict resolution mechanisms between NAL and LM outputs.
-
-#### 9.3. Tool Execution Framework
-- **Tool Implementation:**
+#### 9.2. Tool Execution Framework: Implementation & Integration
+- **Framework Implementation:**
+    - [ ] Implement the core tool execution engine with comprehensive safety features (timeouts, parameter validation, sandboxing).
+    - [ ] Implement an automatic tool discovery and registration system.
+- **Core Tool Implementation:**
     - [ ] Implement and demonstrate core tools: web automation, file operations, and sandboxed command execution.
     - [ ] Implement and demonstrate multi-modal capabilities: media processing (PDF, image OCR) and embedding generation.
-- **Safety and Reliability:**
-    - [ ] Validate comprehensive safety features (timeouts, parameter validation, sandboxing).
-    - [ ] Implement and test the automatic tool discovery and registration system.
-- **Intelligence:**
-    - [ ] Implement and test intelligent tool selection and parameter optimization.
-    - [ ] Validate the LM-based explanation service for tool execution results.
+- **Integration with Reasoner:**
+    - [ ] Connect the Tool Framework to the reasoning core, allowing NAL/LM to discover, select, and invoke tools.
+    - [ ] Implement the LM-based explanation service for tool execution results.
+
+#### 9.3. Hybrid Reasoning Validation
+- **NAL-LM-Tool Collaboration:**
+    - [ ] Create integration tests for hybrid reasoning, demonstrating gap detection (NAL identifies a need, LM fills it) and action (tool execution).
+    - [ ] Create integration tests for cross-validation (NAL validates LM-generated statements; LM summarizes tool output).
+- **Workflow and Conflict Resolution:**
+    - [ ] Implement and test intelligent reasoning path selection (choosing between NAL, LM, or a tool).
+    - [ ] Implement and test conflict resolution mechanisms between NAL, LM, and tool outputs.
 
 ### Acceptance Criteria for Phase 9
-- [ ] All LM providers are fully integrated and functional.
-- [ ] Narsese↔natural language translation is robust and meets quality standards.
-- [ ] Hybrid NAL-LM reasoning workflows are demonstrated and validated.
+- [ ] All LM providers are fully integrated and functional, with robust Narsese↔NL translation.
 - [ ] The tool execution framework is functional, safe, and integrated with the reasoning core.
-- [ ] Multi-modal reasoning capabilities are demonstrated.
+- [ ] Multi-modal reasoning capabilities are demonstrated through tool integration.
+- [ ] Hybrid NAL-LM-Tool reasoning workflows are demonstrated and validated.
+- [ ] Intelligent path selection and conflict resolution mechanisms are functional.
 
-## Phase 10: System Finalization, Documentation, and Deployment
+
+## Phase 10: Application, Delivery, & Deployment
 
 ### Goals
-- Achieve production-ready quality with comprehensive validation and testing.
-- Complete all documentation, examples, and user-facing interfaces.
+- Achieve production-ready quality with comprehensive validation, documentation, and user-facing interfaces.
 - Establish a robust deployment infrastructure and a clear migration path from the previous version.
+- Finalize the system for a stable release.
 
 ### Tasks
 
-#### 10.1. System Integration and Monitoring
-- **Unified Communication:**
-    - [ ] Validate the robust `EventBus` and unified messages system for component communication.
-    - [ ] Implement and test proxy-based component access and dynamic method resolution.
-- **Configuration and Error Handling:**
+#### 10.1. System Finalization & Hardening
+- **System-Wide Integration:**
+    - [ ] Validate the robust `EventBus` and unified messaging system for component communication.
     - [ ] Validate the comprehensive `SystemConfig` system, including runtime modifications.
     - [ ] Ensure complete and graceful error handling is implemented throughout the system.
-- **Performance and Health:**
-    - [ ] Implement and validate system-wide performance monitoring and component health checks.
-    - [ ] Validate intelligent caching strategies at all levels (term, rule, query).
-
-#### 10.2. User Interfaces and Demonstrations
-- **REPL Interface:**
-    - [ ] Implement a basic REPL for Narsese input and real-time output.
-    - [ ] Add session state management, help commands, and reasoning trace capabilities.
-- **Demonstrations:**
-    - [ ] Create non-interactive demonstration scripts covering a range of reasoning scenarios (basic to advanced).
-    - [ ] Create performance benchmark and stress-test demonstration scripts.
-- **Real-time Monitoring:**
-    - [ ] Integrate WebSocket-based real-time monitoring for tasks, concepts, and system metrics (for future UI).
-
-#### 10.3. Final Quality Assurance
-- **Testing Coverage:**
+- **Final Quality Assurance:**
     - [ ] Achieve >95% code coverage, with a focus on critical paths.
-    - [ ] Complete all remaining tests for features specified in `DESIGN.md`.
-- **Stress and Regression Testing:**
     - [ ] Perform comprehensive performance and stress tests under production-like conditions.
     - [ ] Write and pass comprehensive regression tests comparing against v9 codebase functionality.
-- **Security:**
-    - [ ] Perform final security validation, input sanitization checks, and vulnerability/penetration testing.
+    - [ ] Perform final security validation, input sanitization checks, and vulnerability testing.
+- **Performance Optimization:**
+    - [ ] Implement and validate system-wide intelligent caching strategies (term, rule, query).
+    - [ ] Complete final performance tuning based on stress test results.
 
-#### 10.4. Production Infrastructure and Deployment
+#### 10.2. Interfaces & Demonstrations
+- **REPL Interface:**
+    - [ ] Implement a basic REPL for Narsese input and real-time output, with session state management and help commands.
+    - [ ] Add reasoning trace capabilities to the REPL for debugging and analysis.
+- **Real-time Monitoring:**
+    - [ ] Integrate a WebSocket-based real-time monitoring API for tasks, concepts, and system metrics (for future UI).
+- **Demonstration Suite:**
+    - [ ] Create a suite of non-interactive demonstration scripts covering all reasoning scenarios (NAL-only, hybrid, tool-use).
+
+#### 10.3. Documentation & Migration
+- **User and Developer Documentation:**
+    - [ ] Generate comprehensive API documentation with examples for every public method.
+    - [ ] Create step-by-step tutorials, architectural guides, and troubleshooting manuals.
+- **Migration Path:**
+    - [ ] Create migration tools and processes from the v9 codebase.
+    - [ ] Validate backward compatibility for essential APIs and document all breaking changes.
+
+#### 10.4. Production Infrastructure & Deployment
 - **Containerization and CI/CD:**
     - [ ] Create Docker containers with optimized production configurations.
     - [ ] Set up CI/CD pipelines for automated testing and deployment.
 - **Operations:**
     - [ ] Implement comprehensive production monitoring, alerting, and logging.
     - [ ] Create backup, recovery, and disaster recovery procedures.
-- **Hardening and Launch:**
+- **Launch Readiness:**
     - [ ] Complete security hardening and any necessary compliance validation.
     - [ ] Prepare a production launch checklist and rollback procedures.
 
-#### 10.5. Documentation and Migration
-- **User and Developer Documentation:**
-    - [ ] Generate comprehensive API documentation with examples for every public method.
-    - [ ] Create step-by-step tutorials, architectural guides, and troubleshooting/debugging manuals.
-    - [ ] Add performance optimization guides and best practices.
-- **Migration Path:**
-    - [ ] Create migration tools and processes from the v9 codebase.
-    - [ ] Validate backward compatibility for essential APIs and document all breaking changes.
-    - [ ] Perform final validation that all original functionality is preserved or explicitly enhanced.
-
 ### Acceptance Criteria for Phase 10
 - [ ] The system is fully integrated, monitored, and demonstrates production-ready stability.
-- [ ] A functional REPL and a suite of demonstration scripts are available.
+- [ ] A functional REPL and a comprehensive suite of demonstration scripts are available.
 - [ ] All quality gates (coverage >95%, security, regression, performance) are passed.
-- [ ] The system is containerized and has a complete CI/CD pipeline for deployment.
-- [ ] All documentation is complete, published, and accessible.
-- [ ] A clear migration path from v9 is defined, with tools and validation.
+- [ ] The system is containerized with a complete CI/CD pipeline for deployment.
+- [ ] All user, developer, and migration documentation is complete and published.
+- [ ] A clear migration path from v9 is defined and validated.
 - [ ] The system successfully preserves and enhances all critical functionality from the v9 prototype.
