@@ -1,4 +1,4 @@
-import {NarseseTranslator} from '../../../src/lm/NarseseTranslator.js';
+import { NarseseTranslator } from '../../../src/lm/NarseseTranslator.js';
 
 describe('NarseseTranslator', () => {
     let translator;
@@ -7,69 +7,44 @@ describe('NarseseTranslator', () => {
         translator = new NarseseTranslator();
     });
 
-    test('should convert simple English to basic Narsese', () => {
-        const result = translator.toNarsese('cat is a mammal');
-        expect(result).toBe('(cat --> mammal).');
+    describe('toNarsese', () => {
+        test.each([
+            ['cat is a mammal', '(cat --> mammal).'],
+            ['dog is similar to wolf', '(dog <-> wolf).'],
+            ['cat resembles dog', '(cat <-> dog).'],
+            ['fire causes smoke', '(fire ==> smoke).']
+        ])('converts "%s" to "%s"', (english, narsese) => {
+            expect(translator.toNarsese(english)).toBe(narsese);
+        });
+
+        test('handles unknown patterns gracefully', () => {
+            const result = translator.toNarsese('An unknown pattern');
+            expect(result).toBe('(An_unknown_pattern --> statement).');
+        });
+
+        test('throws an error for non-string input', () => {
+            expect(() => translator.toNarsese(null)).toThrow();
+            expect(() => translator.toNarsese(123)).toThrow();
+        });
     });
 
-    test('should convert "is similar to" patterns to similarity', () => {
-        const result = translator.toNarsese('dog is similar to wolf');
-        expect(result).toBe('(dog <-> wolf).');
-    });
+    describe('fromNarsese', () => {
+        test.each([
+            ['(cat --> mammal).', 'cat is a mammal'],
+            ['(dog <-> wolf).', 'dog is similar to wolf'],
+            ['(fire ==> smoke).', 'if fire then smoke']
+        ])('converts "%s" to "%s"', (narsese, english) => {
+            expect(translator.fromNarsese(narsese)).toBe(english);
+        });
 
-    test('should convert "relates to" patterns to similarity using alternative', () => {
-        const result = translator.toNarsese('cat resembles dog');
-        expect(result).toBe('(cat <-> dog).');
-    });
+        test('returns the original string for unrecognized Narsese', () => {
+            const unrecognized = '(unrecognized --> format)';
+            expect(translator.fromNarsese(unrecognized)).toBe(unrecognized);
+        });
 
-    test('should convert "causes" patterns to implication', () => {
-        const result = translator.toNarsese('fire causes smoke');
-        expect(result).toBe('(fire ==> smoke).');
-    });
-
-    test('should handle unknown patterns gracefully', () => {
-        const result = translator.toNarsese('Completely different pattern with no match');
-        expect(result).toBe('(Completely_different_pattern_with_no_match --> statement).');
-    });
-
-    test('should throw error for non-string input to toNarsese', () => {
-        expect(() => {
-            translator.toNarsese(null);
-        }).toThrow();
-
-        expect(() => {
-            translator.toNarsese(123);
-        }).toThrow();
-    });
-
-    test('should convert Narsese back to English', () => {
-        const result = translator.fromNarsese('(cat --> mammal).');
-        expect(result).toBe('cat is a mammal');
-    });
-
-    test('should convert similarity back to English', () => {
-        const result = translator.fromNarsese('(dog <-> wolf).');
-        expect(result).toBe('dog is similar to wolf');
-    });
-
-    test('should convert implication back to English', () => {
-        const result = translator.fromNarsese('(fire ==> smoke).');
-        expect(result).toBe('if fire then smoke');
-    });
-
-    test('should handle non-string input to fromNarsese', () => {
-        expect(() => {
-            translator.fromNarsese(null);
-        }).toThrow();
-
-        expect(() => {
-            translator.fromNarsese(123);
-        }).toThrow();
-    });
-
-    test('should return original string for unrecognized Narsese', () => {
-        const unrecognized = 'This is not valid Narsese';
-        const result = translator.fromNarsese(unrecognized);
-        expect(result).toBe(unrecognized);
+        test('throws an error for non-string input', () => {
+            expect(() => translator.fromNarsese(null)).toThrow();
+            expect(() => translator.fromNarsese(123)).toThrow();
+        });
     });
 });

@@ -3,60 +3,33 @@
  * @description Unit tests for LangChainProvider
  */
 
-import {LangChainProvider} from '../../../src/lm/LangChainProvider.js';
+import { LangChainProvider } from '../../../src/lm/LangChainProvider.js';
 
 describe('LangChainProvider', () => {
-    describe('Ollama Provider', () => {
-        test('should initialize with correct configuration', () => {
-            const provider = new LangChainProvider({
-                provider: 'ollama',
-                modelName: 'llama2',
-                baseURL: 'http://localhost:11434'
-            });
-
-            expect(provider.providerType).toBe('ollama');
-            expect(provider.modelName).toBe('llama2');
+    describe('constructor', () => {
+        test.each([
+            ['ollama', { provider: 'ollama', modelName: 'llama2', baseURL: 'http://localhost:11434' }, 'llama2'],
+            ['openai', { provider: 'openai', modelName: 'gpt-3.5-turbo', apiKey: 'test-key' }, 'gpt-3.5-turbo']
+        ])('initializes %s provider correctly', (providerType, config, modelName) => {
+            const provider = new LangChainProvider(config);
+            expect(provider.providerType).toBe(providerType);
+            expect(provider.getModelName()).toBe(modelName);
         });
 
-        test('should return model name', () => {
-            const provider = new LangChainProvider({
-                provider: 'ollama',
-                modelName: 'llama2',
-                baseURL: 'http://localhost:11434'
-            });
-            expect(provider.getModelName()).toBe('llama2');
-        });
-    });
-
-    describe('OpenAI Provider', () => {
-        test('should initialize with API key', () => {
-            expect(() => new LangChainProvider({
-                provider: 'openai',
-                modelName: 'gpt-3.5-turbo',
-                apiKey: 'test-key'
-            })).not.toThrow();
+        test('uses default values when not specified', () => {
+            const provider = new LangChainProvider({});
+            expect(provider.providerType).toBeDefined();
+            expect(provider.modelName).toBeDefined();
         });
 
-        test('should throw error without API key for OpenAI', () => {
-            expect(() => new LangChainProvider({
-                provider: 'openai',
-                modelName: 'gpt-3.5-turbo'
-            })).toThrow('API key is required for OpenAI provider');
+        test('throws error for OpenAI without API key', () => {
+            const config = { provider: 'openai', modelName: 'gpt-3.5-turbo' };
+            expect(() => new LangChainProvider(config)).toThrow('API key is required for OpenAI provider');
         });
 
-        test('should throw error for unsupported provider type', () => {
-            expect(() => new LangChainProvider({
-                provider: 'unsupported',
-                modelName: 'test-model'
-            })).toThrow('Unsupported provider type: unsupported');
+        test('throws error for unsupported provider', () => {
+            const config = { provider: 'unsupported', modelName: 'test-model' };
+            expect(() => new LangChainProvider(config)).toThrow('Unsupported provider type: unsupported');
         });
-    });
-
-    test('should have default values when not specified', () => {
-        const provider = new LangChainProvider({});
-
-        // Test that default values are properly set
-        expect(provider.providerType).toBeDefined();
-        expect(provider.modelName).toBeDefined();
     });
 });
