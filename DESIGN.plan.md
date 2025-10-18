@@ -571,6 +571,8 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - Create user-friendly interfaces for exploring system capabilities during active development
 - Anchor system integrity through comprehensive validation of core algorithms and properties
 - Implement advanced cognitive capabilities from v9 specification (memory, reasoning, self-optimization)
+- Address missing requirements identified from DESIGN.md that weren't fully covered in previous phases
+- Implement comprehensive validation for all DESIGN.md specifications
 
 ### Tasks
 
@@ -584,6 +586,7 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create demonstration scripts showing complex scenarios requiring both systems
 - [ ] Create cross-validation demonstration showing NAL validating LM outputs and vice versa
 - [ ] Create demonstrations showing advanced reasoning types (temporal, counterfactual, causal)
+- [ ] Create demonstrations for truth value operations (revision, deduction, induction, abduction, exemplification, conversion, comparison, resemblance, contraposition)
 
 **Implementation:**
 
@@ -595,6 +598,9 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Implement dynamic rule selection demonstrations based on task complexity and evidence
 - [ ] Create demonstrations of temporal reasoning, counterfactual analysis, and causal reasoning
 - [ ] Demonstrate advanced LM integration with multiple provider fallback mechanisms
+- [ ] Implement comprehensive truth value operations and their demonstrations
+- [ ] Implement exemplification, conversion, comparison, resemblance, and contraposition rules
+- [ ] Create demonstrations showing all NAL inference rules (deduction, induction, abduction, exemplification, conversion, comparison, resemblance, contraposition)
 
 #### 8.2. Core Algorithm Validation and Property Testing
 
@@ -604,6 +610,9 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create property-based tests for truth value operations (consistency, range adherence)
 - [ ] Create property-based tests for memory management (capacity limits, activation dynamics)
 - [ ] Create performance regression tests for critical operations (term creation, rule application, memory access)
+- [ ] Create property-based tests for term equality, hashcode consistency, and structure preservation
+- [ ] Create tests for cognitive diversity calculations based on term complexity
+- [ ] Create tests for proper attention scoring mechanisms
 
 **Implementation:**
 
@@ -613,6 +622,11 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Validate redundancy elimination in term components
 - [ ] Implement performance regression testing for key operations
 - [ ] Create benchmark tests for term creation, rule application, and memory access
+- [ ] Implement comprehensive validation for term equality, hashing, and structural integrity
+- [ ] Implement cognitive diversity algorithms based on term complexity metrics
+- [ ] Implement proper attention scoring with configurable parameters
+- [ ] Validate proper caching mechanisms for terms in TermFactory
+- [ ] Implement and test hashcode consistency across different Term implementations
 
 #### 8.3. Advanced Memory and Focus Management
 
@@ -624,6 +638,12 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create tests for specialized indexing by relationship type (inheritance, implication, similarity, etc.)
 - [ ] Create tests for task promotion/demotion between memory systems
 - [ ] Create tests for priority-based memory management
+- [ ] Create tests for concept activation propagation based on term similarity and relationship strength
+- [ ] Create tests for exponential decay of concept activation over time
+- [ ] Create tests for forgetting policies based on activation below threshold or recency/importance metrics
+- [ ] Create tests for activation propagation algorithms and task prioritization based on concept activation
+- [ ] Create tests for proper management of multiple named focus sets with configurable sizes
+- [ ] Create tests for cognitive diversity considerations in task selection
 
 **Implementation:**
 
@@ -635,6 +655,14 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Demonstrate priority decay and attention mechanisms
 - [ ] Implement advanced task storage and retrieval with flexible querying and selection criteria
 - [ ] Show task aggregation functions (average, weighted, most recent, strongest confidence)
+- [ ] Implement concept activation propagation algorithms based on term similarity and relationship strength
+- [ ] Implement exponential decay mechanisms for concept activation over time
+- [ ] Implement configurable forgetting policies based on activation thresholds and importance metrics
+- [ ] Implement task prioritization influenced by concept activation levels
+- [ ] Implement proper management of multiple named focus sets with configurable parameters
+- [ ] Implement cognitive diversity considerations in task selection strategies
+- [ ] Create demonstrations of Bag data structure with priority-based selection and capacity management
+- [ ] Implement rule matching and application algorithms with structural pattern matching
 
 #### 8.4. Advanced Reasoning and Cognitive Components
 
@@ -645,6 +673,11 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create demonstrations of causal reasoning
 - [ ] Create demonstrations of pattern detection and contradiction analysis
 - [ ] Create demonstrations of advanced strategy selection
+- [ ] Create tests for comprehensive NAL rule implementations (induction, abduction, exemplification, conversion, comparison, resemblance, contraposition)
+- [ ] Create tests for variable binding and substitution in pattern matching
+- [ ] Create tests for higher-order reasoning patterns with proper truth value calculations
+- [ ] Create tests for rule chaining capabilities for complex inferences
+- [ ] Create tests for optimization of rule matching algorithms for performance
 
 **Implementation:**
 
@@ -656,6 +689,14 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Implement dynamic strategy selection based on system context
 - [ ] Demonstrate self-optimization capabilities using system's own facilities
 - [ ] Show advanced rule winnowing and pre-filtering mechanisms
+- [ ] Implement comprehensive NAL rule implementations (induction, abduction, exemplification, conversion, comparison, resemblance, contraposition)
+- [ ] Implement sophisticated pattern matching with variable binding and substitution
+- [ ] Implement higher-order reasoning patterns with proper truth value calculations
+- [ ] Implement rule chaining capabilities for complex inferences
+- [ ] Optimize rule matching algorithms for performance
+- [ ] Implement pattern detection for identifying temporal and causal patterns
+- [ ] Implement contradiction analysis for logical consistency checking
+- [ ] Implement self-optimization algorithms using the system's own facilities
 
 #### 8.5. Tool Execution and Multi-Modal Integration
 
@@ -666,6 +707,13 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create demonstrations of command execution with sandboxing
 - [ ] Create demonstrations of API integration tools
 - [ ] Create demonstrations of embedding generation and similarity search
+- [ ] Create tests for language model integration with concrete provider implementations (LangChainLM, HuggingFaceLM, DummyLM)
+- [ ] Create tests for Narsese to natural language translation quality improvements
+- [ ] Create tests for natural language to Narsese translation quality improvements
+- [ ] Create tests for translation quality metrics and scoring
+- [ ] Create tests for semantic preservation during translation
+- [ ] Create tests for error correction and fallback mechanisms in translation
+- [ ] Create tests for multi-provider consistency in translation
 
 **Implementation:**
 
@@ -676,6 +724,16 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Show embedding generation and similarity search capabilities
 - [ ] Demonstrate multi-modal reasoning integration
 - [ ] Show tool execution history and statistics
+- [ ] Implement concrete LM provider implementations (LangChainLM, HuggingFaceLM, DummyLM)
+- [ ] Implement advanced Narsese to natural language translation with quality improvements
+- [ ] Implement advanced natural language to Narsese translation with quality improvements
+- [ ] Implement translation quality scoring mechanisms
+- [ ] Implement semantic preservation algorithms for translation
+- [ ] Implement error correction and fallback mechanisms for translation
+- [ ] Implement multi-provider consistency validation for translation
+- [ ] Implement LM-enhanced reasoning rules with prompt generation and response processing
+- [ ] Create hybrid reasoning workflows combining NAL and LM capabilities
+- [ ] Implement cross-validation mechanisms between NAL and LM outputs
 
 #### 8.6. System Integration and Self-Optimization
 
@@ -685,6 +743,14 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create demonstrations of component introspection capabilities
 - [ ] Create demonstrations of system self-monitoring
 - [ ] Create demonstrations of automated parameter tuning
+- [ ] Create tests for event system with guaranteed delivery and error handling
+- [ ] Create tests for comprehensive configuration validation with defaults and runtime modification
+- [ ] Create tests for complete error handling throughout system with graceful degradation
+- [ ] Create tests for comprehensive logging with configurable levels and formats
+- [ ] Create tests for monitoring for all system components and metrics
+- [ ] Create tests for input validation and security sanitization
+- [ ] Create tests for memory management and garbage collection strategies
+- [ ] Create tests for caching effectiveness at multiple levels (terms, rules, inferences, queries)
 
 **Implementation:**
 
@@ -694,6 +760,18 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Demonstrate adaptive parameter tuning and self-optimization
 - [ ] Implement system status and health monitoring
 - [ ] Demonstrate metaprogramming and self-modification capabilities
+- [ ] Implement robust EventBus system with guaranteed delivery and error handling
+- [ ] Create comprehensive SystemConfig with validation, defaults, and runtime modification
+- [ ] Implement complete error handling throughout system with graceful degradation
+- [ ] Add comprehensive logging with configurable levels and formats
+- [ ] Establish monitoring for all system components and metrics
+- [ ] Implement comprehensive input validation and security sanitization
+- [ ] Implement memory management and garbage collection strategies
+- [ ] Implement intelligent caching at multiple levels (terms, rules, inferences, queries)
+- [ ] Implement performance monitoring with real-time metrics
+- [ ] Implement component health monitoring and issue detection
+- [ ] Implement system-wide metrics collection and reporting
+- [ ] Implement security validation and input sanitization throughout the system
 
 #### 8.7. Non-Interactive Demonstrations
 
@@ -761,6 +839,10 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Create cross-system validation tests (NAL validating LM, LM assisting NAL)
 - [ ] Create property-based tests using TestNAR framework
 - [ ] Create advanced reasoning pattern tests (temporal, counterfactual, causal)
+- [ ] Create comprehensive regression tests comparing with current codebase functionality
+- [ ] Create performance and stress tests under production-like conditions
+- [ ] Create security vulnerability tests and penetration testing
+- [ ] Create property-based tests for all major algorithms (term normalization, truth operations, memory management)
 
 **Implementation:**
 
@@ -770,6 +852,13 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Validate that all major NAL and LM capabilities work together
 - [ ] Implement property-based testing integration with TestNAR
 - [ ] Create advanced reasoning pattern validation tests
+- [ ] Perform comprehensive regression testing against current codebase
+- [ ] Validate all performance benchmarks and optimization targets
+- [ ] Implement comprehensive security validation and testing
+- [ ] Create performance regression tests for all critical paths
+- [ ] Create stress tests for system under various load conditions
+- [ ] Implement property-based testing for all major algorithms
+- [ ] Validate all DESIGN.md specifications through comprehensive testing
 
 ### Acceptance Criteria for Phase 8
 
@@ -791,6 +880,32 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Self-optimization and metacognition capabilities demonstrated
 - [ ] Multi-modal reasoning and embedding integration validated
 - [ ] System health monitoring and error recovery mechanisms validated
+- [ ] All NAL inference rules (deduction, induction, abduction, exemplification, conversion, comparison, resemblance, contraposition) implemented and demonstrated
+- [ ] Comprehensive truth value operations with proper immutability implemented and validated
+- [ ] Term equality, hashing, and structural integrity fully validated
+- [ ] Cognitive diversity algorithms based on term complexity implemented and demonstrated
+- [ ] Concept activation propagation with term similarity implemented and validated
+- [ ] Exponential decay mechanisms for concept activation implemented
+- [ ] Configurable forgetting policies based on activation and importance metrics implemented
+- [ ] Task prioritization influenced by concept activation levels implemented
+- [ ] Variable binding and substitution in pattern matching implemented
+- [ ] Higher-order reasoning patterns with proper truth value calculations implemented
+- [ ] Rule chaining capabilities for complex inferences implemented
+- [ ] Rule matching algorithm optimization implemented
+- [ ] Advanced Narsese translation with quality improvements implemented
+- [ ] Comprehensive LM provider implementations (LangChainLM, HuggingFaceLM, DummyLM) working
+- [ ] Cross-validation mechanisms between NAL and LM outputs implemented
+- [ ] Hybrid reasoning workflows combining NAL and LM capabilities functioning
+- [ ] Robust EventBus system with guaranteed delivery and error handling implemented
+- [ ] Comprehensive SystemConfig with validation, defaults, and runtime modification implemented
+- [ ] Complete input validation and security sanitization throughout system implemented
+- [ ] Memory management and garbage collection strategies implemented
+- [ ] Intelligent caching at multiple levels implemented and validated
+- [ ] Comprehensive security validation and penetration testing completed
+- [ ] Performance regression tests for all critical paths implemented
+- [ ] Stress tests for system under various load conditions passed
+- [ ] All DESIGN.md specifications validated and tested through comprehensive TestNAR framework
+- [ ] All property-based tests for major algorithms implemented and passing
 
 
 ## Risk Management and Success Factors
@@ -834,3 +949,10 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] Comprehensive documentation and examples for ongoing development
 - [ ] Successful deployment-ready system by Phase 8 end
 - [x] Adherence to all DESIGN.md specifications while maintaining development efficiency
+- [ ] All advanced features from DESIGN.md (temporal reasoning, counterfactual reasoning, causal reasoning) implemented and demonstrated
+- [ ] All NAL inference rules fully implemented and tested
+- [ ] Comprehensive LM integration with cross-validation and hybrid reasoning capabilities
+- [ ] Advanced memory management with activation propagation, decay, and forgetting policies
+- [ ] All cognitive diversity and attention mechanisms implemented and validated
+- [ ] Comprehensive property-based testing for all core algorithms
+- [ ] Complete security validation and input sanitization implemented
