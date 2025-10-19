@@ -1,6 +1,7 @@
 import {Truth} from '../../../src/Truth.js';
 import {TRUTH} from '../../../src/config/constants.js';
 import {createTruth, TEST_CONSTANTS} from '../../support/factories.js';
+import {truthAssertions, equalityTests, stringRepresentationTests, initializationTests} from '../../support/testUtils.js';
 
 describe('Truth', () => {
     describe('Initialization', () => {
@@ -44,14 +45,22 @@ describe('Truth', () => {
             );
             expect(t1.equals(t2)).toBe(true);
         });
+
+        test('obeys equality laws', () => {
+            const t1 = createTruth();
+            const t2 = createTruth();
+            const t3 = createTruth(0.5, 0.8);
+            
+            equalityTests.runEqualityLaws(t1, t2, t3);
+        });
     });
 
     describe('String Representation', () => {
-        test('toString', () => {
+        test('toString returns expected format', () => {
             const truth = createTruth();
             const {f, c} = TEST_CONSTANTS.TRUTH.HIGH;
             const expected = `%${f.toFixed(TRUTH.PRECISION)};${c.toFixed(TRUTH.PRECISION)}%`;
-            expect(truth.toString()).toBe(expected);
+            stringRepresentationTests.verifyToString(truth, expected);
         });
     });
 
@@ -67,11 +76,18 @@ describe('Truth', () => {
         ])('$name', ({name, args, expected}) => {
             const result = Truth[name](...args);
             if (typeof expected === 'object') {
-                expect(result.f).toBeCloseTo(expected.f, 5);
-                expect(result.c).toBeCloseTo(expected.c, 5);
+                truthAssertions.expectTruthCloseTo(result, expected.f, expected.c, 5);
             } else {
                 expect(result).toBeCloseTo(expected, 5);
             }
+        });
+    });
+    
+    describe('Truth Assertions', () => {
+        test('expectation calculation works correctly', () => {
+            const truth = new Truth(0.8, 0.9);
+            const expectedValue = 0.8 * (0.9 - 0.5) + 0.5; // frequency * (confidence - 0.5) + 0.5
+            truthAssertions.expectTruthExpectation(truth, expectedValue, 5);
         });
     });
 });
