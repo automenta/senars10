@@ -13,6 +13,7 @@ import {
   flexibleAssertions,
   StandardTestSuites
 } from '../../support/testOrganizer.js';
+import fc from 'fast-check';
 
 describe('Truth', () => {
     describe('Initialization', () => {
@@ -99,6 +100,52 @@ describe('Truth', () => {
             const truth = new Truth(0.8, 0.9);
             const expectedValue = 0.8 * (0.9 - 0.5) + 0.5; // frequency * (confidence - 0.5) + 0.5
             truthAssertions.expectTruthExpectation(truth, expectedValue, 5);
+        });
+    });
+
+    describe('Property-Based Tests for Truth Operations', () => {
+        const truthArb = fc.record({f: fc.double(0, 1), c: fc.double(0, 1)}).map(v => new Truth(v.f, v.c));
+
+        const isValidTruth = (t) => {
+            return t.f >= 0 && t.f <= 1 && t.c >= 0 && t.c <= 1;
+        };
+
+        test('all binary operations should produce valid truth values', () => {
+            const binaryOps = [Truth.deduction, Truth.revision, Truth.induction, Truth.abduction];
+            fc.assert(
+                fc.property(truthArb, truthArb, fc.constantFrom(...binaryOps), (t1, t2, op) => {
+                    const result = op(t1, t2);
+                    expect(isValidTruth(result)).toBe(true);
+                })
+            );
+        });
+
+        test('all unary operations should produce valid truth values', () => {
+            const unaryOps = [Truth.negation, Truth.conversion];
+            fc.assert(
+                fc.property(truthArb, fc.constantFrom(...unaryOps), (t, op) => {
+                    const result = op(t);
+                    expect(isValidTruth(result)).toBe(true);
+                })
+            );
+        });
+
+        test('operations should be immutable', () => {
+            fc.assert(
+                fc.property(truthArb, truthArb, (t1, t2) => {
+                    const originalT1 = {...t1};
+                    const originalT2 = {...t2};
+
+                    Truth.deduction(t1, t2);
+                    Truth.revision(t1, t2);
+                    Truth.negation(t1);
+
+                    expect(t1.f).toBe(originalT1.f);
+                    expect(t1.c).toBe(originalT1.c);
+                    expect(t2.f).toBe(originalT2.f);
+                    expect(t2.c).toBe(originalT2.c);
+                })
+            );
         });
     });
 });

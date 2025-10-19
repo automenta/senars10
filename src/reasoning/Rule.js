@@ -71,12 +71,12 @@ export class Rule {
         return this._enabled && this._matches(task);
     }
 
-    apply(task) {
+    async apply(task, memory, termFactory) {
         if (!this.canApply(task)) return {results: [], rule: this};
 
         const start = performance.now();
         try {
-            const results = this._apply(task);
+            const results = await this._apply(task, memory, termFactory);
             return {results, rule: this._updateMetrics(true, performance.now() - start)};
         } catch (error) {
             throw {error, rule: this._updateMetrics(false, performance.now() - start)};
@@ -88,7 +88,7 @@ export class Rule {
         return this._enabled;
     }
 
-    _apply(task) {
+    _apply(task, memory, termFactory) {
         return [];
     }
 

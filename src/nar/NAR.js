@@ -1,13 +1,15 @@
 import {SystemConfig} from './SystemConfig.js';
+import {TermFactory} from '../term/TermFactory.js';
 import {Memory} from '../memory/Memory.js';
 import {TaskManager} from '../task/TaskManager.js';
 import {Cycle} from './Cycle.js';
 import {NarseseParser} from '../parser/NarseseParser.js';
 import {EventBus} from '../util/EventBus.js';
 import {RuleEngine} from '../reasoning/RuleEngine.js';
-import {DeductionRule} from '../reasoning/rules/deduction.js';
+import {SyllogisticRule} from '../reasoning/rules/syllogism.js';
 import {PRIORITY} from '../config/constants.js';
 import {Logger} from '../util/Logger.js';
+import { NaiveExhaustiveStrategy } from '../reasoning/NaiveExhaustiveStrategy.js';
 import {Focus} from '../memory/Focus.js';
 import {LM} from '../lm/LM.js';
 import {Task} from '../task/Task.js';
@@ -21,8 +23,9 @@ export class NAR {
         this._config = SystemConfig.from(config);
         this.logger = Logger;
 
+        this._termFactory = new TermFactory();
         this._memory = new Memory(this._config.memory);
-        this._parser = new NarseseParser();
+        this._parser = new NarseseParser(this._termFactory);
         this._eventBus = new EventBus();
 
         this._focus = new Focus(this._config.focus);
@@ -35,19 +38,23 @@ export class NAR {
         // Use the pre-stored LM enabled state to avoid potential config processing issues
         if (desiredLmEnabled) {
             this._lm = new LM();
-            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm);
+            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._termFactory, this._lm);
         } else {
-            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {});
+            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._termFactory);
         }
 
         this._setupDefaultRules();
+
+        const reasoningStrategy = new NaiveExhaustiveStrategy();
 
         this._cycle = new Cycle({
             memory: this._memory,
             focus: this._focus,
             ruleEngine: this._ruleEngine,
             taskManager: this._taskManager,
-            config: this._config.get('cycle')
+            config: this._config.get('cycle'),
+            reasoningStrategy: reasoningStrategy,
+            termFactory: this._termFactory
         });
 
         this._isRunning = false;
@@ -76,7 +83,7 @@ export class NAR {
 
     _setupDefaultRules() {
         try {
-            this._ruleEngine.register(new DeductionRule());
+            this._ruleEngine.register(SyllogisticRule.create(this._termFactory));
         } catch (error) {
             this.logger.warn('Error setting up default rules:', error);
         }

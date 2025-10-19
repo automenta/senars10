@@ -65,6 +65,10 @@ export class TestNAR {
         this.nar = null;
     }
 
+    getNAR() {
+        return this.nar;
+    }
+
     static _matchesTruth(taskTruth, criteriaTruth) {
         if (!taskTruth) return false;
         return (!criteriaTruth.minFreq || taskTruth.f >= criteriaTruth.minFreq) &&
@@ -134,10 +138,10 @@ export class TestNAR {
         }
 
         // Get all beliefs from NAR after processing
-        const allBeliefs = this.nar.getBeliefs();
+        const allBeliefs = this.nar.memory.getAllConcepts().flatMap(c => c.getAllTasks().filter(t => t.type === 'BELIEF'));
         
         // Get all tasks (not just beliefs) to catch derived results
-        const allTasks = this.nar.getTasks ? this.nar.getTasks() : allBeliefs;
+        const allTasks = this.nar.memory.getAllConcepts().flatMap(c => c.getAllTasks());
 
         // Validate expectations
         for (const exp of expectations) {

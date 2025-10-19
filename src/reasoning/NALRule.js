@@ -1,6 +1,14 @@
-import {Rule} from './Rule.js';
-import {Term} from '../term/Term.js';
+import { Rule } from './Rule.js';
+import { Term } from '../term/Term.js';
+import { Task } from '../task/Task.js';
+import { Stamp } from '../Stamp.js';
 
+/**
+ * NALRule is the base class for all logical inference rules in the system.
+ * It defines the structure of a rule, including its premises, conclusion, and truth function.
+ * The actual application of the rule is handled by a ReasoningStrategy, which decouples
+ * the logical definition of the rule from the algorithm used to find and apply it.
+ */
 export class NALRule extends Rule {
     constructor(id, premises, conclusion, truthFunction, priority = 1.0, config = {}) {
         super(id, 'nal', priority, config);
@@ -22,80 +30,89 @@ export class NALRule extends Rule {
         return this._truthFunction;
     }
 
-    _matches(task) {
-        return this._premises.length > 0 && this._premises.some(premise => this._matchesPattern(premise, task.term));
-    }
-
-    _matchesPattern(pattern, term) {
-        if (!pattern || !term || pattern.type !== term.type) return false;
-
-        return this._matchesAtomic(pattern, term) ||
-            this._matchesCompound(pattern, term) ||
-            false;
-    }
-
-    _matchesAtomic(pattern, term) {
-        if (pattern.isAtomic && term.isAtomic) {
-            return pattern.name === term.name || pattern.name === '?';
+    /**
+     * Applies the rule to a given set of premise tasks.
+     * This method is called by a ReasoningStrategy, which is responsible for finding
+     * the matching premises in the first place.
+     *
+     * @param {Task[]} premises - An array of tasks that match the rule's premise patterns.
+     * @param {TermFactory} termFactory - The term factory for creating new terms.
+     * @returns {Promise<Task[]>} A promise that resolves to an array of derived tasks.
+     */
+    async _apply(premises, termFactory) {
+        if (premises.length !== this._premises.length) {
+            return [];
         }
-        return false;
-    }
 
-    _matchesCompound(pattern, term) {
-        if (pattern.isCompound && term.isCompound) {
-            if (pattern.operator !== term.operator || pattern.components.length !== term.components.length) return false;
-            return pattern.components.every((comp, i) => this._matchesPattern(comp, term.components[i]));
-        }
-        return false;
-    }
+        const combinedBindings = new Map();
+        for (let i = 0; i < this._premises.length; i++) {
+            const pattern = this._premises[i];
+            const term = premises[i].term;
 
-    async _apply(task) {
-        const results = [];
-        for (const premise of this._premises) {
-            if (this._matchesPattern(premise, task.term)) {
-                results.push(...await this._deriveFromPremise(premise, task));
+            if (!this._unifyPatterns(pattern, term, combinedBindings)) {
+                // Unification failed for one of the premises with the current bindings.
+                return [];
             }
         }
-        return results;
-    }
 
-    async _deriveFromPremise(premise, task) {
-        const bindings = this._unifyPatterns(premise, task.term);
-        if (!bindings) return [];
+        const derivedTerm = this._substituteVariables(this._conclusion, combinedBindings, termFactory);
+        if (!derivedTerm) return [];
 
-        const derivedTerm = this._substituteVariables(this._conclusion, bindings);
-        const derivedTruth = this._computeDerivedTruth(task.truth);
+        const premiseTruths = premises.map(p => p.truth);
+        const derivedTruth = this._truthFunction(...premiseTruths);
+        if (!derivedTruth) return [];
 
-        if (!derivedTerm || !derivedTruth) return [];
+        const newStamp = Stamp.derive(premises.map(p => p.stamp));
+        const newPriority = premises.reduce((prod, p) => prod * p.priority, 1.0) * this.priority;
+        const baseBudget = premises[0].budget;
 
-        return [{
+        const derivedTask = new Task({
             term: derivedTerm,
             truth: derivedTruth,
-            type: task.type,
-            stamp: task.stamp,
-            priority: task.priority * this.priority
-        }];
+            stamp: newStamp,
+            priority: newPriority,
+            budget: { ...baseBudget, priority: newPriority },
+        });
+
+        return [derivedTask];
     }
 
-    _unifyPatterns(pattern, term) {
-        const bindings = new Map();
+    /**
+     * Unifies a pattern with a term, populating a bindings map.
+     * This version is recursive and handles shared variables across a pattern.
+     *
+     * @param {Term} pattern - The pattern term (may contain variables).
+     * @param {Term} term - The concrete term.
+     * @param {Map<string, Term>} bindings - The map of variable bindings to update.
+     * @returns {Map<string, Term>|null} The updated bindings map or null if unification fails.
+     */
+    _unifyPatterns(pattern, term, bindings) {
+        if (!pattern || !term) return null;
 
-        if (pattern.isAtomic && term.isAtomic) {
-            if (pattern.name === '?') {
+        if (pattern.isAtomic) {
+            // Convention: Variables start with '?'
+            if (pattern.name.startsWith('?')) {
+                if (bindings.has(pattern.name)) {
+                    // Variable is already bound, check for consistency.
+                    return bindings.get(pattern.name).equals(term) ? bindings : null;
+                }
+                // New binding.
                 bindings.set(pattern.name, term);
-            } else if (pattern.name !== term.name) {
-                return null;
+                return bindings;
             }
-            return bindings;
+            // Constant term.
+            return pattern.equals(term) ? bindings : null;
         }
 
-        if (pattern.isCompound && term.isCompound) {
-            if (pattern.components.length !== term.components.length) return null;
+        if (pattern.isCompound) {
+            if (!term.isCompound || pattern.operator !== term.operator || pattern.components.length !== term.components.length) {
+                return null;
+            }
 
             for (let i = 0; i < pattern.components.length; i++) {
-                const patternBindings = this._unifyPatterns(pattern.components[i], term.components[i]);
-                if (!patternBindings) return null;
-                for (const [key, value] of patternBindings) bindings.set(key, value);
+                if (!this._unifyPatterns(pattern.components[i], term.components[i], bindings)) {
+                    return null;
+                }
             }
             return bindings;
         }
@@ -103,22 +120,35 @@ export class NALRule extends Rule {
         return null;
     }
 
-    _substituteVariables(term, bindings) {
-        if (term.isAtomic) return bindings.has(term.name) ? bindings.get(term.name) : term;
+    /**
+     * Substitutes variables in a term based on a bindings map.
+     *
+     * @param {Term} term - The term to perform substitutions on.
+     * @param {Map<string, Term>} bindings - The map of variable bindings.
+     * @param {TermFactory} termFactory - The term factory for creating new compound terms.
+     * @returns {Term|null} The new term with variables substituted, or null on failure.
+     */
+    _substituteVariables(term, bindings, termFactory) {
+        if (term.isAtomic) {
+            return bindings.get(term.name) || term;
+        }
 
         if (term.isCompound) {
-            const substitutedComponents = term.components.map(comp => this._substituteVariables(comp, bindings));
-            return new Term(term.type, term.name, substitutedComponents, term.operator);
+            const substitutedComponents = term.components.map(comp => this._substituteVariables(comp, bindings, termFactory));
+
+            if (substitutedComponents.some(c => !c)) {
+                return null;
+            }
+
+            return termFactory.create({
+                operator: term.operator,
+                components: substitutedComponents
+            });
         }
 
         return term;
     }
 
-    _computeDerivedTruth(taskTruth) {
-        return this._truthFunction ? this._truthFunction(taskTruth, taskTruth) : taskTruth;
-    }
-
-    // Override _clone to handle NALRule-specific constructor signature
     _clone(overrides = {}) {
         return new NALRule(this._id, this._premises, this._conclusion, this._truthFunction, this._priority, {
             ...this._config, ...overrides

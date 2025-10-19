@@ -3,8 +3,8 @@ import {clamp} from './util/common.js';
 
 export class Truth {
     constructor(f = TRUTH.DEFAULT_FREQUENCY, c = TRUTH.DEFAULT_CONFIDENCE) {
-        this.f = clamp(f, 0, 1);
-        this.c = clamp(c, 0, 1);
+        this.f = clamp(isNaN(f) ? TRUTH.DEFAULT_FREQUENCY : f, 0, 1);
+        this.c = clamp(isNaN(c) ? TRUTH.DEFAULT_CONFIDENCE : c, 0, 1);
         Object.freeze(this);
     }
 
@@ -23,6 +23,7 @@ export class Truth {
     };
 
     static negation = t => Truth.unaryOp(t, t => new Truth(1 - t.f, t.c));
+    static conversion = t => Truth.unaryOp(t, t => new Truth(t.f, t.f * t.c));
     static expectation = t => t ? t.f * t.c : 0;
 
     static comparison = (t1, t2) => Truth.op(t1, t2, (t, u) => {

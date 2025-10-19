@@ -8,8 +8,8 @@ const BRACKET_STARTS = Object.keys(BRACKETS);
 const BRACKET_ENDS = Object.values(BRACKETS);
 
 export class NarseseParser {
-    constructor() {
-        this.termFactory = new TermFactory();
+    constructor(termFactory) {
+        this.termFactory = termFactory || new TermFactory();
     }
 
     parse = input => {

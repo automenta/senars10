@@ -2,7 +2,7 @@ import {Term, TermType} from './Term.js';
 
 export {Term};
 
-const COMMUTATIVE_OPERATORS = new Set(['&', '|', '+', '*']);
+const COMMUTATIVE_OPERATORS = new Set(['&', '|', '+', '*', '<->']);
 const ASSOCIATIVE_OPERATORS = new Set(['&', '|']);
 
 export class TermFactory {

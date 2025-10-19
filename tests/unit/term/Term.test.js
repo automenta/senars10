@@ -1,5 +1,6 @@
 import {Term, TermType} from '../../../src/term/Term.js';
 import {createCompoundTerm, createTerm} from '../../support/factories.js';
+import fc from 'fast-check';
 
 describe('Term', () => {
     describe('Creation and Properties', () => {
@@ -158,6 +159,53 @@ describe('Term', () => {
 
             const termNames = term.reduce((names, t) => [...names, t.name], []);
             expect(termNames).toEqual(['(-->, A, B)', 'A', 'B']);
+        });
+    });
+
+    describe('Property-Based Tests', () => {
+        // Arbitrary for generating atomic terms
+        const atomicTermArb = fc.stringOf(fc.constantFrom('a', 'b', 'c', 'd'), {minLength: 1, maxLength: 1}).map(createTerm);
+
+        // Recursive arbitrary for generating compound terms
+        const compoundTermArb = fc.letrec(tie => ({
+            term: fc.oneof(
+                atomicTermArb,
+                tie('compound')
+            ),
+            compound: fc.record({
+                op: fc.constantFrom('-->', '<->', '&', '|'),
+                components: fc.array(tie('term'), {minLength: 2, maxLength: 3})
+            }).map(({op, components}) => createCompoundTerm(op, components))
+        })).term;
+
+        test('normalization should be idempotent and correct', () => {
+            fc.assert(
+                fc.property(compoundTermArb, (term) => {
+                    // Test idempotency: normalizing again should not change the term
+                    const normalizedOnce = createCompoundTerm(term.operator, term.components);
+                    const normalizedTwice = createCompoundTerm(normalizedOnce.operator, normalizedOnce.components);
+                    expect(normalizedOnce.equals(normalizedTwice)).toBe(true);
+
+                    // Test commutativity for applicable operators
+                    if (['&', '|', '<->'].includes(term.operator)) {
+                        const reversedComponents = [...term.components].reverse();
+                        const reversedTerm = createCompoundTerm(term.operator, reversedComponents);
+                        expect(term.equals(reversedTerm)).toBe(true);
+                    }
+
+                    // Test associativity for applicable operators
+                    if (['&', '|'].includes(term.operator)) {
+                        const isFlat = !term.components.some(c => c.operator === term.operator);
+                        expect(isFlat).toBe(true);
+                    }
+
+                    // Test redundancy for applicable operators
+                    if (['&', '|'].includes(term.operator)) {
+                        const hasDuplicates = new Set(term.components).size !== term.components.length;
+                        expect(hasDuplicates).toBe(false);
+                    }
+                })
+            );
         });
     });
 });
