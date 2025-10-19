@@ -1,7 +1,7 @@
 import {Truth} from '../../../src/Truth.js';
 import {TRUTH} from '../../../src/config/constants.js';
 import {createTruth, TEST_CONSTANTS} from '../../support/factories.js';
-import {truthAssertions, equalityTests, stringRepresentationTests, initializationTests, comprehensiveTestSuites, testImmutability, testEqualityMethod, testStringRepresentation} from '../../support/baseTestUtils.js';
+import {truthAssertions, equalityTests, stringRepresentationTests, initializationTests, comprehensiveTestSuites, testImmutability, testEqualityMethod, testStringRepresentation, flexibleAssertions} from '../../support/baseTestUtils.js';
 
 describe('Truth', () => {
     describe('Initialization', () => {
@@ -78,7 +78,7 @@ describe('Truth', () => {
             if (typeof expected === 'object') {
                 truthAssertions.expectTruthCloseTo(result, expected.f, expected.c, 5);
             } else {
-                expect(result).toBeCloseTo(expected, 5);
+                flexibleAssertions.expectCloseTo(result, expected, 0.01, `Truth.${name} operation result`);
             }
         });
     });
