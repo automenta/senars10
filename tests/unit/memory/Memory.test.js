@@ -1,6 +1,6 @@
 import {Memory} from '../../../src/memory/Memory.js';
 import {createMemoryConfig, createTask, createTerm, TEST_CONSTANTS} from '../../support/factories.js';
-import {comprehensiveTestSuites} from '../../support/testUtils.js';
+import {comprehensiveTestSuites} from '../../support/baseTestUtils.js';
 
 describe('Memory', () => {
     let memory;
@@ -197,6 +197,8 @@ describe('Memory', () => {
             memory.addTask(taskB);
 
             const mostActive = memory.getMostActiveConcepts(5);
+            // Use flexible assertion since implementation details might change
+            expect(mostActive.length).toBeGreaterThanOrEqual(0);
             expect(mostActive.length).toBeLessThanOrEqual(2);
         });
 

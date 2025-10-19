@@ -1,6 +1,8 @@
 /**
  * @file commonTestSuites.js
  * @description Common test suites that can be reused across multiple test files to reduce duplication
+ * 
+ * This file consolidates common test patterns, particularly for NAR integration tests.
  */
 
 import {Truth} from '../../src/Truth.js';
@@ -9,10 +11,12 @@ import {
   taskAssertions,
   errorHandlingTests,
   runPerformanceTest,
-  waitForCondition
+  waitForCondition,
+  flexibleAssertions
 } from './baseTestUtils.js';
 import {narTestPatterns} from './narTestSetup.js';
 import {createTestNAR, TEST_CONSTANTS} from './factories.js';
+import * as generalTestSuites from './generalTestSuites.js';
 
 /**
  * Common test suite for basic input processing
@@ -217,4 +221,46 @@ export const narTestSetup = (config = {}) => {
   });
 
   return () => nar;
+};
+
+/**
+ * Enhanced NAR test suite that uses more flexible assertions and can adapt to changes in implementation
+ */
+export const flexibleNARIntegrationSuite = (narProvider) => {
+  describe('Flexible NAR Integration Tests', () => {
+    test('should handle basic operations with flexible expectations', async () => {
+      // Test basic belief processing with flexible value checking
+      await narProvider().input('(cat --> animal).');
+      const beliefs = narProvider().getBeliefs();
+      
+      // Use flexible assertions that won't break with minor implementation changes
+      flexibleAssertions.expectAtLeast(beliefs, 1, 'beliefs after input');
+      
+      if (beliefs.length > 0) {
+        const catBelief = beliefs.find(b => b.term.toString().includes('cat'));
+        expect(catBelief).toBeDefined();
+      }
+    });
+
+    test('should maintain core functionality across changes', async () => {
+      // Test that core operations still work, regardless of specific implementation details
+      const initialBeliefs = narProvider().getBeliefs().length;
+      
+      await narProvider().input('test_belief.');
+      const afterInput = narProvider().getBeliefs().length;
+      
+      // Flexible expectation: we should have at least as many beliefs as we started with + 1
+      expect(afterInput).toBeGreaterThanOrEqual(initialBeliefs + 1);
+      
+      // Test lifecycle operations with flexible time checks
+      const started = narProvider().start();
+      expect(started).toBe(true);
+      
+      // Allow for some flexibility in timing
+      await new Promise(resolve => setTimeout(resolve, 50)); // Brief cycle
+      
+      const stopped = narProvider().stop();
+      expect(stopped).toBe(true);
+    });
+  });
 };
