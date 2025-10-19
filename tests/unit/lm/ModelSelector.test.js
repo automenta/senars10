@@ -1,6 +1,6 @@
-import { ModelSelector } from '../../../src/lm/ModelSelector.js';
-import { ProviderRegistry } from '../../../src/lm/ProviderRegistry.js';
-import { DummyProvider } from '../../../src/lm/DummyProvider.js';
+import {ModelSelector} from '../../../src/lm/ModelSelector.js';
+import {ProviderRegistry} from '../../../src/lm/ProviderRegistry.js';
+import {DummyProvider} from '../../../src/lm/DummyProvider.js';
 
 describe('ModelSelector', () => {
     let registry;
@@ -8,8 +8,8 @@ describe('ModelSelector', () => {
 
     beforeEach(() => {
         registry = new ProviderRegistry();
-        registry.register('model1', new DummyProvider({ id: 'model1' }));
-        registry.register('model2', new DummyProvider({ id: 'model2' }));
+        registry.register('model1', new DummyProvider({id: 'model1'}));
+        registry.register('model2', new DummyProvider({id: 'model2'}));
         selector = new ModelSelector(registry);
     });
 
@@ -25,7 +25,7 @@ describe('ModelSelector', () => {
 
     describe('select', () => {
         test('selects the default provider when no constraints are given', () => {
-            const selected = selector.select({ type: 'test' });
+            const selected = selector.select({type: 'test'});
             expect(selected).toBe('model1');
         });
 
@@ -37,15 +37,15 @@ describe('ModelSelector', () => {
 
     describe('cache', () => {
         test('caches results for the same input', () => {
-            const task = { type: 'test' };
-            const constraints = { performance: 'high' };
+            const task = {type: 'test'};
+            const constraints = {performance: 'high'};
             const firstResult = selector.select(task, constraints);
             const cachedResult = selector.select(task, constraints);
             expect(firstResult).toBe(cachedResult);
         });
 
         test('clears the cache', () => {
-            selector.select({ type: 'test' }, { performance: 'high' });
+            selector.select({type: 'test'}, {performance: 'high'});
             expect(selector.cache.size).toBe(1);
             selector.clearCache();
             expect(selector.cache.size).toBe(0);

@@ -3,7 +3,7 @@
  * @description Unit tests for HuggingFaceProvider
  */
 
-import { HuggingFaceProvider } from '../../../src/lm/HuggingFaceProvider.js';
+import {HuggingFaceProvider} from '../../../src/lm/HuggingFaceProvider.js';
 
 describe('HuggingFaceProvider', () => {
     describe('constructor', () => {
@@ -32,7 +32,7 @@ describe('HuggingFaceProvider', () => {
             ['HuggingFaceTB/SmolLM-135M', 'smollm'],
             ['sshleifer/distilbart-cnn-12-6', 'generic']
         ])('identifies model type for %s as %s', (modelName, expectedType) => {
-            const provider = new HuggingFaceProvider({ modelName });
+            const provider = new HuggingFaceProvider({modelName});
             expect(provider.modelType).toBe(expectedType);
         });
     });

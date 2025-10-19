@@ -1,4 +1,4 @@
-import { NarseseTranslator } from '../../../src/lm/NarseseTranslator.js';
+import {NarseseTranslator} from '../../../src/lm/NarseseTranslator.js';
 
 describe('NarseseTranslator', () => {
     let translator;

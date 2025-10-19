@@ -1,6 +1,6 @@
-import { Task } from '../../../src/task/Task.js';
-import { Stamp } from '../../../src/Stamp.js';
-import { createTask, createTruth, createTerm } from '../../support/factories.js';
+import {Task} from '../../../src/task/Task.js';
+import {Stamp} from '../../../src/Stamp.js';
+import {createTask, createTerm, createTruth} from '../../support/factories.js';
 
 describe('Task', () => {
     let term;
@@ -51,23 +51,39 @@ describe('Task', () => {
     });
 
     test.each([
-        { punctuation: '.', method: 'isBelief', expected: true },
-        { punctuation: '.', method: 'isGoal', expected: false },
-        { punctuation: '!', method: 'isGoal', expected: true },
-        { punctuation: '?', method: 'isQuestion', expected: true },
-    ])('identifies types correctly for punctuation "$punctuation"', ({ punctuation, method, expected }) => {
-        const task = createTask({ term, punctuation });
+        {punctuation: '.', method: 'isBelief', expected: true},
+        {punctuation: '.', method: 'isGoal', expected: false},
+        {punctuation: '!', method: 'isGoal', expected: true},
+        {punctuation: '?', method: 'isQuestion', expected: true},
+    ])('identifies types correctly for punctuation "$punctuation"', ({punctuation, method, expected}) => {
+        const task = createTask({term, punctuation});
         expect(task[method]()).toBe(expected);
     });
 
     test.each([
-        { name: 'equal', getOther: (t) => createTask({ term: t, punctuation: '.', truth: createTruth(0.9, 0.9) }), expected: true },
-        { name: 'different truth', getOther: (t) => createTask({ term: t, punctuation: '.', truth: createTruth(0.8, 0.8) }), expected: false },
-        { name: 'different term', getOther: (t) => createTask({ term: createTerm('B'), punctuation: '.', truth: createTruth(0.9, 0.9) }), expected: false },
-        { name: 'different punctuation', getOther: (t) => createTask({ term: t, punctuation: '!', truth: createTruth(0.9, 0.9) }), expected: false },
-        { name: 'null', getOther: (t) => null, expected: false },
-    ])('compares equality correctly when other is $name', ({ getOther, expected }) => {
-        const task = createTask({ term, punctuation: '.', truth: createTruth(0.9, 0.9) });
+        {
+            name: 'equal',
+            getOther: (t) => createTask({term: t, punctuation: '.', truth: createTruth(0.9, 0.9)}),
+            expected: true
+        },
+        {
+            name: 'different truth',
+            getOther: (t) => createTask({term: t, punctuation: '.', truth: createTruth(0.8, 0.8)}),
+            expected: false
+        },
+        {
+            name: 'different term',
+            getOther: (t) => createTask({term: createTerm('B'), punctuation: '.', truth: createTruth(0.9, 0.9)}),
+            expected: false
+        },
+        {
+            name: 'different punctuation',
+            getOther: (t) => createTask({term: t, punctuation: '!', truth: createTruth(0.9, 0.9)}),
+            expected: false
+        },
+        {name: 'null', getOther: (t) => null, expected: false},
+    ])('compares equality correctly when other is $name', ({getOther, expected}) => {
+        const task = createTask({term, punctuation: '.', truth: createTruth(0.9, 0.9)});
         const other = getOther(term);
         expect(task.equals(other)).toBe(expected);
     });

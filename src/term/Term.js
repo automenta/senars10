@@ -54,13 +54,21 @@ export class Term {
         return this._type === TermType.COMPOUND;
     }
 
-    static computeHash(str) { return crypto.createHash('sha256').update(str).digest('hex'); }
+    static computeHash(str) {
+        return crypto.createHash('sha256').update(str).digest('hex');
+    }
 
-    _calculateId() { return this._type === TermType.ATOM ? this._name : `${this._operator}_${this._name}`; }
+    _calculateId() {
+        return this._type === TermType.ATOM ? this._name : `${this._operator}_${this._name}`;
+    }
 
-    equals(other) { return other instanceof Term && this.id === other.id; }
+    equals(other) {
+        return other instanceof Term && this.id === other.id;
+    }
 
-    toString() { return this.name; }
+    toString() {
+        return this.name;
+    }
 
     visit(visitor, order = 'pre-order') {
         order === 'pre-order' && visitor(this);

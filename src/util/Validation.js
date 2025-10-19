@@ -46,7 +46,12 @@ export class SpecValidator {
 
             const term = new Term('atom', 'test');
             const truth = new Truth(0.9, 0.8);
-            const task = new Task({term, punctuation: '.', truth, budget: {priority: 0.7, durability: 0.6, quality: 0.5}});
+            const task = new Task({
+                term,
+                punctuation: '.',
+                truth,
+                budget: {priority: 0.7, durability: 0.6, quality: 0.5}
+            });
 
             const validations = [
                 task.type === 'BELIEF',

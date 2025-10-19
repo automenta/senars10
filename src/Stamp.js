@@ -19,7 +19,10 @@ export class ArrayStamp extends Stamp {
         Object.freeze(this);
     }
 
-    get occurrenceTime() { return this.creationTime; }
+    get occurrenceTime() {
+        return this.creationTime;
+    }
+
     equals = other => other instanceof ArrayStamp && this.id === other.id;
     toString = () => `Stamp(${this.id},${this.creationTime},${this.source})`;
 }

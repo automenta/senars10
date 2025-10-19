@@ -1,5 +1,5 @@
-import { Term, TermType } from '../../../src/term/Term.js';
-import { createTerm, createCompoundTerm } from '../../support/factories.js';
+import {Term, TermType} from '../../../src/term/Term.js';
+import {createCompoundTerm, createTerm} from '../../support/factories.js';
 
 describe('Term', () => {
     test('should create atomic terms with correct properties', () => {

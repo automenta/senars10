@@ -8,8 +8,13 @@ export class ConfigurableComponent {
         this._config = {...defaultConfig};
     }
 
-    get config() { return {...this._config}; }
-    get defaultConfig() { return {...this._defaultConfig}; }
+    get config() {
+        return {...this._config};
+    }
+
+    get defaultConfig() {
+        return {...this._defaultConfig};
+    }
 
     configure(cfg) {
         this._config = {...this._config, ...cfg};

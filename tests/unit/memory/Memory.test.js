@@ -1,5 +1,5 @@
-import { Memory } from '../../../src/memory/Memory.js';
-import { createTerm, createTask, createMemoryConfig, TEST_CONSTANTS } from '../../support/factories.js';
+import {Memory} from '../../../src/memory/Memory.js';
+import {createMemoryConfig, createTask, createTerm, TEST_CONSTANTS} from '../../support/factories.js';
 
 describe('Memory', () => {
     let memory;

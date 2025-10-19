@@ -1,5 +1,5 @@
-import { Concept } from '../../../src/memory/Concept.js';
-import { createTask, createTerm } from '../../support/factories.js';
+import {Concept} from '../../../src/memory/Concept.js';
+import {createTask, createTerm} from '../../support/factories.js';
 
 describe('Concept', () => {
     let concept;
@@ -7,7 +7,7 @@ describe('Concept', () => {
 
     beforeEach(() => {
         term = createTerm('A');
-        concept = new Concept(term, { priorityDecayRate: 0.9 });
+        concept = new Concept(term, {priorityDecayRate: 0.9});
     });
 
     describe('Initialization', () => {
@@ -25,7 +25,7 @@ describe('Concept', () => {
         let task;
 
         beforeEach(() => {
-            task = createTask({ term });
+            task = createTask({term});
         });
 
         test('adds a task correctly', () => {
@@ -41,8 +41,8 @@ describe('Concept', () => {
         });
 
         test('retrieves tasks by type', () => {
-            const belief = createTask({ term, punctuation: '.' });
-            const goal = createTask({ term, punctuation: '!' });
+            const belief = createTask({term, punctuation: '.'});
+            const goal = createTask({term, punctuation: '!'});
             concept.addTask(belief);
             concept.addTask(goal);
             const beliefs = concept.getTasksByType('BELIEF');
@@ -86,8 +86,8 @@ describe('Concept', () => {
         });
 
         test('returns the correct average priority', () => {
-            const task1 = createTask({ term, budget: { priority: 0.8 } });
-            const task2 = createTask({ term, budget: { priority: 0.6 } });
+            const task1 = createTask({term, budget: {priority: 0.8}});
+            const task2 = createTask({term, budget: {priority: 0.6}});
             concept.addTask(task1);
             concept.addTask(task2);
             expect(concept.averagePriority).toBe(0.7);

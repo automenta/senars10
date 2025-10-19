@@ -3,7 +3,7 @@ import {TermFactory} from '../term/TermFactory.js';
 const PUNCTUATION_TYPE_MAP = {'.': 'BELIEF', '!': 'GOAL', '?': 'QUESTION'};
 const INFIX_OPERATORS = ['-->', '<->', '==>', '<=>', '^', '{{--', '--}}'];
 const PREFIX_OPERATORS = [['--, ', '--'], ['&, ', '&'], ['|, ', '|'], ['&/, ', '&/']];
-const BRACKETS = { '(': ')', '{': '}', '[': ']' };
+const BRACKETS = {'(': ')', '{': '}', '[': ']'};
 const BRACKET_STARTS = Object.keys(BRACKETS);
 const BRACKET_ENDS = Object.values(BRACKETS);
 
@@ -43,7 +43,10 @@ export class NarseseParser {
 
     parseCompound = inner => {
         return this._findInfixOperator(inner) || this._findPrefixOperator(inner) ||
-               (() => { const components = this.parseList(inner); return components.length > 1 ? {operator: ',', components} : {components: [inner]}; })();
+            (() => {
+                const components = this.parseList(inner);
+                return components.length > 1 ? {operator: ',', components} : {components: [inner]};
+            })();
     };
 
     _findInfixOperator = inner => {
@@ -55,7 +58,8 @@ export class NarseseParser {
                 for (const op of INFIX_OPERATORS) {
                     const spacedOp = ` ${op} `;
                     if (inner.startsWith(spacedOp, i) && (mainOpIndex === -1 || i < mainOpIndex)) {
-                        mainOp = spacedOp; mainOpIndex = i;
+                        mainOp = spacedOp;
+                        mainOpIndex = i;
                     }
                 }
             }
@@ -70,7 +74,10 @@ export class NarseseParser {
 
     _findPrefixOperator = inner => {
         for (const [prefix, op] of PREFIX_OPERATORS) {
-            if (inner.startsWith(prefix)) return {operator: op, components: this.parseList(inner.slice(prefix.length).trim())};
+            if (inner.startsWith(prefix)) return {
+                operator: op,
+                components: this.parseList(inner.slice(prefix.length).trim())
+            };
         }
         return null;
     };
@@ -81,7 +88,11 @@ export class NarseseParser {
         let current = '', depth = 0;
         for (const char of str) {
             depth += BRACKET_STARTS.includes(char) ? 1 : BRACKET_ENDS.includes(char) ? -1 : 0;
-            if (char === ',' && depth === 0) { parts.push(current.trim()); current = ''; continue; }
+            if (char === ',' && depth === 0) {
+                parts.push(current.trim());
+                current = '';
+                continue;
+            }
             current += char;
         }
         if (current.trim()) parts.push(current.trim());

@@ -1,21 +1,21 @@
-import { ArrayStamp } from '../../src/Stamp.js';
-import { TermFactory } from '../../src/term/TermFactory.js';
-import { Task } from '../../src/task/Task.js';
-import { Truth } from '../../src/Truth.js';
+import {ArrayStamp} from '../../src/Stamp.js';
+import {TermFactory} from '../../src/term/TermFactory.js';
+import {Task} from '../../src/task/Task.js';
+import {Truth} from '../../src/Truth.js';
 
 const termFactory = new TermFactory();
 
 export const TEST_CONSTANTS = {
     BUDGET: {
-        DEFAULT: { priority: 0.5, durability: 0.5, quality: 0.5 },
-        MEDIUM: { priority: 0.7, durability: 0.6, quality: 0.7 },
-        HIGH: { priority: 0.9, durability: 0.8, quality: 0.9 },
-        LOW: { priority: 0.3, durability: 0.4, quality: 0.3 }
+        DEFAULT: {priority: 0.5, durability: 0.5, quality: 0.5},
+        MEDIUM: {priority: 0.7, durability: 0.6, quality: 0.7},
+        HIGH: {priority: 0.9, durability: 0.8, quality: 0.9},
+        LOW: {priority: 0.3, durability: 0.4, quality: 0.3}
     },
     TRUTH: {
-        HIGH: { f: 0.9, c: 0.8 },
-        MEDIUM: { f: 0.7, c: 0.6 },
-        LOW: { f: 0.3, c: 0.4 }
+        HIGH: {f: 0.9, c: 0.8},
+        MEDIUM: {f: 0.7, c: 0.6},
+        LOW: {f: 0.3, c: 0.4}
     }
 };
 
@@ -25,13 +25,13 @@ export const TEST_CONSTANTS = {
  * @returns {ArrayStamp} A new ArrayStamp instance.
  */
 export const createStamp = (overrides = {}) => {
-  const defaults = {
-    id: `test-id-${Math.random()}`,
-    creationTime: Date.now(),
-    source: 'INPUT',
-    derivations: [],
-  };
-  return new ArrayStamp({ ...defaults, ...overrides });
+    const defaults = {
+        id: `test-id-${Math.random()}`,
+        creationTime: Date.now(),
+        source: 'INPUT',
+        derivations: [],
+    };
+    return new ArrayStamp({...defaults, ...overrides});
 };
 
 /**
@@ -40,7 +40,7 @@ export const createStamp = (overrides = {}) => {
  * @returns {Term} A new Term instance.
  */
 export const createTerm = (name = 'A') => {
-  return termFactory.create({ components: [name] });
+    return termFactory.create({components: [name]});
 };
 
 /**
@@ -50,7 +50,7 @@ export const createTerm = (name = 'A') => {
  * @returns {Term} A new compound Term instance.
  */
 export const createCompoundTerm = (operator, components) => {
-    return termFactory.create({ operator, components });
+    return termFactory.create({operator, components});
 };
 
 /**
@@ -73,7 +73,7 @@ export const createTask = (overrides = {}) => {
         truth: null,
         budget: TEST_CONSTANTS.BUDGET.DEFAULT,
     };
-    const taskData = { ...defaults, ...overrides };
+    const taskData = {...defaults, ...overrides};
 
     // Automatically assign truth for beliefs if not specified
     if (taskData.punctuation === '.' && taskData.truth === null) {

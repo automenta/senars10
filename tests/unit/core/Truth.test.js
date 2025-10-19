@@ -1,6 +1,6 @@
-import { Truth } from '../../../src/Truth.js';
-import { TRUTH } from '../../../src/config/constants.js';
-import { createTruth, TEST_CONSTANTS } from '../../support/factories.js';
+import {Truth} from '../../../src/Truth.js';
+import {TRUTH} from '../../../src/config/constants.js';
+import {createTruth, TEST_CONSTANTS} from '../../support/factories.js';
 
 describe('Truth', () => {
     describe('constructor', () => {
@@ -8,14 +8,14 @@ describe('Truth', () => {
             {
                 name: 'initializes with given values',
                 truth: createTruth(),
-                expected: { f: TEST_CONSTANTS.TRUTH.HIGH.f, c: TEST_CONSTANTS.TRUTH.HIGH.c }
+                expected: {f: TEST_CONSTANTS.TRUTH.HIGH.f, c: TEST_CONSTANTS.TRUTH.HIGH.c}
             },
             {
                 name: 'uses defaults for empty constructor',
                 truth: new Truth(),
-                expected: { f: TRUTH.DEFAULT_FREQUENCY, c: TRUTH.DEFAULT_CONFIDENCE }
+                expected: {f: TRUTH.DEFAULT_FREQUENCY, c: TRUTH.DEFAULT_CONFIDENCE}
             },
-        ])('$name', ({ truth, expected }) => {
+        ])('$name', ({truth, expected}) => {
             expect(truth.f).toBe(expected.f);
             expect(truth.c).toBe(expected.c);
         });
@@ -48,7 +48,7 @@ describe('Truth', () => {
 
     test('toString', () => {
         const truth = createTruth();
-        const { f, c } = TEST_CONSTANTS.TRUTH.HIGH;
+        const {f, c} = TEST_CONSTANTS.TRUTH.HIGH;
         const expected = `%${f.toFixed(TRUTH.PRECISION)};${c.toFixed(TRUTH.PRECISION)}%`;
         expect(truth.toString()).toBe(expected);
     });
@@ -58,11 +58,11 @@ describe('Truth', () => {
         const t2 = createTruth(0.6, 0.7);
 
         test.each([
-            { name: 'deduction', args: [t1, t2], expected: { f: 0.48, c: 0.63 } },
-            { name: 'revision', args: [t1, t2], expected: { f: 0.7125, c: 1.0 } },
-            { name: 'negation', args: [t1], expected: { f: 0.2, c: 0.9 } },
-            { name: 'expectation', args: [t1], expected: 0.72 },
-        ])('$name', ({ name, args, expected }) => {
+            {name: 'deduction', args: [t1, t2], expected: {f: 0.48, c: 0.63}},
+            {name: 'revision', args: [t1, t2], expected: {f: 0.7125, c: 1.0}},
+            {name: 'negation', args: [t1], expected: {f: 0.2, c: 0.9}},
+            {name: 'expectation', args: [t1], expected: 0.72},
+        ])('$name', ({name, args, expected}) => {
             const result = Truth[name](...args);
             if (typeof expected === 'object') {
                 expect(result.f).toBeCloseTo(expected.f, 5);

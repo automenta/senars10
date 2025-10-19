@@ -1,6 +1,6 @@
-import { Bag } from '../../../src/memory/Bag.js';
-import { Task } from '../../../src/task/Task.js';
-import { TermFactory } from '../../../src/term/TermFactory.js';
+import {Bag} from '../../../src/memory/Bag.js';
+import {Task} from '../../../src/task/Task.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
 
 describe('Bag', () => {
     let bag;
@@ -10,7 +10,7 @@ describe('Bag', () => {
     beforeEach(() => {
         bag = new Bag(10);
         termFactory = new TermFactory();
-        createAtom = (name) => termFactory.create({ name });
+        createAtom = (name) => termFactory.create({name});
     });
 
     describe('Basic operations', () => {
@@ -20,20 +20,20 @@ describe('Bag', () => {
         });
 
         test('adds an item', () => {
-            const task = new Task({ term: createAtom('A') });
+            const task = new Task({term: createAtom('A')});
             expect(bag.add(task)).toBe(true);
             expect(bag.size).toBe(1);
         });
 
         test('does not add a duplicate item', () => {
-            const task = new Task({ term: createAtom('A') });
+            const task = new Task({term: createAtom('A')});
             bag.add(task);
             expect(bag.add(task)).toBe(false);
             expect(bag.size).toBe(1);
         });
 
         test('removes an item', () => {
-            const task = new Task({ term: createAtom('A') });
+            const task = new Task({term: createAtom('A')});
             bag.add(task);
             expect(bag.remove(task)).toBe(true);
             expect(bag.size).toBe(0);
@@ -44,8 +44,8 @@ describe('Bag', () => {
         let task1, task2;
 
         beforeEach(() => {
-            task1 = new Task({ term: createAtom('A'), budget: { priority: 0.5 } });
-            task2 = new Task({ term: createAtom('B'), budget: { priority: 0.8 } });
+            task1 = new Task({term: createAtom('A'), budget: {priority: 0.5}});
+            task2 = new Task({term: createAtom('B'), budget: {priority: 0.8}});
             bag.add(task1);
             bag.add(task2);
         });
