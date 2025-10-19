@@ -535,3 +535,105 @@ export const parameterizedTests = {
     }
   }
 };
+
+/**\n * Provides comprehensive test suites for different system components\n */
+export const comprehensiveTestSuites = {
+  /**
+   * Standard test suite for classes implementing common patterns like equality, immutability, etc.
+   */
+  standardClassTests: (className, Constructor, requiredParams, defaultValues, testEquality = true, testImmutability = true) => {
+    describe(`${className} Standard Class Tests`, () => {
+      initializationTests.standardInitialization(Constructor, requiredParams, defaultValues);
+      
+      if (testEquality) {
+        describe('Equality Tests', () => {
+          test('self equality', () => {
+            const instance = new Constructor(requiredParams);
+            expect(instance.equals(instance)).toBe(true);
+          });
+          
+          test('null/undefined equality', () => {
+            const instance = new Constructor(requiredParams);
+            expect(instance.equals(null)).toBe(false);
+            expect(instance.equals(undefined)).toBe(false);
+          });
+        });
+      }
+      
+      if (testImmutability) {
+        test('immutability validation', () => {
+          const instance = new Constructor(requiredParams);
+          if (typeof instance._isImmutable === 'boolean' && instance._isImmutable) {
+            const testProperty = Object.keys(instance).find(key => 
+              key.startsWith('_') || ['f', 'c', 'term'].includes(key)
+            );
+            if (testProperty && instance[testProperty] !== undefined) {
+              expect(() => {
+                instance[testProperty] = 'modified';
+              }).toThrow();
+            }
+          }
+        });
+      }
+    });
+  },
+
+  /** 
+   * Standard test suite for components with lifecycle methods
+   */
+  lifecycleComponentTests: (componentName, createComponent, config = {}) => {
+    describe(`${componentName} Lifecycle Component Tests`, () => {
+      let component;
+      
+      beforeEach(() => {
+        component = createComponent(config);
+      });
+      
+      afterEach(() => {
+        if (component && typeof component.destroy === 'function') {
+          component.destroy();
+        }
+      });
+      
+      test('initializes correctly', () => {
+        expect(component).toBeDefined();
+      });
+      
+      test('has required lifecycle methods', () => {
+        expect(typeof component.start).toBe('function');
+        expect(typeof component.stop).toBe('function');
+        if (component.reset) {
+          expect(typeof component.reset).toBe('function');
+        }
+      });
+    });
+  },
+  
+  /**
+   * Test suite for modules that process input and produce output
+   */
+  inputOutputModuleTests: (moduleName, createModule, testCases) => {
+    describe(`${moduleName} Input/Output Module Tests`, () => {
+      let module;
+      
+      beforeEach(async () => {
+        module = await createModule();
+      });
+      
+      afterEach(() => {
+        if (module && typeof module.destroy === 'function') {
+          module.destroy();
+        }
+      });
+      
+      test.each(testCases)('$description', async ({input, expectedOutput, validator}) => {
+        const result = await module.process(input);
+        if (validator) {
+          expect(validator(result, expectedOutput)).toBe(true);
+        } else {
+          expect(result).toEqual(expectedOutput);
+        }
+      });
+    });
+  }
+};

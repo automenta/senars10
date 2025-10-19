@@ -1,5 +1,6 @@
 import {Memory} from '../../../src/memory/Memory.js';
 import {createMemoryConfig, createTask, createTerm, TEST_CONSTANTS} from '../../support/factories.js';
+import {comprehensiveTestSuites} from '../../support/testUtils.js';
 
 describe('Memory', () => {
     let memory;

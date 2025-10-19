@@ -7,6 +7,7 @@ import {NAR} from '../../src/nar/NAR.js';
 import {TermFactory} from '../../src/term/TermFactory.js';
 import {Truth} from '../../src/Truth.js';
 import {completeNARIntegrationSuite, narTestSetup} from '../support/commonTestSuites.js';
+import {comprehensiveTestSuites} from '../support/testUtils.js';
 
 // Using the common test setup to avoid duplication
 const narProvider = narTestSetup({
@@ -15,6 +16,46 @@ const narProvider = narTestSetup({
 });
 
 describe('NAR Integration Tests', () => {
+    // Apply input/output module tests for NAR
+    comprehensiveTestSuites.inputOutputModuleTests('NAR', 
+        async () => {
+            const nar = new NAR({
+                debug: {enabled: false},
+                cycle: {delay: 10, maxTasksPerCycle: 5}
+            });
+            return {
+                process: async (input) => {
+                    await nar.input(input);
+                    // Return all task types to support different input types
+                    return [...nar.getBeliefs(), ...nar.getGoals(), ...nar.getQuestions()];
+                },
+                destroy: () => {
+                    if (nar.isRunning) nar.stop();
+                }
+            };
+        }, 
+        [
+            {
+                description: 'handles simple belief input',
+                input: 'cat.',
+                expectedOutput: null, // Will validate separately
+                validator: (result, expected) => result.some(b => b.term.toString().includes('cat') && b.type === 'BELIEF')
+            },
+            {
+                description: 'handles goal input',
+                input: 'want_food!',
+                expectedOutput: null,
+                validator: (result, expected) => result.some(b => b.term.toString().includes('want_food') && b.type === 'GOAL')
+            },
+            {
+                description: 'handles compound terms',
+                input: '(&, A, B).',
+                expectedOutput: null,
+                validator: (result, expected) => result.some(b => b.term.toString().includes('&'))
+            }
+        ]
+    );
+
     // Run the complete NAR integration test suite
     completeNARIntegrationSuite(narProvider);
 

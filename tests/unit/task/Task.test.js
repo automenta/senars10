@@ -1,7 +1,7 @@
 import {Task} from '../../../src/task/Task.js';
 import {Stamp} from '../../../src/Stamp.js';
 import {createTask, createTerm, createTruth, TEST_CONSTANTS} from '../../support/factories.js';
-import {testImmutability, testEqualityMethod, taskAssertions, initializationTests} from '../../support/testUtils.js';
+import {testImmutability, testEqualityMethod, taskAssertions, initializationTests, comprehensiveTestSuites} from '../../support/testUtils.js';
 
 describe('Task', () => {
     let term;

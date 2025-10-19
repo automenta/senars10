@@ -1,7 +1,7 @@
 import {Truth} from '../../../src/Truth.js';
 import {TRUTH} from '../../../src/config/constants.js';
 import {createTruth, TEST_CONSTANTS} from '../../support/factories.js';
-import {truthAssertions, equalityTests, stringRepresentationTests, initializationTests} from '../../support/testUtils.js';
+import {truthAssertions, equalityTests, stringRepresentationTests, initializationTests, comprehensiveTestSuites} from '../../support/testUtils.js';
 
 describe('Truth', () => {
     describe('Initialization', () => {
