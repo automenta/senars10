@@ -4,16 +4,20 @@ import { createTruth, TEST_CONSTANTS } from '../../support/factories.js';
 
 describe('Truth', () => {
     describe('constructor', () => {
-        test('initializes with given values', () => {
-            const truth = createTruth();
-            expect(truth.f).toBe(TEST_CONSTANTS.TRUTH.HIGH.f);
-            expect(truth.c).toBe(TEST_CONSTANTS.TRUTH.HIGH.c);
-        });
-
-        test('uses defaults for empty constructor', () => {
-            const truth = new Truth();
-            expect(truth.f).toBe(TRUTH.DEFAULT_FREQUENCY);
-            expect(truth.c).toBe(TRUTH.DEFAULT_CONFIDENCE);
+        test.each([
+            {
+                name: 'initializes with given values',
+                truth: createTruth(),
+                expected: { f: TEST_CONSTANTS.TRUTH.HIGH.f, c: TEST_CONSTANTS.TRUTH.HIGH.c }
+            },
+            {
+                name: 'uses defaults for empty constructor',
+                truth: new Truth(),
+                expected: { f: TRUTH.DEFAULT_FREQUENCY, c: TRUTH.DEFAULT_CONFIDENCE }
+            },
+        ])('$name', ({ truth, expected }) => {
+            expect(truth.f).toBe(expected.f);
+            expect(truth.c).toBe(expected.c);
         });
 
         test('is immutable', () => {
@@ -53,29 +57,19 @@ describe('Truth', () => {
         const t1 = createTruth(0.8, 0.9);
         const t2 = createTruth(0.6, 0.7);
 
-        test('deduction', () => {
-            const result = Truth.deduction(t1, t2);
-            expect(result.f).toBeCloseTo(0.48, 5);
-            expect(result.c).toBeCloseTo(0.63, 5);
-        });
-
-        test('revision', () => {
-            const result = Truth.revision(t1, t2);
-            const cSum = t1.c + t2.c;
-            const expectedF = (t1.f * t1.c + t2.f * t2.c) / cSum;
-            expect(result.f).toBeCloseTo(expectedF, 5);
-            expect(result.c).toBeCloseTo(Math.min(1, cSum), 5);
-        });
-
-        test('negation', () => {
-            const result = Truth.negation(t1);
-            expect(result.f).toBeCloseTo(0.2, 5);
-            expect(result.c).toBe(t1.c);
-        });
-
-        test('expectation', () => {
-            const expectation = Truth.expectation(t1);
-            expect(expectation).toBeCloseTo(0.72, 5);
+        test.each([
+            { name: 'deduction', args: [t1, t2], expected: { f: 0.48, c: 0.63 } },
+            { name: 'revision', args: [t1, t2], expected: { f: 0.7125, c: 1.0 } },
+            { name: 'negation', args: [t1], expected: { f: 0.2, c: 0.9 } },
+            { name: 'expectation', args: [t1], expected: 0.72 },
+        ])('$name', ({ name, args, expected }) => {
+            const result = Truth[name](...args);
+            if (typeof expected === 'object') {
+                expect(result.f).toBeCloseTo(expected.f, 5);
+                expect(result.c).toBeCloseTo(expected.c, 5);
+            } else {
+                expect(result).toBeCloseTo(expected, 5);
+            }
         });
     });
 });

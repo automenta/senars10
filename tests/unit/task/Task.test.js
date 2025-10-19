@@ -50,34 +50,26 @@ describe('Task', () => {
         expect(task2.term).toBe(task1.term);
     });
 
-    test('identifies types correctly', () => {
-        const belief = createTask({term, punctuation: '.'});
-        const goal = createTask({term, punctuation: '!'});
-        const question = createTask({term, punctuation: '?'});
-
-        expect(belief.isBelief()).toBe(true);
-        expect(belief.isGoal()).toBe(false);
-        expect(goal.isGoal()).toBe(true);
-        expect(question.isQuestion()).toBe(true);
+    test.each([
+        { punctuation: '.', method: 'isBelief', expected: true },
+        { punctuation: '.', method: 'isGoal', expected: false },
+        { punctuation: '!', method: 'isGoal', expected: true },
+        { punctuation: '?', method: 'isQuestion', expected: true },
+    ])('identifies types correctly for punctuation "$punctuation"', ({ punctuation, method, expected }) => {
+        const task = createTask({ term, punctuation });
+        expect(task[method]()).toBe(expected);
     });
 
-    test('compares equality correctly', () => {
-        const truth1 = createTruth(0.9, 0.9);
-        const truth2 = createTruth(0.9, 0.9);
-        const truth3 = createTruth(0.8, 0.8);
-        const termB = createTerm('B');
-
-        const task1 = createTask({term, punctuation: '.', truth: truth1});
-        const task2 = createTask({term, punctuation: '.', truth: truth2});
-        const task3 = createTask({term, punctuation: '.', truth: truth3});
-        const task4 = createTask({term: termB, punctuation: '.', truth: truth1});
-        const task5 = createTask({term, punctuation: '!', truth: truth1});
-
-        expect(task1.equals(task2)).toBe(true);
-        expect(task1.equals(task3)).toBe(false);
-        expect(task1.equals(task4)).toBe(false);
-        expect(task1.equals(task5)).toBe(false);
-        expect(task1.equals(null)).toBe(false);
+    test.each([
+        { name: 'equal', getOther: (t) => createTask({ term: t, punctuation: '.', truth: createTruth(0.9, 0.9) }), expected: true },
+        { name: 'different truth', getOther: (t) => createTask({ term: t, punctuation: '.', truth: createTruth(0.8, 0.8) }), expected: false },
+        { name: 'different term', getOther: (t) => createTask({ term: createTerm('B'), punctuation: '.', truth: createTruth(0.9, 0.9) }), expected: false },
+        { name: 'different punctuation', getOther: (t) => createTask({ term: t, punctuation: '!', truth: createTruth(0.9, 0.9) }), expected: false },
+        { name: 'null', getOther: (t) => null, expected: false },
+    ])('compares equality correctly when other is $name', ({ getOther, expected }) => {
+        const task = createTask({ term, punctuation: '.', truth: createTruth(0.9, 0.9) });
+        const other = getOther(term);
+        expect(task.equals(other)).toBe(expected);
     });
 
     test('stringifies correctly', () => {
