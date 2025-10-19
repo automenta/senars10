@@ -6,8 +6,16 @@
 import {NAR} from '../../src/nar/NAR.js';
 import {TermFactory} from '../../src/term/TermFactory.js';
 import {Truth} from '../../src/Truth.js';
-import {completeNARIntegrationSuite, narTestSetup, flexibleNARIntegrationSuite} from '../support/commonTestSuites.js';
-import {comprehensiveTestSuites, flexibleAssertions} from '../support/baseTestUtils.js';
+import { 
+  completeNARIntegrationSuite, 
+  narTestSetup, 
+  flexibleNARIntegrationSuite 
+} from '../support/commonTestSuites.js';
+import { 
+  comprehensiveTestSuites, 
+  flexibleAssertions,
+  NARTestSuites
+} from '../support/testOrganizer.js';
 
 // Using the common test setup to avoid duplication
 const narProvider = narTestSetup({
