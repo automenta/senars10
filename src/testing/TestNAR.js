@@ -97,6 +97,9 @@ export class TestNAR {
         // Dynamically import NAR to avoid circular dependencies
         const {NAR} = await import('../nar/NAR.js');
         this.nar = new NAR();
+        
+        // Allow for more cycles to ensure reasoning completion
+        const maxCycles = 10; // Increase default cycles for reasoning
 
         // Process operations
         const expectations = [];
@@ -125,18 +128,26 @@ export class TestNAR {
             }
         }
 
+        // Additional reasoning cycles after all inputs to allow for inference
+        for (let i = 0; i < maxCycles; i++) {
+            await this.nar.step();
+        }
+
         // Get all beliefs from NAR after processing
         const allBeliefs = this.nar.getBeliefs();
+        
+        // Get all tasks (not just beliefs) to catch derived results
+        const allTasks = this.nar.getTasks ? this.nar.getTasks() : allBeliefs;
 
         // Validate expectations
         for (const exp of expectations) {
             const {matcher, shouldExist} = exp;
-            const matches = allBeliefs.filter(task => matcher.matches(task));
+            const matches = allTasks.filter(task => matcher.matches(task));
             const found = matches.length > 0;
 
             if ((shouldExist && !found) || (!shouldExist && found)) {
-                const taskList = allBeliefs.length
-                    ? allBeliefs.map(t => `  - ${t.toString()}`).join('\n')
+                const taskList = allTasks.length
+                    ? allTasks.map(t => `  - ${t.toString()}`).join('\n')
                     : '  (None)';
 
                 throw new Error(`
@@ -144,7 +155,7 @@ export class TestNAR {
           Expectation: ${shouldExist ? 'FIND' : 'NOT FIND'} a task matching criteria.
           Criteria: Term="${matcher.termFilter}", MinFreq="${matcher.minFreq}", MinConf="${matcher.minConf}"
 
-          ----- All Beliefs (${allBeliefs.length}) -----
+          ----- All Tasks (${allTasks.length}) -----
 ${taskList}
           ---------------------------------------------------
         `);

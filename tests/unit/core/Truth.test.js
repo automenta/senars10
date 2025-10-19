@@ -3,7 +3,7 @@ import {TRUTH} from '../../../src/config/constants.js';
 import {createTruth, TEST_CONSTANTS} from '../../support/factories.js';
 
 describe('Truth', () => {
-    describe('constructor', () => {
+    describe('Initialization', () => {
         test.each([
             {
                 name: 'initializes with given values',
@@ -26,7 +26,7 @@ describe('Truth', () => {
         });
     });
 
-    describe('equals', () => {
+    describe('Comparison', () => {
         test('compares values correctly', () => {
             const t1 = createTruth();
             const t2 = createTruth();
@@ -46,14 +46,16 @@ describe('Truth', () => {
         });
     });
 
-    test('toString', () => {
-        const truth = createTruth();
-        const {f, c} = TEST_CONSTANTS.TRUTH.HIGH;
-        const expected = `%${f.toFixed(TRUTH.PRECISION)};${c.toFixed(TRUTH.PRECISION)}%`;
-        expect(truth.toString()).toBe(expected);
+    describe('String Representation', () => {
+        test('toString', () => {
+            const truth = createTruth();
+            const {f, c} = TEST_CONSTANTS.TRUTH.HIGH;
+            const expected = `%${f.toFixed(TRUTH.PRECISION)};${c.toFixed(TRUTH.PRECISION)}%`;
+            expect(truth.toString()).toBe(expected);
+        });
     });
 
-    describe('operations', () => {
+    describe('Operations', () => {
         const t1 = createTruth(0.8, 0.9);
         const t2 = createTruth(0.6, 0.7);
 

@@ -1,6 +1,7 @@
 import {Task} from '../../../src/task/Task.js';
 import {Stamp} from '../../../src/Stamp.js';
-import {createTask, createTerm, createTruth} from '../../support/factories.js';
+import {createTask, createTerm, createTruth, TEST_CONSTANTS} from '../../support/factories.js';
+import {testImmutability, testEqualityMethod} from '../../support/testUtils.js';
 
 describe('Task', () => {
     let term;
@@ -9,33 +10,35 @@ describe('Task', () => {
         term = createTerm('A');
     });
 
-    test('creates with defaults', () => {
-        const task = new Task({term});
+    describe('Initialization', () => {
+        test('creates with defaults', () => {
+            const task = new Task({term});
 
-        expect(task.term).toBe(term);
-        expect(task.type).toBe('BELIEF');
-        expect(task.truth).toBeNull();
-        expect(task.budget).toEqual({priority: 0.5, durability: 0.5, quality: 0.5});
-        expect(task.stamp).toBeInstanceOf(Stamp);
-    });
+            expect(task.term).toBe(term);
+            expect(task.type).toBe('BELIEF');
+            expect(task.truth).toBeNull();
+            expect(task.budget).toEqual(TEST_CONSTANTS.BUDGET.DEFAULT);
+            expect(task.stamp).toBeInstanceOf(Stamp);
+        });
 
-    test('creates with custom properties', () => {
-        const truth = createTruth();
-        const budget = {priority: 0.7, durability: 0.6, quality: 0.7};
-        const task = new Task({term, punctuation: '!', truth, budget});
+        test('creates with custom properties', () => {
+            const truth = createTruth();
+            const budget = TEST_CONSTANTS.BUDGET.HIGH;
+            const task = new Task({term, punctuation: '!', truth, budget});
 
-        expect(task.type).toBe('GOAL');
-        expect(task.truth).toEqual(truth);
-        expect(task.budget).toEqual(budget);
-    });
+            expect(task.type).toBe('GOAL');
+            expect(task.truth).toEqual(truth);
+            expect(task.budget).toEqual(budget);
+        });
 
-    test('throws for invalid term', () => {
-        expect(() => new Task({term: 'not-a-term'})).toThrow('Task must be initialized with a valid Term object.');
+        test('throws for invalid term', () => {
+            expect(() => new Task({term: 'not-a-term'})).toThrow('Task must be initialized with a valid Term object.');
+        });
     });
 
     test('enforces immutability', () => {
         const task = createTask({term});
-        expect(() => task.type = 'GOAL').toThrow();
+        testImmutability(task, { type: 'GOAL' });
     });
 
     test('clones with modifications', () => {
@@ -62,7 +65,7 @@ describe('Task', () => {
 
     test.each([
         {
-            name: 'equal',
+            name: 'equal tasks',
             getOther: (t) => createTask({term: t, punctuation: '.', truth: createTruth(0.9, 0.9)}),
             expected: true
         },
@@ -85,7 +88,14 @@ describe('Task', () => {
     ])('compares equality correctly when other is $name', ({getOther, expected}) => {
         const task = createTask({term, punctuation: '.', truth: createTruth(0.9, 0.9)});
         const other = getOther(term);
-        expect(task.equals(other)).toBe(expected);
+        if (expected === false && other !== null) {
+            expect(task.equals(other)).toBe(false);
+        } else if (expected === true) {
+            expect(task.equals(other)).toBe(true);
+        } else if (other === null) {
+            expect(task.equals(other)).toBe(false);
+        }
+        // Don't use the testEqualityMethod here since it doesn't handle the different cases properly
     });
 
     test('stringifies correctly', () => {

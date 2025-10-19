@@ -2,6 +2,9 @@ import {ArrayStamp} from '../../src/Stamp.js';
 import {TermFactory} from '../../src/term/TermFactory.js';
 import {Task} from '../../src/task/Task.js';
 import {Truth} from '../../src/Truth.js';
+import {TaskManager} from '../../src/task/TaskManager.js';
+import {Memory} from '../../src/memory/Memory.js';
+import {Focus} from '../../src/memory/Focus.js';
 
 const termFactory = new TermFactory();
 
@@ -92,3 +95,40 @@ export const createMemoryConfig = () => ({
     consolidationInterval: 10,
     priorityDecayRate: 0.9
 });
+
+/**
+ * Factory function for creating TaskManager instances for testing.
+ * @param {object} [config={}] - Configuration for the TaskManager.
+ * @returns {TaskManager} A new TaskManager instance.
+ */
+export const createTaskManager = (config = {}) => {
+    return new TaskManager(config);
+};
+
+/**
+ * Factory function for creating Memory instances for testing.
+ * @param {object} [config={}] - Configuration for Memory.
+ * @returns {Memory} A new Memory instance.
+ */
+export const createMemory = (config = createMemoryConfig()) => {
+    return new Memory(config);
+};
+
+/**
+ * Factory function for creating Focus instances for testing.
+ * @param {object} [config={}] - Configuration for Focus.
+ * @returns {Focus} A new Focus instance.
+ */
+export const createFocus = (config = {}) => {
+    return new Focus(config);
+};
+
+/**
+ * Utility function for creating a test-ready NAR for integration tests.
+ * @param {object} [config={}] - Configuration for the NAR.
+ * @returns {Promise<NAR>} A new NAR instance.
+ */
+export const createTestNAR = async (config = {}) => {
+    const {NAR} = await import('../../src/nar/NAR.js');
+    return new NAR(config);
+};
