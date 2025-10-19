@@ -86,4 +86,3 @@ export const COMMON_BUDGET_VALUES = [
 // Re-export all test utilities for backward compatibility and ease of use
 export * from './baseTestUtils.js';
 export * from './narTestSetup.js';
-export * from './commonTestSuites.js';

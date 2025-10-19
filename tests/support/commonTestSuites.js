@@ -5,13 +5,14 @@
 
 import {Truth} from '../../src/Truth.js';
 import {
-  narTestPatterns,
   truthAssertions,
   taskAssertions,
   errorHandlingTests,
   runPerformanceTest,
   waitForCondition
-} from './testUtils.js';
+} from './baseTestUtils.js';
+import {narTestPatterns} from './narTestSetup.js';
+import {createTestNAR, TEST_CONSTANTS} from './factories.js';
 
 /**
  * Common test suite for basic input processing

@@ -1,8 +1,3 @@
-/**
- * @file baseTestUtils.js
- * @description Base test utilities to support common testing patterns across test files
- */
-
 import {NAR} from '../../src/nar/NAR.js';
 import {Truth} from '../../src/Truth.js';
 import {createTestNAR, createTask, createTerm, createTruth, TEST_CONSTANTS} from './factories.js';
@@ -142,6 +137,54 @@ export const taskAssertions = {
       t.term.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.term.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+  }
+};
+
+/**
+ * Flexible assertion utilities for more robust testing during agile development
+ */
+export const flexibleAssertions = {
+  /**
+   * Compares values with configurable tolerance to handle changes in implementation
+   */
+  expectCloseTo: (actual, expected, tolerance = 0.01, description = '') => {
+    const message = description ? ` (${description})` : '';
+    const diff = Math.abs(actual - expected);
+    expect(diff).toBeLessThanOrEqual(tolerance);
+  },
+
+  /**
+   * Checks if a value is within expected range (more flexible than exact values)
+   */
+  expectInRange: (actual, min, max, description = '') => {
+    const message = description ? ` (${description})` : '';
+    expect(actual).toBeGreaterThanOrEqual(min);
+    expect(actual).toBeLessThanOrEqual(max);
+  },
+
+  /**
+   * Checks if collection has 'at least' a certain number of items (not exact count)
+   */
+  expectAtLeast: (collection, minCount, description = '') => {
+    const count = Array.isArray(collection) ? collection.length : collection.size || collection.length || Object.keys(collection).length;
+    const message = description ? ` (${description})` : '';
+    expect(count).toBeGreaterThanOrEqual(minCount);
+  },
+
+  /**
+   * Flexible comparison for objects that allows for implementation changes
+   */
+  expectObjectContainingFlexible: (actual, expectedSubset, tolerance = 0.01) => {
+    Object.entries(expectedSubset).forEach(([key, expectedValue]) => {
+      if (typeof expectedValue === 'number' && typeof actual[key] === 'number') {
+        // Use tolerance-based comparison for numbers
+        const diff = Math.abs(actual[key] - expectedValue);
+        expect(diff).toBeLessThanOrEqual(tolerance);
+      } else {
+        // Use exact comparison for non-numbers
+        expect(actual[key]).toEqual(expectedValue);
+      }
+    });
   }
 };
 
@@ -430,8 +473,9 @@ export const narTestScenarios = {
     }
 
     expect(storage.length).toBeGreaterThan(0);
-    const task = storage.find(t => t.term.toString().includes(input.replace(/[^\w\s]/g, '')) || 
-                                      t.term.toString().includes(input.split(/[^\w]/)[0]));
+    const task = storage.find(t => 
+      t.term.toString().includes(input.replace(/[^\w\s]/g, '')) || 
+      t.term.toString().includes(input.split(/[^\w]/)[0]));
     expect(task).toBeDefined();
     expect(task.type).toBe(expectedType.toUpperCase());
   },
@@ -536,7 +580,9 @@ export const parameterizedTests = {
   }
 };
 
-/**\n * Provides comprehensive test suites for different system components\n */
+/**
+ * Provides comprehensive test suites for different system components
+ */
 export const comprehensiveTestSuites = {
   /**
    * Standard test suite for classes implementing common patterns like equality, immutability, etc.
@@ -609,8 +655,7 @@ export const comprehensiveTestSuites = {
     });
   },
   
-  /**
-   * Test suite for modules that process input and produce output
+  /**\n   * Test suite for modules that process input and produce output
    */
   inputOutputModuleTests: (moduleName, createModule, testCases) => {
     describe(`${moduleName} Input/Output Module Tests`, () => {
@@ -635,5 +680,106 @@ export const comprehensiveTestSuites = {
         }
       });
     });
+  },
+  
+  /**
+   * Standard test suite for data model classes with basic properties
+   */
+  dataModelTests: (modelName, Constructor, testData) => {
+    describe(`${modelName} Data Model Tests`, () => {
+      test('should create instance with provided data', () => {
+        const instance = new Constructor(testData.validInput);
+        expect(instance).toBeDefined();
+        
+        // Check that properties match input data
+        Object.entries(testData.expectedProperties).forEach(([key, value]) => {
+          expect(instance[key]).toEqual(value);
+        });
+      });
+      
+      test('should have expected string representation', () => {
+        const instance = new Constructor(testData.validInput);
+        if (testData.expectedString) {
+          expect(instance.toString()).toBe(testData.expectedString);
+        }
+      });
+      
+      if (testData.immutable) {
+        test('should be immutable', () => {
+          const instance = new Constructor(testData.validInput);
+          const firstKey = Object.keys(instance)[0];
+          if (firstKey && instance[firstKey] !== undefined) {
+            expect(() => {
+              instance[firstKey] = 'modified';
+            }).toThrow();
+          }
+        });
+      }
+      
+      if (testData.testEquality) {
+        test('should implement equality correctly', () => {
+          const instance1 = new Constructor(testData.validInput);
+          const instance2 = new Constructor(testData.validInput);
+          const instance3 = new Constructor(testData.differentInput || {});
+          
+          expect(instance1.equals(instance2)).toBe(true);
+          if (testData.differentInput) {
+            expect(instance1.equals(instance3)).toBe(false);
+          }
+        });
+      }
+    });
+  }
+};
+
+/**
+ * Utilities for more robust NAR and integration testing during agile development
+ */
+export const robustNARTests = {
+  /**
+   * Run NAR tests with flexible timing to handle different system speeds
+   */
+  runWithFlexibleTiming: async (narOperation, maxDurationMs = 10000, description = 'NAR operation') => {
+    const startTime = Date.now();
+    const result = await narOperation();
+    const duration = Date.now() - startTime;
+    
+    // Log the duration but don't fail unless it's significantly over the limit
+    console.log(`${description} completed in ${duration}ms`);
+    expect(duration).toBeLessThanOrEqual(maxDurationMs);
+    
+    return result;
+  },
+
+  /**
+   * Check for expected results with retry logic to handle async operations
+   */
+  expectWithRetry: async (checkFn, maxRetries = 10, intervalMs = 100, description = 'Expectation check') => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        await checkFn();
+        return; // Success, exit early
+      } catch (error) {
+        if (i === maxRetries - 1) {
+          // Last attempt, throw the error
+          throw error;
+        }
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    }
+  },
+
+  /**
+   * Look for expected results with flexible matching (find what we expect rather than exact matching)
+   */
+  findExpectedResult: (collection, matcherFn, description = 'Expected result') => {
+    const result = Array.isArray(collection) ? collection.find(matcherFn) : 
+                   Array.from(collection).find(matcherFn);
+    if (!result) {
+      const collectionDesc = Array.isArray(collection) ? collection.length : collection.size;
+      throw new Error(`Could not find ${description} in collection with ${collectionDesc} items`);
+    }
+    return result;
   }
 };
