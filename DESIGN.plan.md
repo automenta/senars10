@@ -1,8 +1,8 @@
-# SENARS9.js Phased Development Plan (v10)
+# SeNARS Phased Development Plan (v10)
 
 ## Overview
 
-This document outlines an efficient, test-driven development approach for the complete reimplementation of SENARS9.js.
+This document outlines an efficient, test-driven development approach for the complete reimplementation of SeNARS.
 Following the specifications in `DESIGN.md`, this plan emphasizes iterative development, essential features first, and
 minimal viable implementations that build toward completeness. Each phase delivers functional value while maintaining
 focus on core reasoning capabilities.

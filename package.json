@@ -19,7 +19,7 @@
     "neuro-symbolic",
     "reasoning"
   ],
-  "author": "SENARS9 Development Team",
+  "author": "Developers",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@langchain/ollama": "^0.2.4",

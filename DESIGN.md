@@ -1,8 +1,8 @@
-# SENARS9.js Re-implementation Design Document
+# SeNARS Re-implementation Design Document
 
 ## 1. Introduction & Goals
 
-This document outlines the design for a complete re-implementation of the SENARS9.js codebase. The primary goal is to
+This document outlines the design for a complete re-implementation of the SeNARS codebase. The primary goal is to
 create a more robust, maintainable, and extensible system by addressing known architectural issues and improving the
 core components. The re-implementation will enable all previously implemented and planned functionality, ensuring its
 presence in a usable form.
