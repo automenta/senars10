@@ -2,6 +2,7 @@ import { Rule } from './Rule.js';
 import { Term } from '../term/Term.js';
 import { Task } from '../task/Task.js';
 import { Stamp } from '../Stamp.js';
+import { PatternMatcher } from './nal/PatternMatcher.js';
 
 /**
  * NALRule is the base class for all logical inference rules in the system.

@@ -5,19 +5,40 @@ import {Term} from '../../term/Term.js';
  */
 export class PatternMatcher {
     /**
-     * Unify two terms, creating variable bindings
+     * Unify two terms, adding variable bindings to an existing binding map
      * @param {Term} pattern - The pattern term
      * @param {Term} term - The actual term
-     * @returns {Map|null} - Map of variable bindings or null if unification fails
+     * @param {Map} bindings - The existing bindings map to update (optional)
+     * @returns {Map|null} - Updated bindings map or null if unification fails
      */
-    unify(pattern, term) {
-        const bindings = new Map();
+    unify(pattern, term, existingBindings = null) {
+        const bindings = existingBindings || new Map();
 
         if (!this._unifyTerms(pattern, term, bindings)) {
             return null; // Unification failed
         }
 
         return bindings;
+    }
+
+    /**
+     * Unify multiple pattern-term pairs, accumulating bindings
+     * @param {Array<{pattern: Term, term: Term}>} patternTermPairs - Array of pattern-term pairs to unify
+     * @param {Map} initialBindings - Initial bindings to start with (optional)
+     * @returns {Map|null} - Final bindings map or null if unification fails
+     */
+    unifyMultiple(patternTermPairs, initialBindings = new Map()) {
+        let currentBindings = new Map(initialBindings);
+
+        for (const { pattern, term } of patternTermPairs) {
+            const result = this.unify(pattern, term, currentBindings);
+            if (!result) {
+                return null; // Unification failed for this pair
+            }
+            currentBindings = result;
+        }
+
+        return currentBindings;
     }
 
     /**

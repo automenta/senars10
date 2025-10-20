@@ -1,10 +1,13 @@
-import {RuleManager} from './RuleManager.js';
+import { RuleEngine as BaseRuleEngine } from '../RuleEngine.js';
+import { RuleManager } from './RuleManager.js';
 
 /**
- * Advanced Rule Engine with sophisticated hybrid NAL-LM reasoning capabilities
+ * Advanced NAL-focused Rule Engine that extends the base RuleEngine
+ * with sophisticated hybrid NAL-LM reasoning capabilities
  */
-export class RuleEngine {
+export class RuleEngine extends BaseRuleEngine {
     constructor(config = {}) {
+        super(config);
         this._nalRules = new RuleManager();
         this._lmRules = new RuleManager();
         this._hybridRules = new RuleManager();
@@ -333,8 +336,10 @@ export class RuleEngine {
      * @returns {Object} - Statistics about rule applications
      */
     getStats() {
+        // Combine metrics from base engine and NAL-specific metrics
         return {
             ...this._metrics,
+            ...super.getMetrics ? super.getMetrics() : {},
             uptime: Date.now() - this._metrics.startTime,
             nalStats: this._nalRules.getAggregatedMetrics(),
             lmStats: this._lmRules.getAggregatedMetrics(),

@@ -1,173 +1,186 @@
-import {TRUTH} from '../../config/constants.js';
-import {clamp} from '../../../util/common.js';
+import { TRUTH } from '../../config/constants.js';
+import { Truth } from '../../Truth.js';
+import { clamp } from '../../util/common.js';
 
 /**
  * NAL Truth Value Functions for reasoning
+ * This class provides NAL-specific truth value operations that build on the core Truth class
  */
 export class TruthFunctions {
     /**
      * Revision combines two truth values with the same content but different evidence bases
-     * @param {Object} v1 - First truth value {frequency, confidence}
-     * @param {Object} v2 - Second truth value {frequency, confidence}
-     * @returns {Object} - Revised truth value
+     * @param {Object} v1 - First truth value {frequency, confidence} or Truth instance
+     * @param {Object} v2 - Second truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Revised truth value as {frequency, confidence}
      */
     static revision(v1, v2) {
+        // Handle null inputs gracefully
         if (!v1 || !v2) return v1 || v2;
 
-        const w1 = this.w(v1.frequency, v1.confidence);
-        const w2 = this.w(v2.frequency, v2.confidence);
-        const w = w1 + w2;
-        const f = (w1 * v1.frequency + w2 * v2.frequency) / w;
-        const c = w / (w + TRUTH.WEIGHT_FACTOR);
-
-        return {frequency: f, confidence: c};
+        // Convert to Truth instances if they're not already
+        const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
+        const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
+        
+        const revised = Truth.revision(t1, t2);
+        return { frequency: revised.f, confidence: revised.c };
     }
 
     /**
      * Deduction rule: If <a --> b> and <a> then <b>
-     * @param {Object} v1 - First truth value {frequency, confidence}
-     * @param {Object} v2 - Second truth value {frequency, confidence}
-     * @returns {Object} - Deduced truth value
+     * @param {Object} v1 - First truth value {frequency, confidence} or Truth instance
+     * @param {Object} v2 - Second truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Deduced truth value as {frequency, confidence}
      */
     static deduction(v1, v2) {
-        if (!v1 || !v2) return v1 || v2;
+        // Handle null inputs gracefully
+        if (!v1 || !v2) return null;
 
-        const f = this.fDed(v1.frequency, v2.frequency);
-        const c = v1.confidence * v2.confidence;
-
-        return {frequency: f, confidence: c};
+        // Convert to Truth instances if they're not already
+        const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
+        const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
+        
+        const result = Truth.deduction(t1, t2);
+        return result ? { frequency: result.f, confidence: result.c } : null;
     }
 
     /**
      * Induction rule: If <a --> b> and <b --> a> then <a <-> b>
-     * @param {Object} v1 - First truth value {frequency, confidence}
-     * @param {Object} v2 - Second truth value {frequency, confidence}
-     * @returns {Object} - Induced truth value
+     * @param {Object} v1 - First truth value {frequency, confidence} or Truth instance
+     * @param {Object} v2 - Second truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Induced truth value as {frequency, confidence}
      */
     static induction(v1, v2) {
-        if (!v1 || !v2) return v1 || v2;
+        // Handle null inputs gracefully
+        if (!v1 || !v2) return null;
 
-        const f = this.fInd(v1.frequency, v2.frequency);
-        const c = v1.confidence * v2.confidence * Math.min(v1.frequency, v2.frequency);
-
-        return {frequency: f, confidence: c};
+        // Convert to Truth instances if they're not already
+        const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
+        const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
+        
+        const result = Truth.induction(t1, t2);
+        return result ? { frequency: result.f, confidence: result.c } : null;
     }
 
     /**
      * Abduction rule: If <a --> b> and <b> then <a>
-     * @param {Object} v1 - First truth value {frequency, confidence}
-     * @param {Object} v2 - Second truth value {frequency, confidence}
-     * @returns {Object} - Abduced truth value
+     * @param {Object} v1 - First truth value {frequency, confidence} or Truth instance
+     * @param {Object} v2 - Second truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Abduced truth value as {frequency, confidence}
      */
     static abduction(v1, v2) {
-        if (!v1 || !v2) return v1 || v2;
+        // Handle null inputs gracefully
+        if (!v1 || !v2) return null;
 
-        const f = this.fAbd(v1.frequency, v2.frequency);
-        const c = v1.confidence * v2.confidence;
-
-        return {frequency: f, confidence: c};
+        // Convert to Truth instances if they're not already
+        const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
+        const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
+        
+        const result = Truth.abduction(t1, t2);
+        return result ? { frequency: result.f, confidence: result.c } : null;
     }
 
     /**
      * Exemplification: If <a --> b> and <b --> c> then <c --> a>
-     * @param {Object} v1 - First truth value {frequency, confidence}
-     * @param {Object} v2 - Second truth value {frequency, confidence}
-     * @returns {Object} - Exemplified truth value
+     * @param {Object} v1 - First truth value {frequency, confidence} or Truth instance
+     * @param {Object} v2 - Second truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Exemplified truth value as {frequency, confidence}
      */
     static exemplification(v1, v2) {
-        if (!v1 || !v2) return v1 || v2;
+        // Handle null inputs gracefully
+        if (!v1 || !v2) return null;
 
-        // Similar to abduction but with different semantics
-        const f = this.fAbd(v1.frequency, v2.frequency);
-        const c = v1.confidence * v2.confidence * TRUTH.EXEMPLIFICATION_CONFIDENCE_FACTOR;
-
-        return {frequency: f, confidence: c};
+        // Convert to Truth instances if they're not already
+        const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
+        const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
+        
+        const result = Truth.op(t1, t2, (t, u) => {
+            const f = t.f; // Similar to abduction
+            const c = t.c * u.c * (TRUTH.EXEMPLIFICATION_CONFIDENCE_FACTOR || 0.1);
+            return new Truth(f, c);
+        });
+        
+        return result ? { frequency: result.f, confidence: result.c } : null;
     }
 
     /**
      * Comparison: If <a --> b> and <a --> c> then <b <-> c>
-     * @param {Object} v1 - First truth value {frequency, confidence}
-     * @param {Object} v2 - Second truth value {frequency, confidence}
-     * @returns {Object} - Comparison truth value
+     * @param {Object} v1 - First truth value {frequency, confidence} or Truth instance
+     * @param {Object} v2 - Second truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Comparison truth value as {frequency, confidence}
      */
     static comparison(v1, v2) {
-        if (!v1 || !v2) return v1 || v2;
+        // Handle null inputs gracefully
+        if (!v1 || !v2) return null;
 
-        // For comparison between similar subjects
-        const f = Math.min(v1.frequency, v2.frequency);
-        const c = v1.confidence * v2.confidence * TRUTH.COMPARISON_CONFIDENCE_FACTOR;
-
-        return {frequency: f, confidence: c};
+        // Convert to Truth instances if they're not already
+        const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
+        const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
+        
+        const result = Truth.comparison(t1, t2);
+        return result ? { frequency: result.f, confidence: result.c } : null;
     }
 
     /**
      * Conversion: If <a --> b> then <b --> a>
-     * @param {Object} v - Truth value {frequency, confidence}
-     * @returns {Object} - Converted truth value
+     * @param {Object} v - Truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Converted truth value as {frequency, confidence}
      */
     static conversion(v) {
-        if (!v) return v;
+        // Handle null inputs gracefully
+        if (!v) return null;
 
-        // Conversion reverses the inheritance direction
-        const f = v.frequency;
-        const c = v.confidence * TRUTH.CONVERSION_CONFIDENCE_FACTOR;
-
-        return {frequency: f, confidence: c};
+        // Convert to Truth instance if it's not already
+        const t = v instanceof Truth ? v : new Truth(v?.frequency || 0.5, v?.confidence || 0.9);
+        
+        const result = Truth.conversion(t);
+        return result ? { frequency: result.f, confidence: result.c } : null;
     }
 
     /**
      * Negation: If <a> then <-- a>
-     * @param {Object} v - Truth value {frequency, confidence}
-     * @returns {Object} - Negated truth value
+     * @param {Object} v - Truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Negated truth value as {frequency, confidence}
      */
     static negation(v) {
-        if (!v) return v;
+        // Handle null inputs gracefully
+        if (!v) return null;
 
-        return {
-            frequency: 1.0 - v.frequency,
-            confidence: v.confidence
-        };
+        // Convert to Truth instance if it's not already
+        const t = v instanceof Truth ? v : new Truth(v?.frequency || 0.5, v?.confidence || 0.9);
+        
+        const result = Truth.negation(t);
+        return result ? { frequency: result.f, confidence: result.c } : null;
     }
 
     /**
      * Expectation: Decision making function
-     * @param {Object} v - Truth value {frequency, confidence}
+     * @param {Object} v - Truth value {frequency, confidence} or Truth instance
      * @returns {number} - Expected likelihood
      */
     static expectation(v) {
+        // Handle null inputs gracefully
         if (!v) return 0.5;
 
-        return (v.frequency * v.confidence) + (0.5 * (1 - v.confidence));
-    }
-
-    // Helper functions for truth value operations
-    static w(frequency, confidence) {
-        return confidence / (1 - confidence);
-    }
-
-    static fDed(f1, f2) {
-        return f1 * f2;
-    }
-
-    static fInd(f1, f2) {
-        return Math.min(f1, f2);
-    }
-
-    static fAbd(f1, f2) {
-        return f1; // In abduction, frequency of cause is influenced by the rule's frequency
+        // Convert to Truth instance if it's not already
+        const t = v instanceof Truth ? v : new Truth(v?.frequency || 0.5, v?.confidence || 0.9);
+        
+        return Truth.expectation(t);
     }
 
     /**
      * Normalize truth values to ensure they're within valid ranges
-     * @param {Object} v - Truth value {frequency, confidence}
-     * @returns {Object} - Normalized truth value
+     * @param {Object} v - Truth value {frequency, confidence} or Truth instance
+     * @returns {Object} - Normalized truth value as {frequency, confidence}
      */
     static normalize(v) {
         if (!v) return {frequency: 0.5, confidence: 0.9};
-
+        
+        // Convert to Truth instance if it's not already
+        const t = v instanceof Truth ? v : new Truth(v?.frequency || 0.5, v?.confidence || 0.9);
+        
         return {
-            frequency: clamp(v.frequency, 0, 1),
-            confidence: clamp(v.confidence, 0, 1)
+            frequency: clamp(t.f, 0, 1),
+            confidence: clamp(t.c, 0, 1)
         };
     }
 }
