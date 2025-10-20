@@ -3,7 +3,7 @@
  * @description Tool for generating embeddings with safety features
  */
 
-import { BaseTool } from './BaseTool.js';
+import {BaseTool} from './BaseTool.js';
 
 /**
  * Tool for generating embeddings from text content
@@ -13,14 +13,14 @@ export class EmbeddingTool extends BaseTool {
     constructor(config = {}) {
         super(config);
         this.name = 'EmbeddingTool';
-        
+
         // Configure safety settings
         this.maxTextLength = config.maxTextLength || 10000; // 10k chars max
         this.maxBatchSize = config.maxBatchSize || 10; // Max items per batch
         this.timeout = config.timeout || 30000; // 30 seconds default
         this.defaultModel = config.defaultModel || 'default-embedding-model';
         this.defaultDimensions = config.defaultDimensions || 128;
-        
+
         // For demonstration purposes, we'll simulate embedding generation
         // In a real system, you'd connect to actual embedding services
         this.availableModels = config.availableModels || [
@@ -37,7 +37,7 @@ export class EmbeddingTool extends BaseTool {
      * @returns {Promise<any>} - Embedding result
      */
     async execute(params, context) {
-        const { operation, text, texts, model = this.defaultModel, options = {} } = params;
+        const {operation, text, texts, model = this.defaultModel, options = {}} = params;
 
         if (!operation) {
             throw new Error('Operation is required');
@@ -48,7 +48,7 @@ export class EmbeddingTool extends BaseTool {
             case 'embed':
                 if (!text && !texts) throw new Error('Either text or texts array is required for embed operation');
                 if (text && texts) throw new Error('Provide either text or texts array, not both');
-                
+
                 if (text) {
                     return await this._generateEmbedding(text, model, options);
                 } else {
@@ -78,11 +78,11 @@ export class EmbeddingTool extends BaseTool {
     async _generateEmbedding(text, model, options = {}) {
         // Validate the text
         this._validateText(text, 'input');
-        
+
         // In a real implementation, you would call an actual embedding API
         // For this example, we'll simulate the embedding process
         const embedding = this._simulateEmbedding(text, model);
-        
+
         return {
             success: true,
             operation: 'embed',
@@ -106,22 +106,22 @@ export class EmbeddingTool extends BaseTool {
         if (!Array.isArray(texts)) {
             throw new Error('texts must be an array');
         }
-        
+
         if (texts.length > this.maxBatchSize) {
             throw new Error(`Batch size exceeds maximum limit: ${this.maxBatchSize}`);
         }
-        
+
         for (let i = 0; i < texts.length; i++) {
             this._validateText(texts[i], `text at index ${i}`);
         }
-        
+
         // Generate embeddings for each text
         const embeddings = texts.map(text => ({
             text: text,
             embedding: this._simulateEmbedding(text, model),
             textLength: text.length
         }));
-        
+
         return {
             success: true,
             operation: 'embed-batch',
@@ -143,13 +143,13 @@ export class EmbeddingTool extends BaseTool {
     async _compareEmbeddings(text1, text2, model, options = {}) {
         this._validateText(text1, 'text1');
         this._validateText(text2, 'text2');
-        
+
         const embedding1 = this._simulateEmbedding(text1, model);
         const embedding2 = this._simulateEmbedding(text2, model);
-        
+
         // Calculate cosine similarity
         const similarity = this._cosineSimilarity(embedding1, embedding2);
-        
+
         return {
             success: true,
             operation: 'compare',
@@ -173,13 +173,13 @@ export class EmbeddingTool extends BaseTool {
     async _calculateSimilarity(text, against, model, options = {}) {
         this._validateText(text, 'text');
         this._validateText(against, 'against');
-        
+
         const textEmbedding = this._simulateEmbedding(text, model);
         const againstEmbedding = this._simulateEmbedding(against, model);
-        
+
         // Calculate cosine similarity
         const similarity = this._cosineSimilarity(textEmbedding, againstEmbedding);
-        
+
         return {
             success: true,
             operation: 'similarity',
@@ -318,7 +318,7 @@ export class EmbeddingTool extends BaseTool {
                 },
                 texts: {
                     type: 'array',
-                    items: { type: 'string' },
+                    items: {type: 'string'},
                     description: 'Multiple text inputs for batch operations'
                 },
                 model: {
@@ -336,7 +336,7 @@ export class EmbeddingTool extends BaseTool {
                 },
                 searchSpace: {
                     type: 'array',
-                    items: { type: 'string' },
+                    items: {type: 'string'},
                     description: 'Texts to search through (for search operation)'
                 },
                 options: {
@@ -482,16 +482,16 @@ export class EmbeddingTool extends BaseTool {
     _simulateEmbedding(text, model) {
         // This is a very simplified simulation of embedding generation
         // In a real implementation, you would call actual embedding models
-        
+
         // Create a deterministic "embedding" based on the text content
         const embedding = new Array(this.defaultDimensions).fill(0); // Standard embedding size (simplified)
-        
+
         for (let i = 0; i < text.length; i++) {
             const charCode = text.charCodeAt(i);
             const index = i % this.defaultDimensions;
             embedding[index] = (embedding[index] + charCode * (i + 1)) % 2 - 1; // Normalize to [-1, 1]
         }
-        
+
         // Apply a simple hashing approach to make embeddings consistent for the same text
         let hash = 0;
         for (let i = 0; i < text.length; i++) {
@@ -499,12 +499,12 @@ export class EmbeddingTool extends BaseTool {
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash; // Convert to 32bit integer
         }
-        
+
         // Apply the hash to modify the embedding slightly
         for (let i = 0; i < embedding.length; i++) {
             embedding[i] = Math.tanh(embedding[i] + (hash >> i) % 100 / 1000);
         }
-        
+
         return embedding;
     }
 

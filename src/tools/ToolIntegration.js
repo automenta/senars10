@@ -3,9 +3,9 @@
  * @description Integration layer between tools and reasoning core
  */
 
-import { ToolEngine } from './ToolEngine.js';
-import { ToolRegistry } from './ToolRegistry.js';
-import { Logger } from '../util/Logger.js';
+import {ToolEngine} from './ToolEngine.js';
+import {ToolRegistry} from './ToolRegistry.js';
+import {Logger} from '../util/Logger.js';
 
 /**
  * Integration layer that connects tools to the reasoning core
@@ -20,12 +20,12 @@ export class ToolIntegration {
             enableDiscovery: true,
             ...config
         };
-        
+
         this.engine = new ToolEngine(this.config.engine || {});
         this.registry = this.config.enableRegistry ? new ToolRegistry(this.engine) : null;
         this.logger = Logger;
         this.reasoningCore = null;
-        
+
         // Track tool usage for the reasoning system
         this.toolUsageHistory = [];
     }
@@ -47,47 +47,47 @@ export class ToolIntegration {
         if (!this.registry) {
             throw new Error('Tool registry not enabled');
         }
-        
+
         try {
             // Import all tools and register them
             const {
                 FileOperationsTool,
-                CommandExecutorTool, 
+                CommandExecutorTool,
                 WebAutomationTool,
                 MediaProcessingTool,
                 EmbeddingTool
             } = await import('./index.js');
-            
+
             // Register all tools
             this.registry.registerTool('file-operations', new FileOperationsTool(), {
                 category: 'file-operations',
                 description: 'File operations including read, write, append, delete, list, and stat'
             });
-            
+
             this.registry.registerTool('command-executor', new CommandExecutorTool(), {
                 category: 'command-execution',
                 description: 'Safe command execution in sandboxed environment'
             });
-            
+
             this.registry.registerTool('web-automation', new WebAutomationTool(), {
                 category: 'web-automation',
                 description: 'Web automation including fetch, scrape, and check operations'
             });
-            
+
             this.registry.registerTool('media-processing', new MediaProcessingTool(), {
                 category: 'media-processing',
                 description: 'Media processing including PDF, image, and text extraction'
             });
-            
+
             this.registry.registerTool('embedding', new EmbeddingTool(), {
                 category: 'embedding',
                 description: 'Text embedding, similarity, and comparison operations'
             });
-            
+
             this.logger.info('Successfully initialized all tools', {
                 toolCount: this.engine.getAvailableTools().length
             });
-            
+
             return this;
         } catch (error) {
             this.logger.error('Failed to initialize tools:', error);
@@ -104,34 +104,34 @@ export class ToolIntegration {
      */
     async executeTool(toolId, params, context = {}) {
         const startTime = Date.now();
-        
+
         try {
             const result = await this.engine.executeTool(toolId, params, {
                 reasoningContext: context
             });
-            
+
             // Log tool usage for potential learning
             this.toolUsageHistory.push({
                 toolId,
                 params,
-                result: { ...result },
+                result: {...result},
                 executionTime: Date.now() - startTime,
                 timestamp: Date.now(),
                 context: context
             });
-            
+
             // Limit history size to prevent memory issues
             if (this.toolUsageHistory.length > 1000) {
                 this.toolUsageHistory = this.toolUsageHistory.slice(-500);
             }
-            
+
             return result;
         } catch (error) {
             this.logger.error(`Tool execution failed: ${toolId}`, {
                 error: error.message,
                 params: JSON.stringify(params).substring(0, 200) + '...'
             });
-            
+
             return {
                 success: false,
                 error: error.message,
@@ -149,17 +149,17 @@ export class ToolIntegration {
      */
     async executeTools(toolCalls, context = {}) {
         const results = [];
-        
+
         for (const call of toolCalls) {
             const result = await this.executeTool(call.toolId, call.params, context);
             results.push(result);
-            
+
             // If a tool fails and we're not instructed to continue, we might want to handle that
             if (!result.success && call.continueOnError !== true) {
                 break;
             }
         }
-        
+
         return results;
     }
 
@@ -172,7 +172,7 @@ export class ToolIntegration {
         if (!this.registry) {
             return [];
         }
-        
+
         return this.registry.findTools(criteria);
     }
 
@@ -190,11 +190,11 @@ export class ToolIntegration {
      */
     getUsageStats() {
         const stats = this.engine.getStats();
-        
+
         // Add our own usage stats
         const totalCalls = this.toolUsageHistory.length;
         const successfulCalls = this.toolUsageHistory.filter(item => item.result.success).length;
-        
+
         return {
             ...stats,
             totalToolCalls: totalCalls,
@@ -210,7 +210,7 @@ export class ToolIntegration {
      */
     analyzeUsagePatterns() {
         const toolUsage = {};
-        
+
         for (const usage of this.toolUsageHistory) {
             if (!toolUsage[usage.toolId]) {
                 toolUsage[usage.toolId] = {
@@ -220,20 +220,20 @@ export class ToolIntegration {
                     totalExecutionTime: 0
                 };
             }
-            
+
             toolUsage[usage.toolId].totalCalls++;
             if (usage.result.success) {
                 toolUsage[usage.toolId].successfulCalls++;
             }
             toolUsage[usage.toolId].totalExecutionTime += usage.executionTime;
         }
-        
+
         // Calculate averages
         Object.entries(toolUsage).forEach(([toolId, data]) => {
             data.avgExecutionTime = data.totalExecutionTime / data.totalCalls;
             data.successRate = data.successfulCalls / data.totalCalls;
         });
-        
+
         return toolUsage;
     }
 }

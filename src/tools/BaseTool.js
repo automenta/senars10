@@ -56,10 +56,10 @@ export class BaseTool {
      */
     validate(params) {
         const schema = this.getParameterSchema();
-        if (!schema) return { isValid: true, errors: [] };
-        
+        if (!schema) return {isValid: true, errors: []};
+
         const errors = [];
-        
+
         // Validate required parameters
         if (Array.isArray(schema.required)) {
             for (const requiredParam of schema.required) {
@@ -68,24 +68,24 @@ export class BaseTool {
                 }
             }
         }
-        
+
         // Validate parameter types and enums
         if (schema.properties) {
             for (const [key, propSchema] of Object.entries(schema.properties)) {
                 if (!(key in params)) continue;
-                
+
                 const value = params[key];
-                
+
                 if (propSchema.type && typeof value !== propSchema.type) {
                     errors.push(`Parameter '${key}' must be of type ${propSchema.type}`);
                 }
-                
+
                 if (Array.isArray(propSchema.enum) && !propSchema.enum.includes(value)) {
                     errors.push(`Parameter '${key}' must be one of: ${propSchema.enum.join(', ')}`);
                 }
             }
         }
-        
+
         return {
             isValid: errors.length === 0,
             errors

@@ -3,8 +3,8 @@
  * @description Tool for file operations with safety validations
  */
 
-import { BaseTool } from './BaseTool.js';
-import { promises as fs } from 'fs';
+import {BaseTool} from './BaseTool.js';
+import {promises as fs} from 'fs';
 import path from 'path';
 
 /**
@@ -15,14 +15,14 @@ export class FileOperationsTool extends BaseTool {
     constructor(config = {}) {
         super(config);
         this.name = 'FileOperationsTool';
-        
+
         // Define safe base directories for operations
         this.safeBaseDirs = config.safeBaseDirs || [
             path.join(process.cwd(), 'work'),
             path.join(process.cwd(), 'data'),
             path.join(process.cwd(), 'temp')
         ];
-        
+
         // Default file size limit (10MB)
         this.maxFileSize = config.maxFileSize || 10 * 1024 * 1024;
         this.defaultEncoding = config.defaultEncoding || 'utf8';
@@ -36,8 +36,8 @@ export class FileOperationsTool extends BaseTool {
      * @returns {Promise<any>} - Operation result
      */
     async execute(params, context) {
-        const { operation, filePath, content, encoding = this.defaultEncoding } = params;
-        
+        const {operation, filePath, content, encoding = this.defaultEncoding} = params;
+
         if (!operation || !filePath) {
             throw new Error('Operation and filePath are required parameters');
         }
@@ -79,7 +79,7 @@ export class FileOperationsTool extends BaseTool {
             if (stats.size > this.maxFileSize) {
                 throw new Error(`File exceeds maximum size limit (${this.maxFileSize} bytes)`);
             }
-            
+
             const content = await fs.readFile(filePath, encoding);
             return {
                 success: true,
@@ -116,13 +116,13 @@ export class FileOperationsTool extends BaseTool {
 
             // Ensure directory exists
             const dir = path.dirname(filePath);
-            await fs.mkdir(dir, { recursive: true });
-            
+            await fs.mkdir(dir, {recursive: true});
+
             // Convert content to string if not already
             const fileContent = typeof content === 'string' ? content : JSON.stringify(content);
-            
+
             await fs.writeFile(filePath, fileContent, encoding);
-            
+
             return {
                 success: true,
                 operation: 'write',
@@ -144,9 +144,9 @@ export class FileOperationsTool extends BaseTool {
         try {
             // Convert content to string if not already
             const fileContent = typeof content === 'string' ? content : JSON.stringify(content);
-            
+
             await fs.appendFile(filePath, fileContent, encoding);
-            
+
             return {
                 success: true,
                 operation: 'append',
@@ -166,7 +166,7 @@ export class FileOperationsTool extends BaseTool {
     async _deleteFile(filePath) {
         try {
             await fs.unlink(filePath);
-            
+
             return {
                 success: true,
                 operation: 'delete',
@@ -189,15 +189,15 @@ export class FileOperationsTool extends BaseTool {
         try {
             // Validate directory path
             this._validateFilePath(dirPath);
-            
-            const items = await fs.readdir(dirPath, { withFileTypes: true });
-            
+
+            const items = await fs.readdir(dirPath, {withFileTypes: true});
+
             const fileList = items.map(item => ({
                 name: item.name,
                 type: item.isDirectory() ? 'directory' : 'file',
                 path: path.join(dirPath, item.name)
             }));
-            
+
             return {
                 success: true,
                 operation: 'list',
@@ -217,7 +217,7 @@ export class FileOperationsTool extends BaseTool {
     async _getFileInfo(filePath) {
         try {
             const stats = await fs.stat(filePath);
-            
+
             return {
                 success: true,
                 operation: 'stat',
@@ -256,9 +256,9 @@ export class FileOperationsTool extends BaseTool {
 
             // Convert content to string if not already
             const fileContent = typeof content === 'string' ? content : JSON.stringify(content);
-            
+
             await fs.writeFile(filePath, fileContent, encoding);
-            
+
             return {
                 success: true,
                 operation: 'edit',

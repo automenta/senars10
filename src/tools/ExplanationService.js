@@ -3,7 +3,7 @@
  * @description LM-based explanation service for tool execution results
  */
 
-import { Logger } from '../util/Logger.js';
+import {Logger} from '../util/Logger.js';
 
 /**
  * Service that uses Language Models to explain tool execution results
@@ -20,7 +20,7 @@ export class ExplanationService {
         this.defaultTemperature = config.defaultTemperature || 0.3; // Low temperature for factual explanations
         this.maxTokens = config.maxTokens || 500;
         this.logger = Logger;
-        
+
         if (!this.lm) {
             this.logger.warn('Explanation service initialized without LM - explanations will be simulated');
         }
@@ -37,8 +37,8 @@ export class ExplanationService {
             throw new Error('Tool result is required for explanation');
         }
 
-        const { success, toolId, result, error, executionTime, command, url, operation } = toolResult;
-        
+        const {success, toolId, result, error, executionTime, command, url, operation} = toolResult;
+
         // If LM is not available, return a simple explanation
         if (!this.lm) {
             return this._generateSimpleExplanation(toolResult, context);
@@ -46,22 +46,22 @@ export class ExplanationService {
 
         // Create a detailed prompt for the LM explaining the tool result
         const prompt = this._createExplanationPrompt(toolResult, context);
-        
+
         try {
             const explanation = await this.lm.generateText(prompt, {
                 temperature: this.defaultTemperature,
                 maxTokens: this.maxTokens
             });
-            
+
             this.logger.info('Generated explanation for tool result', {
                 toolId: toolResult.toolId,
                 success: toolResult.success
             });
-            
+
             return explanation;
         } catch (error) {
             this.logger.error('Failed to generate LM explanation:', error);
-            
+
             // Fallback to simple explanation if LM fails
             return this._generateSimpleExplanation(toolResult, context);
         }
@@ -79,12 +79,12 @@ export class ExplanationService {
         }
 
         const explanations = [];
-        
+
         for (const result of toolResults) {
             const explanation = await this.explainToolResult(result, context);
             explanations.push(explanation);
         }
-        
+
         return explanations;
     }
 
@@ -104,13 +104,13 @@ export class ExplanationService {
         }
 
         const prompt = this._createRelationshipPrompt(toolResults, context);
-        
+
         try {
             const explanation = await this.lm.generateText(prompt, {
                 temperature: this.defaultTemperature,
                 maxTokens: this.maxTokens
             });
-            
+
             return explanation;
         } catch (error) {
             this.logger.error('Failed to generate relationship explanation:', error);
@@ -123,13 +123,13 @@ export class ExplanationService {
      * @private
      */
     _createExplanationPrompt(toolResult, context) {
-        const { 
-            success, toolId, result, error, executionTime, command, url, 
-            operation, stdout, stderr, content, metadata 
+        const {
+            success, toolId, result, error, executionTime, command, url,
+            operation, stdout, stderr, content, metadata
         } = toolResult;
-        
+
         let resultDetails = '';
-        
+
         if (success) {
             if (stdout !== undefined) {
                 resultDetails = `Command output: "${stdout?.substring(0, 500) || 'No output'}"`;
@@ -166,7 +166,7 @@ Provide a clear, concise explanation of what happened and what the results mean.
      * @private
      */
     _createRelationshipPrompt(toolResults, context) {
-        const resultsSummary = toolResults.map((result, index) => 
+        const resultsSummary = toolResults.map((result, index) =>
             `${index + 1}. Tool: ${result.toolId}, Success: ${result.success}, Operation: ${result.operation || 'unknown'}`
         ).join('\n');
 
@@ -185,8 +185,8 @@ Explain how these results work together to fulfill the request or achieve the pu
      * @private
      */
     _generateSimpleExplanation(toolResult, context) {
-        const { success, toolId, error, executionTime, operation } = toolResult;
-        
+        const {success, toolId, error, executionTime, operation} = toolResult;
+
         if (success) {
             return `Tool "${toolId}" (${operation || 'operation'}) executed successfully in ${executionTime}ms.`;
         } else {
@@ -212,13 +212,13 @@ Explain how these results work together to fulfill the request or achieve the pu
         }
 
         const prompt = this._createSummaryPrompt(toolResults, context);
-        
+
         try {
             const summary = await this.lm.generateText(prompt, {
                 temperature: this.defaultTemperature,
                 maxTokens: this.maxTokens
             });
-            
+
             return summary;
         } catch (error) {
             this.logger.error('Failed to generate execution summary:', error);
@@ -232,7 +232,7 @@ Explain how these results work together to fulfill the request or achieve the pu
      * @private
      */
     _createSummaryPrompt(toolResults, context) {
-        const summaryInfo = toolResults.map((result, index) => 
+        const summaryInfo = toolResults.map((result, index) =>
             `${index + 1}. ${result.toolId}: ${result.success ? 'SUCCESS' : 'FAILED'} (${result.executionTime}ms)`
         ).join('\n');
 
@@ -269,13 +269,13 @@ Summary should cover overall success/failure, key outcomes, and any important fi
         }
 
         const prompt = this._createAssessmentPrompt(toolResults, context);
-        
+
         try {
             const assessment = await this.lm.generateText(prompt, {
                 temperature: this.defaultTemperature,
                 maxTokens: this.maxTokens
             });
-            
+
             // Parse or structure the assessment result
             return {
                 quality: this._extractQuality(assessment),
@@ -344,13 +344,13 @@ Summary should cover overall success/failure, key outcomes, and any important fi
         // Look for scores in format like "score: X/X" or "rating: X out of Y"
         const scoreRegex = /(?:score|rating):\s*(\d+(?:\.\d+)?)\s*(?:\/|out of|over)?\s*(\d+(?:\.\d+)?)/i;
         const match = assessment.match(scoreRegex);
-        
+
         if (match) {
             const numerator = parseFloat(match[1]);
             const denominator = parseFloat(match[2]) || 10; // Assume 10 if not specified
             return numerator / denominator;
         }
-        
+
         // Default to 0.5 if no score found
         return 0.5;
     }

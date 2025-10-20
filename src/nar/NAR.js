@@ -68,12 +68,12 @@ export class NAR {
         this._tools = null;
         this._toolIntegration = null;
         this._explanationService = null;
-        
+
         // Initialize tool integration if enabled
         if (config.tools?.enabled !== false) {
             this._toolIntegration = new ToolIntegration(config.tools || {});
             this._toolIntegration.connectToReasoningCore(this);
-            
+
             // Initialize explanation service with LM if available
             const explanationConfig = {
                 lm: this._lm || null,
@@ -104,6 +104,16 @@ export class NAR {
 
     get lm() {
         return this._lm;
+    }
+
+    // Tool Integration Methods
+    get tools() {
+        return this._toolIntegration;
+    }
+
+    // Tool Explanation Methods
+    get explanationService() {
+        return this._explanationService;
     }
 
     _setupDefaultRules() {
@@ -303,12 +313,7 @@ export class NAR {
             this._eventBus.emit('task.added', {task});
         }
     }
-    
-    // Tool Integration Methods
-    get tools() {
-        return this._toolIntegration;
-    }
-    
+
     async initializeTools() {
         if (this._toolIntegration) {
             await this._toolIntegration.initializeTools(this);
@@ -317,14 +322,14 @@ export class NAR {
         }
         return false;
     }
-    
+
     _ensureToolIntegration() {
         if (!this._toolIntegration) throw new Error('Tool integration is not enabled');
     }
-    
+
     async executeTool(toolId, params, context = {}) {
         this._ensureToolIntegration();
-        
+
         // Track tool execution performance
         const startTime = Date.now();
         try {
@@ -334,7 +339,7 @@ export class NAR {
                 timestamp: Date.now(),
                 ...context
             });
-            
+
             // Log performance if it took longer than threshold
             const duration = Date.now() - startTime;
             if (duration > 1000) { // Log if > 1 second
@@ -344,7 +349,7 @@ export class NAR {
                     paramsSize: JSON.stringify(params).length
                 });
             }
-            
+
             return result;
         } catch (error) {
             this.logger.error(`Tool execution failed: ${toolId}`, {
@@ -355,7 +360,7 @@ export class NAR {
             throw error;
         }
     }
-    
+
     async executeTools(toolCalls, context = {}) {
         this._ensureToolIntegration();
         return await this._toolIntegration.executeTools(toolCalls, {
@@ -365,20 +370,15 @@ export class NAR {
             ...context
         });
     }
-    
+
     getAvailableTools() {
         return this._toolIntegration ? this._toolIntegration.getAvailableTools() : [];
     }
-    
-    // Tool Explanation Methods
-    get explanationService() {
-        return this._explanationService;
-    }
-    
+
     _ensureExplanationService() {
         if (!this._explanationService) throw new Error('Explanation service is not enabled');
     }
-    
+
     async explainToolResult(toolResult, context = {}) {
         this._ensureExplanationService();
         return await this._explanationService.explainToolResult(toolResult, {
@@ -388,7 +388,7 @@ export class NAR {
             ...context
         });
     }
-    
+
     async explainToolResults(toolResults, context = {}) {
         this._ensureExplanationService();
         return await this._explanationService.explainToolResults(toolResults, {
@@ -398,7 +398,7 @@ export class NAR {
             ...context
         });
     }
-    
+
     async summarizeToolExecution(toolResults, context = {}) {
         this._ensureExplanationService();
         return await this._explanationService.summarizeToolExecution(toolResults, {
@@ -408,7 +408,7 @@ export class NAR {
             ...context
         });
     }
-    
+
     async assessToolResults(toolResults, context = {}) {
         this._ensureExplanationService();
         return await this._explanationService.assessToolResults(toolResults, {

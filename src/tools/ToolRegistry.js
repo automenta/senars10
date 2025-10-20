@@ -18,7 +18,7 @@ export class ToolRegistry {
         if (!toolEngine || !(toolEngine instanceof ToolEngine)) {
             throw new Error('ToolRegistry requires a valid ToolEngine instance');
         }
-        
+
         this.engine = toolEngine;
         this.logger = Logger;
         this.discoveredTools = new Map();
@@ -38,11 +38,11 @@ export class ToolRegistry {
     discoverTools(toolClasses, options = {}) {
         const discovered = [];
         const shouldCache = options.cache !== false;
-        
+
         for (const toolClass of toolClasses) {
             try {
                 const toolMetadata = this._analyzeTool(toolClass);
-                
+
                 if (toolMetadata) {
                     if (shouldCache) {
                         this.discoveredTools.set(toolMetadata.id, {
@@ -50,9 +50,9 @@ export class ToolRegistry {
                             metadata: toolMetadata
                         });
                     }
-                    
+
                     discovered.push(toolMetadata);
-                    
+
                     this.logger.info(`Discovered tool: ${toolMetadata.id}`, {
                         name: toolMetadata.name,
                         category: toolMetadata.category || 'unknown',
@@ -66,7 +66,7 @@ export class ToolRegistry {
                 });
             }
         }
-        
+
         return discovered;
     }
 
@@ -80,28 +80,28 @@ export class ToolRegistry {
     registerAll(includeOnly = null, defaultConfig = {}, metadataOverrides = {}) {
         const toRegister = includeOnly || Array.from(this.discoveredTools.keys());
         const registered = [];
-        
+
         for (const toolId of toRegister) {
             if (this.discoveredTools.has(toolId)) {
-                const { class: ToolClass, metadata } = this.discoveredTools.get(toolId);
-                
+                const {class: ToolClass, metadata} = this.discoveredTools.get(toolId);
+
                 try {
                     // Create an instance of the tool
-                    const toolInstance = typeof ToolClass === 'function' 
-                        ? new ToolClass({...defaultConfig, ...metadataOverrides}) 
+                    const toolInstance = typeof ToolClass === 'function'
+                        ? new ToolClass({...defaultConfig, ...metadataOverrides})
                         : ToolClass;
-                    
+
                     // Merge metadata with overrides
                     const mergedMetadata = {
                         ...metadata,
                         ...metadataOverrides
                     };
-                    
+
                     // Register the tool with the engine
                     this.engine.registerTool(toolId, toolInstance, mergedMetadata);
-                    
+
                     registered.push(toolId);
-                    
+
                     // Log registration in history
                     this.registrationHistory.push({
                         toolId,
@@ -109,7 +109,7 @@ export class ToolRegistry {
                         action: 'register',
                         metadata: mergedMetadata
                     });
-                    
+
                     this.logger.info(`Registered tool: ${toolId} (${mergedMetadata.category || 'unknown'})`);
                 } catch (error) {
                     this.logger.error(`Failed to register tool ${toolId}:`, {
@@ -118,7 +118,7 @@ export class ToolRegistry {
                 }
             }
         }
-        
+
         return registered;
     }
 
@@ -132,14 +132,14 @@ export class ToolRegistry {
     registerTool(id, tool, metadata = {}) {
         try {
             this.engine.registerTool(id, tool, metadata);
-            
+
             this.registrationHistory.push({
                 toolId: id,
                 timestamp: Date.now(),
                 action: 'register',
                 metadata: metadata
             });
-            
+
             this.logger.info(`Manually registered tool: ${id} (${metadata.category || 'unknown'})`);
             return this;
         } catch (error) {
@@ -161,22 +161,22 @@ export class ToolRegistry {
      * @returns {Array<string>} - Registered tool IDs
      */
     autoRegisterFromModule(toolModule, options = {}) {
-        const { include, exclude, config = {}, metadata = {} } = options;
+        const {include, exclude, config = {}, metadata = {}} = options;
         const toolClasses = [];
-        
+
         // Extract classes/objects that look like tools
         for (const [key, value] of Object.entries(toolModule)) {
             if (this._isToolLike(value)) {
                 // Generate a tool ID based on the key or class name
-                const toolId = key.toLowerCase().replace(/tool$/, '') || 
-                              (value.name ? value.name.toLowerCase().replace(/tool$/, '') : key);
-                
+                const toolId = key.toLowerCase().replace(/tool$/, '') ||
+                    (value.name ? value.name.toLowerCase().replace(/tool$/, '') : key);
+
                 // Skip if excluded or not included (if include list is provided)
-                if ((exclude && exclude.includes(toolId)) || 
+                if ((exclude && exclude.includes(toolId)) ||
                     (include && !include.includes(toolId))) {
                     continue;
                 }
-                
+
                 // Add to discovery list with default metadata
                 const toolMetadata = {
                     id: toolId,
@@ -185,16 +185,16 @@ export class ToolRegistry {
                     category: value.getCategory?.() || 'general',
                     ...metadata
                 };
-                
+
                 this.discoveredTools.set(toolId, {
                     class: value,
                     metadata: toolMetadata
                 });
-                
+
                 toolClasses.push(value);
             }
         }
-        
+
         return this.registerAll(include, config, metadata);
     }
 
@@ -203,7 +203,7 @@ export class ToolRegistry {
      * @returns {Array<object>} - Array of discovered tool metadata
      */
     getDiscoveredTools() {
-        return Array.from(this.discoveredTools.values()).map(({ metadata }) => metadata);
+        return Array.from(this.discoveredTools.values()).map(({metadata}) => metadata);
     }
 
     /**
@@ -222,37 +222,37 @@ export class ToolRegistry {
         try {
             // Check if it's a class (function) or object
             let toolInstance;
-            
+
             if (typeof toolClass === 'function') {
                 // Try to instantiate it to test it
                 toolInstance = new toolClass();
             } else {
                 toolInstance = toolClass;
             }
-            
+
             // Check required methods
             const hasRequiredMethods = [
                 'execute',
                 'getDescription'
             ].every(method => typeof toolInstance[method] === 'function');
-            
+
             if (!hasRequiredMethods) {
                 return null;
             }
-            
+
             // Generate metadata
             const className = toolClass.name || 'AnonymousTool';
             const toolId = className
                 .replace(/tool$/i, '')
                 .replace(/([a-z])([A-Z])/g, '$1-$2')
                 .toLowerCase();
-            
+
             return {
                 id: toolId,
                 name: className,
                 description: toolInstance.getDescription(),
                 category: toolInstance.getCategory?.() || 'general',
-                parameters: toolInstance.getParameterSchema?.() || { type: 'object', properties: {} },
+                parameters: toolInstance.getParameterSchema?.() || {type: 'object', properties: {}},
                 capabilities: toolInstance.getCapabilities?.() || [],
                 parameterSchema: toolInstance.getParameterSchema ? toolInstance.getParameterSchema() : null,
                 supportsStreaming: typeof toolInstance.stream === 'function',
@@ -269,11 +269,11 @@ export class ToolRegistry {
      */
     _isToolLike(obj) {
         // Check if it has the required methods
-        const hasExecute = typeof obj.prototype?.execute === 'function' || 
-                          typeof obj.execute === 'function';
-        const hasGetDescription = typeof obj.prototype?.getDescription === 'function' || 
-                                 typeof obj.getDescription === 'function';
-        
+        const hasExecute = typeof obj.prototype?.execute === 'function' ||
+            typeof obj.execute === 'function';
+        const hasGetDescription = typeof obj.prototype?.getDescription === 'function' ||
+            typeof obj.getDescription === 'function';
+
         return hasExecute && hasGetDescription;
     }
 
@@ -284,15 +284,15 @@ export class ToolRegistry {
      */
     validateTool(tool) {
         const errors = [];
-        
+
         if (!tool.execute || typeof tool.execute !== 'function') {
             errors.push('Missing execute method');
         }
-        
+
         if (!tool.getDescription || typeof tool.getDescription !== 'function') {
             errors.push('Missing getDescription method');
         }
-        
+
         return {
             valid: errors.length === 0,
             errors
@@ -309,19 +309,19 @@ export class ToolRegistry {
      */
     findTools(criteria = {}) {
         const matching = [];
-        
-        for (const [id, { class: ToolClass, metadata }] of this.discoveredTools.entries()) {
+
+        for (const [id, {class: ToolClass, metadata}] of this.discoveredTools.entries()) {
             let matches = true;
-            
+
             if (criteria.category && metadata.category !== criteria.category) {
                 matches = false;
             }
-            
-            if (criteria.supportsStreaming !== undefined && 
+
+            if (criteria.supportsStreaming !== undefined &&
                 metadata.supportsStreaming !== criteria.supportsStreaming) {
                 matches = false;
             }
-            
+
             if (criteria.requiredCapabilities && Array.isArray(criteria.requiredCapabilities)) {
                 for (const cap of criteria.requiredCapabilities) {
                     if (!metadata.capabilities || !metadata.capabilities.includes(cap)) {
@@ -330,7 +330,7 @@ export class ToolRegistry {
                     }
                 }
             }
-            
+
             if (matches) {
                 matching.push({
                     id,
@@ -339,7 +339,7 @@ export class ToolRegistry {
                 });
             }
         }
-        
+
         return matching;
     }
 
@@ -355,7 +355,7 @@ export class ToolRegistry {
             return;
         }
 
-        const { interval = 30000, paths = this.discoveryPaths } = options;
+        const {interval = 30000, paths = this.discoveryPaths} = options;
         this.discoveryPaths = paths;
         this.autoDiscoveryEnabled = true;
 
@@ -399,10 +399,10 @@ export class ToolRegistry {
         // This would typically scan directories for tool files
         // For now, we'll implement a basic version that looks for known patterns
         const discoveryKey = `path_${path}_${Date.now()}`;
-        
+
         if (this.discoveredTools.has(discoveryKey)) return;
         this.discoveredTools.set(discoveryKey, {path, timestamp: Date.now()});
-        
+
         // Clean old discovery records (keep for 5 minutes)
         for (const [key, record] of this.discoveredTools.entries()) {
             if (typeof record.timestamp === 'number' && Date.now() - record.timestamp > 300000) {

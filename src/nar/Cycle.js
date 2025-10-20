@@ -1,4 +1,3 @@
-
 import {Logger} from '../util/Logger.js';
 
 export class Cycle {

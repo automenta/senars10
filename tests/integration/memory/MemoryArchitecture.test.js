@@ -22,7 +22,7 @@ describe('Memory Architecture', () => {
 
     beforeEach(() => {
         termFactory = new TermFactory();
-        
+
         // Initialize all components with realistic configurations
         memory = new Memory({
             priorityThreshold: 0.3,
@@ -108,7 +108,7 @@ describe('Memory Architecture', () => {
             focus.addTaskToFocus(importantTask);
 
             expect(focus.getTasks(5)).toContain(importantTask);
-            
+
             // Simulate conditions that would promote the task to long-term memory
             // (In a real system, this would happen through consolidation processes)
             memory.addTask(importantTask, Date.now());

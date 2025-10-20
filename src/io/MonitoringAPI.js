@@ -1,6 +1,6 @@
-import { EventEmitter } from 'events';
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
+import {EventEmitter} from 'events';
+import {createServer} from 'http';
+import {WebSocketServer} from 'ws';
 
 export class MonitoringAPI {
     constructor(nar, options = {}) {
@@ -11,7 +11,7 @@ export class MonitoringAPI {
         this.wss = null;
         this.clients = new Set();
         this.eventEmitter = new EventEmitter();
-        
+
         // Track metrics for broadcasting
         this.metrics = {
             cycleCount: 0,
@@ -19,10 +19,10 @@ export class MonitoringAPI {
             conceptCount: 0,
             startTime: Date.now()
         };
-        
+
         this._setupEventListeners();
     }
-    
+
     _setupEventListeners() {
         const eventHandlers = {
             'cycle.completed': (cycleData) => {
@@ -65,44 +65,44 @@ export class MonitoringAPI {
                 });
             }
         };
-        
+
         Object.entries(eventHandlers).forEach(([event, handler]) => {
             this.nar.on(event, handler);
         });
     }
-    
+
     async start() {
         return new Promise((resolve, reject) => {
             this.server = createServer();
-            this.wss = new WebSocketServer({ server: this.server });
-            
+            this.wss = new WebSocketServer({server: this.server});
+
             this.wss.on('connection', (ws, req) => {
                 this.clients.add(ws);
-                
+
                 // Send initial state when client connects
                 this._sendInitialState(ws);
-                
+
                 ws.on('close', () => {
                     this.clients.delete(ws);
                 });
-                
+
                 ws.on('error', (error) => {
                     console.error('WebSocket error:', error);
                     this.clients.delete(ws);
                 });
             });
-            
+
             this.server.listen(this.port, this.host, () => {
                 console.log(`Monitoring API WebSocket server running on ws://${this.host}:${this.port}`);
                 resolve();
             });
-            
+
             this.server.on('error', (error) => {
                 reject(error);
             });
         });
     }
-    
+
     stop() {
         if (this.wss) {
             this.wss.close();
@@ -112,7 +112,7 @@ export class MonitoringAPI {
         }
         this.clients.clear();
     }
-    
+
     _sendInitialState(ws) {
         const initialState = {
             type: 'initial_state',
@@ -125,20 +125,20 @@ export class MonitoringAPI {
             },
             timestamp: Date.now()
         };
-        
+
         this._sendToClient(ws, initialState);
     }
-    
+
     _broadcastEvent(eventType, data) {
         const message = {
             type: eventType,
             data,
             timestamp: Date.now()
         };
-        
+
         this._sendToAllClients(message);
     }
-    
+
     _sendToClient(client, message) {
         if (client.readyState === WebSocket.OPEN) {
             try {
@@ -151,13 +151,13 @@ export class MonitoringAPI {
             this.clients.delete(client);
         }
     }
-    
+
     _sendToAllClients(message) {
         for (const client of this.clients) {
             this._sendToClient(client, message);
         }
     }
-    
+
     // Endpoint to get current system metrics
     getSystemMetrics() {
         return {
@@ -167,7 +167,7 @@ export class MonitoringAPI {
             connectedClients: this.clients.size
         };
     }
-    
+
     // Endpoint to get current concepts
     getConcepts() {
         const concepts = [];
@@ -181,7 +181,7 @@ export class MonitoringAPI {
         }
         return concepts;
     }
-    
+
     getRecentTasks(limit = 50) {
         const allBeliefs = this.nar.getBeliefs();
         return allBeliefs.slice(-limit).map(task => ({

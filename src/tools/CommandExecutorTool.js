@@ -3,9 +3,8 @@
  * @description Tool for executing commands in a sandboxed environment
  */
 
-import { BaseTool } from './BaseTool.js';
-import { spawn, exec } from 'child_process';
-import { promises as fs } from 'fs';
+import {BaseTool} from './BaseTool.js';
+import {exec} from 'child_process';
 import path from 'path';
 import os from 'os';
 
@@ -16,20 +15,20 @@ export class CommandExecutorTool extends BaseTool {
     constructor(config = {}) {
         super(config);
         this.name = 'CommandExecutorTool';
-        
+
         // Configure safety settings
         this.allowedCommands = new Set(config.allowedCommands || [
-            'ls', 'dir', 'cat', 'head', 'tail', 'echo', 'date', 'whoami', 'pwd', 
+            'ls', 'dir', 'cat', 'head', 'tail', 'echo', 'date', 'whoami', 'pwd',
             'ps', 'netstat', 'ifconfig', 'df', 'du', 'grep', 'find', 'which', 'whereis',
             'node', 'npm', 'npx', 'git', 'curl', 'wget', 'ping', 'nslookup', 'dig'
         ]);
-        
+
         this.disallowedCommands = new Set(config.disallowedCommands || [
             'rm', 'rmdir', 'rmtree', 'del', 'format', 'mkfs', 'dd',
             'chmod', 'chown', 'passwd', 'useradd', 'userdel', 'su', 'sudo',
             'mount', 'umount', 'kill', 'killall', 'reboot', 'shutdown'
         ]);
-        
+
         this.timeout = config.timeout || 10000; // 10 seconds default
         this.maxOutputSize = config.maxOutputSize || 1024 * 100; // 100KB
         this.workingDir = config.workingDir || os.tmpdir();
@@ -47,8 +46,8 @@ export class CommandExecutorTool extends BaseTool {
      * @returns {Promise<any>} - Command execution result
      */
     async execute(params, context) {
-        const { command, args = [], cwd, env = {} } = params;
-        
+        const {command, args = [], cwd, env = {}} = params;
+
         if (!command) {
             throw new Error('Command is required');
         }
@@ -68,18 +67,18 @@ export class CommandExecutorTool extends BaseTool {
         return new Promise((resolve, reject) => {
             const commandString = [command, ...args].join(' ');
             const startTime = Date.now();
-            
+
             const execOptions = {
                 cwd: cwd || this.workingDir,
                 timeout: timeout,
                 maxBuffer: this.maxOutputSize,
-                env: { ...process.env, ...env }, // Merge with system env
+                env: {...process.env, ...env}, // Merge with system env
                 reject: false // Don't throw on non-zero exit code
             };
-            
+
             const child = exec(commandString, execOptions, (error, stdout, stderr) => {
                 const executionTime = Date.now() - startTime;
-                
+
                 if (error) {
                     // Filter out potentially unsafe information in error messages
                     const safeError = {
@@ -88,7 +87,7 @@ export class CommandExecutorTool extends BaseTool {
                         signal: error.signal,
                         executionTime
                     };
-                    
+
                     resolve({
                         success: false,
                         command: commandString,
@@ -154,7 +153,7 @@ export class CommandExecutorTool extends BaseTool {
                 },
                 args: {
                     type: 'array',
-                    items: { type: 'string' },
+                    items: {type: 'string'},
                     description: 'Arguments for the command',
                     default: []
                 },
@@ -165,7 +164,7 @@ export class CommandExecutorTool extends BaseTool {
                 env: {
                     type: 'object',
                     description: 'Environment variables to pass to the command',
-                    additionalProperties: { type: 'string' }
+                    additionalProperties: {type: 'string'}
                 }
             },
             required: ['command']
@@ -229,7 +228,7 @@ export class CommandExecutorTool extends BaseTool {
     _validateCommand(command, args = [], cwd, env = {}) {
         // Check for disallowed commands first (higher priority)
         const normalizedCommand = command.split(/\s+/)[0].toLowerCase();
-        
+
         if (this.disallowedCommands.has(normalizedCommand)) {
             throw new Error(`Command '${normalizedCommand}' is explicitly disallowed`);
         }
@@ -246,7 +245,7 @@ export class CommandExecutorTool extends BaseTool {
 
         // Check for dangerous patterns in arguments
         const allArgs = [command, ...args].join(' ');
-        
+
         // Check for shell injection patterns
         const dangerousPatterns = [
             /[\|;&\`]/,  // Pipes, semicolons, amperands, backticks
@@ -315,12 +314,12 @@ export class CommandExecutorTool extends BaseTool {
      */
     _sanitizeOutput(output) {
         if (!output) return output;
-        
+
         // Truncate if too large
         if (output.length > this.maxOutputSize) {
             return output.substring(0, this.maxOutputSize) + '\n[OUTPUT TRUNCATED]';
         }
-        
+
         // Redact potentially sensitive information
         return output
             .replace(/(password|token|key|secret|auth|api)[=:]\s*[^\\s\\n\\r]+/gi, '$1: [REDACTED]')
