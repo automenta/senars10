@@ -445,6 +445,12 @@ export class WebAutomationTool extends BaseTool {
             .replace(/<\s*script[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, '')
             .replace(/<\s*iframe[^>]*>[\s\S]*?<\s*\/\s*iframe\s*>/gi, '')
             .replace(/javascript:/gi, 'safe-javascript:') // Sanitize javascript: URLs
+            .replace(/on\w+\s*=/gi, 'safe-    _sanitizeContent(content) {
+        // Remove potential script tags and other dangerous content
+        return content
+            .replace(/<\s*script[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, '')
+            .replace(/<\s*iframe[^>]*>[\s\S]*?<\s*\/\s*iframe\s*>/gi, '')
+            .replace(/javascript:/gi, 'safe-javascript:') // Sanitize javascript: URLs
             .replace(/on\w+\s*=/gi, 'safe-/**
  * @file src/tools/WebAutomationTool.js
  * @description Tool for web automation and web-based operations with safety features
@@ -820,6 +826,8 @@ export class WebAutomationTool extends BaseTool {
             .replace(/<\s*iframe[^>]*>[\s\S]*?<\s*\/\s*iframe\s*>/gi, '')
             .replace(/javascript:/gi, 'safe-javascript:') // Sanitize javascript: URLs
             .replace(/on\w+\s*=/gi, 'safe-$&'); // Sanitize event handlers
+    }
+}'); // Sanitize event handlers
     }
 }'); // Sanitize event handlers
     }

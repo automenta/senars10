@@ -614,7 +614,6 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - **Final Quality Assurance:**
     - [ ] Achieve >95% code coverage, with a focus on critical paths.
     - [ ] Perform comprehensive performance and stress tests under production-like conditions.
-    - [ ] Write and pass comprehensive regression tests comparing against v9 codebase functionality.
     - [ ] Perform final security validation, input sanitization checks, and vulnerability testing.
 - **Performance Optimization:**
     - [ ] Implement and validate system-wide intelligent caching strategies (term, rule, query).
@@ -629,18 +628,7 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - **Demonstration Suite:**
     - [ ] Create a suite of non-interactive demonstration scripts covering all reasoning scenarios (NAL-only, hybrid, tool-use).
 
-#### 10.3. Documentation & Migration
-- **User and Developer Documentation:**
-    - [ ] Generate comprehensive API documentation with examples for every public method.
-    - [ ] Create step-by-step tutorials, architectural guides, and troubleshooting manuals.
-- **Migration Path:**
-    - [ ] Create migration tools and processes from the v9 codebase.
-    - [ ] Validate backward compatibility for essential APIs and document all breaking changes.
-
-#### 10.4. Production Infrastructure & Deployment
-- **Containerization and CI/CD:**
-    - [ ] Create Docker containers with optimized production configurations.
-    - [ ] Set up CI/CD pipelines for automated testing and deployment.
+#### 10.3. Production Infrastructure & Deployability
 - **Operations:**
     - [ ] Implement comprehensive production monitoring, alerting, and logging.
     - [ ] Create backup, recovery, and disaster recovery procedures.
@@ -652,7 +640,5 @@ The system will implement sophisticated mechanisms to enhance the quality of Nar
 - [ ] The system is fully integrated, monitored, and demonstrates production-ready stability.
 - [ ] A functional REPL and a comprehensive suite of demonstration scripts are available.
 - [ ] All quality gates (coverage >95%, security, regression, performance) are passed.
-- [ ] The system is containerized with a complete CI/CD pipeline for deployment.
 - [ ] All user, developer, and migration documentation is complete and published.
-- [ ] A clear migration path from v9 is defined and validated.
-- [ ] The system successfully preserves and enhances all critical functionality from the v9 prototype.
+- [ ] The system successfully preserves and enhances all critical functionality from the `v8/` and `v9/` prototypes.
