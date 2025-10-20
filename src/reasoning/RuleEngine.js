@@ -4,6 +4,8 @@ import {LMRule} from './LMRule.js';
 import {RuleSet} from './RuleSet.js';
 import {Metrics as MetricsUtil} from '../util/Metrics.js';
 import {SequentialRuleProcessor} from './SequentialRuleProcessor.js';
+import {ReasoningContext} from './ReasoningContext.js';
+import {PerformanceOptimizer} from './PerformanceOptimizer.js';
 import {sortByProperty} from '../util/collections.js';
 
 export class RuleEngine {
@@ -19,6 +21,9 @@ export class RuleEngine {
         
         // Use provided rule processor or default to SequentialRuleProcessor
         this._ruleProcessor = ruleProcessor || new SequentialRuleProcessor(config.ruleProcessor || {});
+        
+        // Initialize performance optimizer
+        this._performanceOptimizer = new PerformanceOptimizer(config.performance || {});
     }
 
     get rules() {
@@ -78,7 +83,14 @@ export class RuleEngine {
         let success = false;
 
         try {
-            const {results, rule: updatedRule} = rule.apply(task, memory, this._termFactory);
+            // Create a minimal context for compatibility
+            const context = new ReasoningContext({
+                memory: memory,
+                termFactory: this._termFactory,
+                ruleEngine: this
+            });
+            
+            const {results, rule: updatedRule} = rule.apply(task, context);
             this._rules.set(rule.id, updatedRule);
             success = true;
             this._incrementTypeMetric(rule);
@@ -141,9 +153,131 @@ export class RuleEngine {
      * Process a batch of rules against tasks using the configured rule processor
      */
     async processBatch(rules, tasks, memory = null, termFactory = null) {
-        // Use the termFactory if provided, otherwise use the stored one
-        const effectiveTermFactory = termFactory || this._termFactory;
-        return await this._ruleProcessor.process(rules, tasks, memory, effectiveTermFactory);
+        // Create reasoning context
+        const context = new ReasoningContext({
+            memory: memory || null,
+            termFactory: termFactory || this._termFactory,
+            ruleEngine: this,
+            ...this._config.context
+        });
+        
+        return await this._ruleProcessor.process(rules, tasks, context);
+    }
+
+    /**
+     * Process rules with a provided context
+     */
+    async processWithContext(rules, tasks, context) {
+        return await this._ruleProcessor.process(rules, tasks, context);
+    }
+
+    /**
+     * Process a batch of rules with performance optimization (caching, etc.)
+     */
+    async processBatchOptimized(rules, tasks, memory = null, termFactory = null) {
+        // Create reasoning context
+        const context = new ReasoningContext({
+            memory: memory || null,
+            termFactory: termFactory || this._termFactory,
+            ruleEngine: this,
+            ...this._config.context
+        });
+        
+        // Use the performance optimizer for batch processing if available
+        if (this._performanceOptimizer && this._config.performance?.enableBatching) {
+            return await this._performanceOptimizer.batchProcess(
+                rules, 
+                tasks, 
+                context, 
+                async (ruleBatch, taskBatch, ctx) => {
+                    return await this._ruleProcessor.process(ruleBatch, taskBatch, ctx);
+                }
+            );
+        }
+        
+        return await this._ruleProcessor.process(rules, tasks, context);
+    }
+
+    /**
+     * Apply a rule with performance optimization (caching, etc.) - async version
+     */
+    async applyRuleOptimized(rule, task, memory = null) {
+        if (!rule || !this._rules.has(rule.id)) return {results: [], rule};
+
+        const startTime = Date.now();
+        let success = false;
+
+        try {
+            // Create a minimal context for compatibility
+            const context = new ReasoningContext({
+                memory: memory,
+                termFactory: this._termFactory,
+                ruleEngine: this
+            });
+            
+            // Use performance optimizer for rule application
+            const {results, rule: updatedRule} = await this._performanceOptimizer.applyRuleWithOptimization(rule, task, context);
+            this._rules.set(rule.id, updatedRule);
+            success = true;
+            this._incrementTypeMetric(rule);
+            return {results, rule: updatedRule};
+        } catch (error) {
+            if (error.rule) this._rules.set(rule.id, error.rule);
+            throw error.error || error;
+        } finally {
+            this._updateMetrics(success, Date.now() - startTime);
+        }
+    }
+
+    /**
+     * Apply rules with performance optimization - async version
+     */
+    async applyRulesOptimized(task, ruleIds = null, ruleType = null, memory = null) {
+        const rulesToApply = ruleIds 
+            ? this._getValidRules(ruleIds) 
+            : this.getApplicableRules(task, ruleType);
+            
+        const results = [];
+        
+        for (const rule of rulesToApply) {
+            try {
+                const ruleResult = await this.applyRuleOptimized(rule, task, memory);
+                results.push(...ruleResult.results);
+            } catch (error) {
+                this.logger.warn(`Optimized rule ${rule.id} failed:`, error);
+            }
+        }
+        
+        return results;
+    }
+
+    /**
+     * Create a reasoning context with the engine's components
+     */
+    createContext(config = {}) {
+        return new ReasoningContext({
+            memory: config.memory || null,
+            termFactory: config.termFactory || this._termFactory,
+            ruleEngine: this,
+            ...this._config.context,
+            ...config
+        });
+    }
+
+    /**
+     * Get performance statistics
+     */
+    getPerformanceStats() {
+        return this._performanceOptimizer ? this._performanceOptimizer.getStats() : null;
+    }
+
+    /**
+     * Clear performance cache
+     */
+    clearPerformanceCache() {
+        if (this._performanceOptimizer) {
+            this._performanceOptimizer.clearCache();
+        }
     }
 
     _toggleRule = (ruleId, enable) => {

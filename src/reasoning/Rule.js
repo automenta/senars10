@@ -54,16 +54,52 @@ export class Rule {
         return this._enabled && this._matches(task);
     }
 
-    async apply(task, memory, termFactory) {
+    async apply(task, memoryOrContext, termFactory) {
+        // Check if second parameter is a context or memory
+        let effectiveContext, effectiveMemory, effectiveTermFactory;
+        
+        if (memoryOrContext && typeof memoryOrContext === 'object' && memoryOrContext.hasOwnProperty('config')) {
+            // It's a ReasoningContext
+            effectiveContext = memoryOrContext;
+            effectiveMemory = effectiveContext.memory;
+            effectiveTermFactory = effectiveContext.termFactory || termFactory;
+        } else {
+            // It's memory, so use termFactory parameter
+            effectiveMemory = memoryOrContext;
+            effectiveTermFactory = termFactory;
+            effectiveContext = null;
+        }
+
         if (!this.canApply(task)) return {results: [], rule: this};
 
         const start = performance.now();
         try {
-            const results = await this._apply(task, memory, termFactory);
+            let results;
+            if (effectiveContext) {
+                results = await this._applyWithContext(task, effectiveContext);
+            } else {
+                results = await this._apply(task, effectiveMemory, effectiveTermFactory);
+            }
+            
+            // Update context metrics if available
+            if (effectiveContext) {
+                effectiveContext.incrementMetric('rulesApplied');
+                if (Array.isArray(results)) {
+                    effectiveContext.incrementMetric('inferencesMade', results.length);
+                }
+            }
+            
             return {results, rule: this._updateMetrics(true, performance.now() - start)};
         } catch (error) {
             throw {error, rule: this._updateMetrics(false, performance.now() - start)};
         }
+    }
+
+    /**
+     * Apply the rule using a context (new implementation)
+     */
+    async _applyWithContext(task, context) {
+        return await this._apply(task, context.memory, context.termFactory);
     }
 
     // Template methods - to be overridden by subclasses

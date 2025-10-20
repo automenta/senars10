@@ -29,12 +29,23 @@ export class NALRule extends Rule {
      * the matching premises in the first place.
      *
      * @param {Task[]} premises - An array of tasks that match the rule's premise patterns.
-     * @param {TermFactory} termFactory - The term factory for creating new terms.
+     * @param {Object} memoryOrContext - Memory object or ReasoningContext
+     * @param {Object} termFactory - The term factory for creating new terms (optional if context provided)
      * @returns {Promise<Task[]>} A promise that resolves to an array of derived tasks.
      */
-    async _apply(premises, termFactory) {
+    async _apply(premises, memoryOrContext, termFactory) {
         if (premises.length !== this._premises.length) {
             return [];
+        }
+
+        // Handle context vs direct parameters
+        let effectiveTermFactory;
+        if (memoryOrContext && typeof memoryOrContext === 'object' && memoryOrContext.hasOwnProperty('config')) {
+            // It's a ReasoningContext
+            effectiveTermFactory = memoryOrContext.termFactory;
+        } else {
+            // It's memory, use termFactory parameter
+            effectiveTermFactory = termFactory;
         }
 
         const combinedBindings = new Map();
@@ -47,7 +58,7 @@ export class NALRule extends Rule {
             }
         }
 
-        const derivedTerm = this._substituteVariables(this._conclusion, combinedBindings, termFactory);
+        const derivedTerm = this._substituteVariables(this._conclusion, combinedBindings, effectiveTermFactory);
         if (!derivedTerm) return [];
 
         const premiseTruths = premises.map(p => p.truth);
@@ -67,6 +78,13 @@ export class NALRule extends Rule {
         });
 
         return [derivedTask];
+    }
+
+    /**
+     * Applies the rule to a given set of premise tasks (with context)
+     */
+    async _applyWithContext(premises, context) {
+        return await this._apply(premises, context, context.termFactory);
     }
 
     /**

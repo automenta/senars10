@@ -51,14 +51,14 @@ export class LMRule extends Rule {
     /**
      * Applies the rule to the given task
      */
-    async _apply(task) {
+    async _apply(task, memory, termFactory) {
         if (!this.lm) {
             throw new Error(`LM unavailable for rule ${this.id}`);
         }
 
         const startTime = Date.now();
         try {
-            const prompt = this._buildPrompt(task);
+            const prompt = this._buildPrompt(task, memory);
             const response = await this._callLanguageModel(prompt);
             const processedResponse = await this._responseProcessor(response, task);
 
@@ -72,6 +72,48 @@ export class LMRule extends Rule {
             this._updateLMStats(0, Date.now() - startTime);
             return [];
         }
+    }
+
+    /**
+     * Applies the rule to the given task (with context)
+     */
+    async _applyWithContext(task, context) {
+        return await this._apply(task, context.memory, context.termFactory);
+    }
+
+    /**
+     * Builds the prompt for the language model based on the task and optional memory
+     */
+    _buildPrompt(task, memory) {
+        const templateVars = this._getTemplateVars(task, memory);
+        return this._promptTemplate.replace(/\{\{(\w+)\}\}/g, (match, key) =>
+            templateVars[key] !== undefined ? templateVars[key] : match
+        );
+    }
+
+    _getTemplateVars(task, memory) {
+        return {
+            taskTerm: task.term?.toString() || 'unknown',
+            taskType: task.type || 'unknown',
+            taskTruth: task.truth ?
+                `(${task.truth.f?.toFixed(2) || task.truth.f || 0.5}, ${task.truth.c?.toFixed(2) || task.truth.c || 0.5})` :
+                'no truth',
+            context: this._getContext(task, memory)
+        };
+    }
+
+    /**
+     * Gets context for prompt building
+     */
+    _getContext(task, memory) {
+        if (memory && memory.getRelevantTasks) {
+            const relevantTasks = memory.getRelevantTasks(task.term, 5); // Get up to 5 relevant tasks
+            const relevantInfo = relevantTasks.length > 0 
+                ? `Relevant tasks: ${relevantTasks.map(t => t.term?.toString()).join(', ')}`
+                : 'No relevant tasks in memory';
+            return `Task: ${task.term?.toString() || 'unknown'}, Type: ${task.type || 'unknown'}, ${relevantInfo}`;
+        }
+        return `Task: ${task.term?.toString() || 'unknown'}, Type: ${task.type || 'unknown'}`;
     }
 
     /**

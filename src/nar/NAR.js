@@ -50,7 +50,7 @@ export class NAR {
         // Use coordinated reasoning strategy if LM is enabled, otherwise use naive strategy
         const reasoningStrategy = desiredLmEnabled 
             ? new CoordinatedReasoningStrategy(this._ruleEngine, this._config.reasoning || {}) 
-            : new NaiveExhaustiveStrategy();
+            : new NaiveExhaustiveStrategy(this._config.reasoning || {});
 
         this._cycle = new Cycle({
             memory: this._memory,

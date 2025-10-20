@@ -1,4 +1,5 @@
 import { ReasoningStrategy } from './ReasoningStrategy.js';
+import { StrategyMetrics } from './StrategyMetrics.js';
 
 /**
  * A naive, exhaustive reasoning strategy that iterates through all task combinations.
@@ -11,33 +12,83 @@ export class NaiveExhaustiveStrategy extends ReasoningStrategy {
             maxCombinations: config.maxCombinations || 100,
             maxTasksPerBatch: config.maxTasksPerBatch || 50,
             maxRuleApplications: config.maxRuleApplications || 1000,
+            enableMetrics: config.enableMetrics !== false,
             ...config
         };
+        
+        // Initialize metrics if enabled
+        if (this.config.enableMetrics) {
+            this.metrics = new StrategyMetrics({
+                strategyId: 'naive-exhaustive',
+                ...this.config.metrics
+            });
+        } else {
+            this.metrics = null;
+        }
     }
 
-    async execute(memory, rules, termFactory) {
-        const tasks = this._getAllTasksFromMemory(memory);
-        
-        // Split tasks into smaller batches if needed
-        const taskBatches = this._createBatches(tasks, this.config.maxTasksPerBatch);
-        
-        const allDerivedTasks = [];
-        let ruleApplications = 0;
-        
-        for (const taskBatch of taskBatches) {
-            const batchResults = await this._processBatch(taskBatch, rules, termFactory);
-            allDerivedTasks.push(...batchResults);
+    async execute(memoryOrContext, rules = [], termFactory = null) {
+        const startTime = performance.now();
+        let success = true;
+        let result = [];
+        let taskCount = 0; // Declare outside try block
+
+        try {
+            let memory, context;
             
-            // Stop if max applications reached
-            ruleApplications += batchResults.length;
-            if (ruleApplications >= this.config.maxRuleApplications) {
-                break;
+            // Check if the first parameter is a ReasoningContext
+            if (memoryOrContext && typeof memoryOrContext === 'object' && memoryOrContext.hasOwnProperty('config')) {
+                // It's a ReasoningContext
+                context = memoryOrContext;
+                memory = context.memory;
+                termFactory = context.termFactory;
+            } else {
+                // It's the old style parameters
+                memory = memoryOrContext;
+                // rules parameter is already passed as the second parameter
+                // termFactory is already passed as the third parameter
+            }
+
+            const tasks = this._getAllTasksFromMemory(memory);
+            taskCount = tasks ? tasks.length : 0;
+            
+            // Split tasks into smaller batches if needed
+            const taskBatches = this._createBatches(tasks, this.config.maxTasksPerBatch);
+            
+            const allDerivedTasks = [];
+            let ruleApplications = 0;
+            
+            for (const taskBatch of taskBatches) {
+                const batchResults = await this._processBatch(taskBatch, rules, termFactory);
+                allDerivedTasks.push(...batchResults);
+                
+                // Stop if max applications reached
+                ruleApplications += batchResults.length;
+                if (ruleApplications >= this.config.maxRuleApplications) {
+                    break;
+                }
+            }
+
+            // Remove duplicates
+            result = this._removeDuplicates(allDerivedTasks);
+        } catch (error) {
+            success = false;
+            throw error;
+        } finally {
+            const executionTime = performance.now() - startTime;
+            
+            // Record metrics if enabled
+            if (this.metrics) {
+                this.metrics.recordExecution(
+                    executionTime,
+                    taskCount,
+                    result.length,
+                    success
+                );
             }
         }
 
-        // Remove duplicates
-        const uniqueTasks = this._removeDuplicates(allDerivedTasks);
-        return uniqueTasks;
+        return result;
     }
 
     _getAllTasksFromMemory(memory) {
@@ -77,7 +128,7 @@ export class NaiveExhaustiveStrategy extends ReasoningStrategy {
         switch (premisesCount) {
             case 1:
                 for (const task of tasks) {
-                    const ruleResults = await rule._apply([task], termFactory);
+                    const ruleResults = await rule._apply([task], null, termFactory);
                     results.push(...ruleResults);
                 }
                 break;
@@ -92,11 +143,11 @@ export class NaiveExhaustiveStrategy extends ReasoningStrategy {
                         const task2 = tasks[j];
 
                         // Test both premise permutations
-                        const results1 = await rule._apply([task1, task2], termFactory);
+                        const results1 = await rule._apply([task1, task2], null, termFactory);
                         results.push(...results1);
                         combinationCount += results1.length;
 
-                        const results2 = await rule._apply([task2, task1], termFactory);
+                        const results2 = await rule._apply([task2, task1], null, termFactory);
                         results.push(...results2);
                         combinationCount += results2.length;
                     }
@@ -119,7 +170,7 @@ export class NaiveExhaustiveStrategy extends ReasoningStrategy {
         const results = [];
         
         for (const combination of combinations) {
-            const ruleResults = await rule._apply(combination, termFactory);
+            const ruleResults = await rule._apply(combination, null, termFactory);
             results.push(...ruleResults);
         }
         

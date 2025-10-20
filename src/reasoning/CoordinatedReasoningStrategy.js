@@ -1,6 +1,7 @@
 import { ReasoningStrategy } from './ReasoningStrategy.js';
 import { CooperationEngine } from './CooperationEngine.js';
 import {Logger} from '../util/Logger.js';
+import { StrategyMetrics } from './StrategyMetrics.js';
 
 /**
  * A reasoning strategy that coordinates between different rule types (LM and NAL)
@@ -16,12 +17,23 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
             enableCrossValidation: config.enableCrossValidation !== false,
             enableFeedbackLoops: config.enableFeedbackLoops !== false,
             enableCooperationEngine: config.enableCooperationEngine !== false,
+            enableMetrics: config.enableMetrics !== false,
             ...config
         };
         this.logger = Logger;
         
         if (this.config.enableCooperationEngine) {
             this.cooperationEngine = new CooperationEngine(this.config.cooperation || {});
+        }
+        
+        // Initialize metrics if enabled
+        if (this.config.enableMetrics) {
+            this.metrics = new StrategyMetrics({
+                strategyId: 'coordinated-reasoning',
+                ...this.config.metrics
+            });
+        } else {
+            this.metrics = null;
         }
     }
 
@@ -32,22 +44,65 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
      * @param {Object} termFactory - The term factory for creating new terms
      * @returns {Array} - Array of derived tasks from coordinated reasoning
      */
-    async execute(memory, rules, termFactory) {
-        // Set the termFactory in the ruleEngine if not already set
-        if (!this.ruleEngine._termFactory && termFactory) {
-            this.ruleEngine._termFactory = termFactory;
+    async execute(memoryOrContext, rules = [], termFactory = null) {
+        const startTime = performance.now();
+        let success = true;
+        let result = [];
+        let taskCount = 0; // Declare outside try block
+
+        try {
+            let memory, context;
+            
+            // Check if the first parameter is a ReasoningContext
+            if (memoryOrContext && typeof memoryOrContext === 'object' && memoryOrContext.hasOwnProperty('config')) {
+                // It's a ReasoningContext
+                context = memoryOrContext;
+                memory = context.memory;
+                termFactory = context.termFactory;
+            } else {
+                // It's the old style parameters
+                memory = memoryOrContext;
+                // rules parameter is already passed as the second parameter
+                // termFactory is already passed as the third parameter
+                
+                // Create context from the parameters
+                context = this.createContext(memory, rules, termFactory);
+            }
+
+            // Set the termFactory in the ruleEngine if not already set
+            if (!this.ruleEngine._termFactory && termFactory) {
+                this.ruleEngine._termFactory = termFactory;
+            }
+
+            // Get all tasks from memory concepts
+            const tasks = this._getAllTasksFromMemory(memory);
+            taskCount = tasks ? tasks.length : 0;
+
+            if (this.cooperationEngine && this.config.enableCooperationEngine) {
+                // Use cooperation engine for advanced coordination
+                result = await this._executeWithCooperationEngine(tasks, memory, termFactory);
+            } else {
+                // Use basic coordinated approach
+                result = await this._executeBasicCoordination(tasks, memory, termFactory);
+            }
+        } catch (error) {
+            success = false;
+            throw error;
+        } finally {
+            const executionTime = performance.now() - startTime;
+            
+            // Record metrics if enabled
+            if (this.metrics) {
+                this.metrics.recordExecution(
+                    executionTime,
+                    taskCount,
+                    result.length,
+                    success
+                );
+            }
         }
 
-        // Get all tasks from memory concepts
-        const tasks = this._getAllTasksFromMemory(memory);
-
-        if (this.cooperationEngine && this.config.enableCooperationEngine) {
-            // Use cooperation engine for advanced coordination
-            return await this._executeWithCooperationEngine(tasks, memory, termFactory);
-        } else {
-            // Use basic coordinated approach
-            return await this._executeBasicCoordination(tasks, memory, termFactory);
-        }
+        return result;
     }
 
     /**

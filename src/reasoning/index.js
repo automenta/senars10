@@ -4,6 +4,7 @@
 export { ReasoningStrategy } from './ReasoningStrategy.js';
 export { CoordinatedReasoningStrategy } from './CoordinatedReasoningStrategy.js';
 export { NaiveExhaustiveStrategy } from './NaiveExhaustiveStrategy.js';
+export { StrategySelector } from './StrategySelector.js';
 
 export { Rule } from './Rule.js';
 export { LMRule } from './LMRule.js';
@@ -13,6 +14,12 @@ export { RuleEngine } from './RuleEngine.js';
 export { RuleSet } from './RuleSet.js';
 export { RuleProcessor } from './RuleProcessor.js';
 export { SequentialRuleProcessor } from './SequentialRuleProcessor.js';
+export { ParallelRuleProcessor } from './ParallelRuleProcessor.js';
+
+export { ReasoningContext } from './ReasoningContext.js';
+export { RuleComposer } from './RuleComposer.js';
+export { PerformanceOptimizer, RuleCache } from './PerformanceOptimizer.js';
+export { StrategyMetrics, StrategyMonitor } from './StrategyMetrics.js';
 
 export { RuleCooperationManager } from './RuleCooperationManager.js';
 export { CooperationEngine } from './CooperationEngine.js';

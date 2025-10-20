@@ -1,3 +1,5 @@
+import { ReasoningContext } from './ReasoningContext.js';
+
 /**
  * Interface for different rule processing strategies
  * Allows for different approaches to rule application
@@ -11,12 +13,22 @@ export class RuleProcessor {
      * Process rules against tasks
      * @param {Array} rules - Rules to apply
      * @param {Array} tasks - Tasks to apply rules to
-     * @param {Object} memory - Memory system
-     * @param {Object} termFactory - Term factory
+     * @param {ReasoningContext} context - Reasoning context containing memory, termFactory, etc.
      * @returns {Array} Processed results
      */
-    async process(rules, tasks, memory, termFactory) {
+    async process(rules, tasks, context) {
         throw new Error('RuleProcessor.process must be implemented by subclasses');
+    }
+
+    /**
+     * Create or use context for processing
+     */
+    async createContext(tasks, config = {}) {
+        if (config instanceof ReasoningContext) {
+            return config;
+        }
+        
+        return new ReasoningContext(config);
     }
 
     /**
