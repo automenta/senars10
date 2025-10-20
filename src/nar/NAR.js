@@ -237,7 +237,7 @@ export class NAR {
     }
 
     getStats() {
-        const stats = {
+        return {
             isRunning: this._isRunning,
             cycleCount: this._cycle.cycleCount,
             memoryStats: this._memory.getDetailedStats(),
@@ -245,18 +245,13 @@ export class NAR {
                 ? this._taskManager.getTaskStats()
                 : this._taskManager.stats,
             cycleStats: this._cycle.stats,
-            config: this._config.toJSON()
+            config: this._config.toJSON(),
+            lmStats: this._lm ? this._lm.getMetrics() : undefined
         };
-
-        if (this._lm) stats.lmStats = this._lm.getMetrics();
-
-        return stats;
     }
 
     _ensureLMEnabled() {
-        if (!this._lm) {
-            throw new Error('Language Model is not enabled in this NAR instance');
-        }
+        if (!this._lm) throw new Error('Language Model is not enabled in this NAR instance');
     }
 
     // LM-related methods
@@ -323,10 +318,12 @@ export class NAR {
         return false;
     }
     
+    _ensureToolIntegration() {
+        if (!this._toolIntegration) throw new Error('Tool integration is not enabled');
+    }
+    
     async executeTool(toolId, params, context = {}) {
-        if (!this._toolIntegration) {
-            throw new Error('Tool integration is not enabled');
-        }
+        this._ensureToolIntegration();
         
         // Track tool execution performance
         const startTime = Date.now();
@@ -360,10 +357,7 @@ export class NAR {
     }
     
     async executeTools(toolCalls, context = {}) {
-        if (!this._toolIntegration) {
-            throw new Error('Tool integration is not enabled');
-        }
-        
+        this._ensureToolIntegration();
         return await this._toolIntegration.executeTools(toolCalls, {
             nar: this,
             memory: this._memory,
@@ -373,10 +367,7 @@ export class NAR {
     }
     
     getAvailableTools() {
-        if (!this._toolIntegration) {
-            return [];
-        }
-        return this._toolIntegration.getAvailableTools();
+        return this._toolIntegration ? this._toolIntegration.getAvailableTools() : [];
     }
     
     // Tool Explanation Methods
@@ -384,11 +375,12 @@ export class NAR {
         return this._explanationService;
     }
     
+    _ensureExplanationService() {
+        if (!this._explanationService) throw new Error('Explanation service is not enabled');
+    }
+    
     async explainToolResult(toolResult, context = {}) {
-        if (!this._explanationService) {
-            throw new Error('Explanation service is not enabled');
-        }
-        
+        this._ensureExplanationService();
         return await this._explanationService.explainToolResult(toolResult, {
             nar: this,
             memory: this._memory,
@@ -398,10 +390,7 @@ export class NAR {
     }
     
     async explainToolResults(toolResults, context = {}) {
-        if (!this._explanationService) {
-            throw new Error('Explanation service is not enabled');
-        }
-        
+        this._ensureExplanationService();
         return await this._explanationService.explainToolResults(toolResults, {
             nar: this,
             memory: this._memory,
@@ -411,10 +400,7 @@ export class NAR {
     }
     
     async summarizeToolExecution(toolResults, context = {}) {
-        if (!this._explanationService) {
-            throw new Error('Explanation service is not enabled');
-        }
-        
+        this._ensureExplanationService();
         return await this._explanationService.summarizeToolExecution(toolResults, {
             nar: this,
             memory: this._memory,
@@ -424,10 +410,7 @@ export class NAR {
     }
     
     async assessToolResults(toolResults, context = {}) {
-        if (!this._explanationService) {
-            throw new Error('Explanation service is not enabled');
-        }
-        
+        this._ensureExplanationService();
         return await this._explanationService.assessToolResults(toolResults, {
             nar: this,
             memory: this._memory,

@@ -1,7 +1,4 @@
-/**
- * Cycle class - Manages the reasoning cycle execution
- * Orchestrates task selection, rule application, and memory updates
- */
+
 import {Logger} from '../util/Logger.js';
 
 export class Cycle {

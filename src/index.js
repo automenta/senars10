@@ -4,7 +4,6 @@ import { ReplInterface } from './io/ReplInterface.js';
 import { MonitoringAPI } from './io/MonitoringAPI.js';
 import { NAR } from './nar/NAR.js';
 
-// Determine execution mode based on arguments
 const args = process.argv.slice(2);
 const mode = args[0]?.toLowerCase() || 'repl';
 
