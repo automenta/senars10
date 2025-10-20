@@ -38,8 +38,7 @@ export class ReplInterface {
 
             this.sessionState.history.push(trimmedInput);
 
-            const isCommand = trimmedInput.startsWith(':');
-            isCommand
+            trimmedInput.startsWith(':')
                 ? await this._executeCommand(...trimmedInput.slice(1).split(' '))
                 : await this._processNarsese(trimmedInput);
 
@@ -62,7 +61,7 @@ export class ReplInterface {
 
         try {
             const result = await commandFn(args);
-            if (result) console.log(result);
+            result && console.log(result);
         } catch (error) {
             console.error(`Error executing command: ${error.message}`);
         }

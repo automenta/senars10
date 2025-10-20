@@ -49,40 +49,24 @@ export class ToolIntegration {
         }
 
         try {
-            // Import all tools and register them
-            const {
-                FileOperationsTool,
-                CommandExecutorTool,
-                WebAutomationTool,
-                MediaProcessingTool,
-                EmbeddingTool
-            } = await import('./index.js');
+            const {FileOperationsTool, CommandExecutorTool, WebAutomationTool, MediaProcessingTool, EmbeddingTool} = 
+                await import('./index.js');
 
-            // Register all tools
-            this.registry.registerTool('file-operations', new FileOperationsTool(), {
-                category: 'file-operations',
-                description: 'File operations including read, write, append, delete, list, and stat'
-            });
+            const toolsConfig = [
+                {id: 'file-operations', tool: new FileOperationsTool(), category: 'file-operations', 
+                 description: 'File operations including read, write, append, delete, list, and stat'},
+                {id: 'command-executor', tool: new CommandExecutorTool(), category: 'command-execution',
+                 description: 'Safe command execution in sandboxed environment'},
+                {id: 'web-automation', tool: new WebAutomationTool(), category: 'web-automation',
+                 description: 'Web automation including fetch, scrape, and check operations'},
+                {id: 'media-processing', tool: new MediaProcessingTool(), category: 'media-processing',
+                 description: 'Media processing including PDF, image, and text extraction'},
+                {id: 'embedding', tool: new EmbeddingTool(), category: 'embedding',
+                 description: 'Text embedding, similarity, and comparison operations'}
+            ];
 
-            this.registry.registerTool('command-executor', new CommandExecutorTool(), {
-                category: 'command-execution',
-                description: 'Safe command execution in sandboxed environment'
-            });
-
-            this.registry.registerTool('web-automation', new WebAutomationTool(), {
-                category: 'web-automation',
-                description: 'Web automation including fetch, scrape, and check operations'
-            });
-
-            this.registry.registerTool('media-processing', new MediaProcessingTool(), {
-                category: 'media-processing',
-                description: 'Media processing including PDF, image, and text extraction'
-            });
-
-            this.registry.registerTool('embedding', new EmbeddingTool(), {
-                category: 'embedding',
-                description: 'Text embedding, similarity, and comparison operations'
-            });
+            toolsConfig.forEach(({id, tool, category, description}) => 
+                this.registry.registerTool(id, tool, {category, description}));
 
             this.logger.info('Successfully initialized all tools', {
                 toolCount: this.engine.getAvailableTools().length

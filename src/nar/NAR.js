@@ -21,7 +21,6 @@ import {ExplanationService} from '../tools/ExplanationService.js';
 
 export class NAR {
     constructor(config = {}) {
-        // Store the desired LM state early before config processing
         const desiredLmEnabled = config.lm?.enabled === true;
 
         this._config = SystemConfig.from(config);
@@ -31,25 +30,16 @@ export class NAR {
         this._memory = new Memory(this._config.memory);
         this._parser = new NarseseParser(this._termFactory);
         this._eventBus = new EventBus();
-
         this._focus = new Focus(this._config.focus);
-
         this._taskManager = new TaskManager(this._memory, this._focus, this._config.taskManager);
 
-        // Initialize LM if enabled in config
-        this._lm = null;
-
-        // Use the pre-stored LM enabled state to avoid potential config processing issues
-        if (desiredLmEnabled) {
-            this._lm = new LM();
-            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm);
-        } else {
-            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {});
-        }
+        // Initialize LM if enabled
+        this._lm = desiredLmEnabled ? new LM() : null;
+        this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm);
 
         this._setupDefaultRules();
 
-        // Use coordinated reasoning strategy if LM is enabled, otherwise use naive strategy
+        // Use coordinated reasoning strategy if LM is enabled, otherwise naive strategy
         const reasoningStrategy = desiredLmEnabled
             ? new CoordinatedReasoningStrategy(this._ruleEngine, this._config.reasoning || {})
             : new NaiveExhaustiveStrategy(this._config.reasoning || {});
@@ -64,57 +54,30 @@ export class NAR {
             termFactory: this._termFactory
         });
 
-        // Initialize tool integration
-        this._tools = null;
-        this._toolIntegration = null;
-        this._explanationService = null;
-
         // Initialize tool integration if enabled
-        if (config.tools?.enabled !== false) {
-            this._toolIntegration = new ToolIntegration(config.tools || {});
+        this._toolIntegration = config.tools?.enabled !== false 
+            ? new ToolIntegration(config.tools || {}) 
+            : null;
+        
+        if (this._toolIntegration) {
             this._toolIntegration.connectToReasoningCore(this);
-
-            // Initialize explanation service with LM if available
-            const explanationConfig = {
+            this._explanationService = new ExplanationService({
                 lm: this._lm || null,
                 ...config.tools?.explanation
-            };
-            this._explanationService = new ExplanationService(explanationConfig);
+            });
         }
 
         this._isRunning = false;
         this._cycleInterval = null;
     }
 
-    get config() {
-        return this._config;
-    }
-
-    get memory() {
-        return this._memory;
-    }
-
-    get isRunning() {
-        return this._isRunning;
-    }
-
-    get cycleCount() {
-        return this._cycle.cycleCount;
-    }
-
-    get lm() {
-        return this._lm;
-    }
-
-    // Tool Integration Methods
-    get tools() {
-        return this._toolIntegration;
-    }
-
-    // Tool Explanation Methods
-    get explanationService() {
-        return this._explanationService;
-    }
+    get config() { return this._config; }
+    get memory() { return this._memory; }
+    get isRunning() { return this._isRunning; }
+    get cycleCount() { return this._cycle.cycleCount; }
+    get lm() { return this._lm; }
+    get tools() { return this._toolIntegration; }
+    get explanationService() { return this._explanationService; }
 
     _setupDefaultRules() {
         try {
@@ -180,10 +143,7 @@ export class NAR {
         if (!this._isRunning) return false;
 
         this._isRunning = false;
-        if (this._cycleInterval) {
-            clearInterval(this._cycleInterval);
-            this._cycleInterval = null;
-        }
+        this._cycleInterval && clearInterval(this._cycleInterval) && (this._cycleInterval = null);
 
         this._eventBus.emit('system.stopped', {timestamp: Date.now()});
         return true;
@@ -218,17 +178,13 @@ export class NAR {
     }
 
     getBeliefs(queryTerm = null) {
-        return queryTerm ? this.query(queryTerm) :
-            Array.from(this._memory.getAllConcepts()).flatMap(concept => concept.getTasksByType('BELIEF'));
+        return queryTerm 
+            ? this.query(queryTerm) 
+            : Array.from(this._memory.getAllConcepts()).flatMap(concept => concept.getTasksByType('BELIEF'));
     }
 
-    getGoals() {
-        return this._taskManager.findTasksByType('GOAL');
-    }
-
-    getQuestions() {
-        return this._taskManager.findTasksByType('QUESTION');
-    }
+    getGoals() { return this._taskManager.findTasksByType('GOAL'); }
+    getQuestions() { return this._taskManager.findTasksByType('QUESTION'); }
 
     reset() {
         this.stop();
@@ -238,13 +194,8 @@ export class NAR {
         this._eventBus.emit('system.reset', {timestamp: Date.now()});
     }
 
-    on(eventName, callback) {
-        this._eventBus.on(eventName, callback);
-    }
-
-    off(eventName, callback) {
-        this._eventBus.off(eventName, callback);
-    }
+    on(eventName, callback) { this._eventBus.on(eventName, callback); }
+    off(eventName, callback) { this._eventBus.off(eventName, callback); }
 
     getStats() {
         return {
@@ -290,20 +241,13 @@ export class NAR {
         const {truthValue, taskType} = parsed;
         const basePriority = this.config.taskManager?.defaultPriority || PRIORITY.DEFAULT;
 
-        if (!truthValue) {
-            return basePriority;
-        }
+        if (!truthValue) return basePriority;
 
         const priorityConfig = this.config.taskManager?.priority || {};
-        const confidenceMultiplier = priorityConfig.confidenceMultiplier || 0.3; // Default value
-        const goalBoost = priorityConfig.goalBoost || 0.2; // Default value
-        const questionBoost = priorityConfig.questionBoost || 0.1; // Default value
+        const {confidenceMultiplier = 0.3, goalBoost = 0.2, questionBoost = 0.1} = priorityConfig;
 
         const confidenceBoost = (truthValue.confidence || 0) * confidenceMultiplier;
-        const typeBoost = {
-            'GOAL': goalBoost,
-            'QUESTION': questionBoost
-        }[taskType] || 0;
+        const typeBoost = {GOAL: goalBoost, QUESTION: questionBoost}[taskType] || 0;
 
         return Math.min(1.0, basePriority + confidenceBoost + typeBoost);
     }
@@ -330,7 +274,6 @@ export class NAR {
     async executeTool(toolId, params, context = {}) {
         this._ensureToolIntegration();
 
-        // Track tool execution performance
         const startTime = Date.now();
         try {
             const result = await this._toolIntegration.executeTool(toolId, params, {
@@ -340,7 +283,6 @@ export class NAR {
                 ...context
             });
 
-            // Log performance if it took longer than threshold
             const duration = Date.now() - startTime;
             if (duration > 1000) { // Log if > 1 second
                 this.logger.warn(`Slow tool execution: ${toolId} took ${duration}ms`, {

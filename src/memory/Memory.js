@@ -5,21 +5,21 @@ import {ConfigurableComponent} from '../util/ConfigurableComponent.js';
 import {clamp} from '../util/common.js';
 
 export class Memory extends ConfigurableComponent {
-    static SCORING_WEIGHTS = {activation: 0.5, useCount: 0.3, taskCount: 0.2};
-    static NORMALIZATION_LIMITS = {useCount: 100, taskCount: 50};
-    static CONSOLIDATION_THRESHOLDS = {
+    static SCORING_WEIGHTS = Object.freeze({activation: 0.5, useCount: 0.3, taskCount: 0.2});
+    static NORMALIZATION_LIMITS = Object.freeze({useCount: 100, taskCount: 50});
+    static CONSOLIDATION_THRESHOLDS = Object.freeze({
         activationThreshold: 0.1,
         minTasksThreshold: 5,
         decayThreshold: 0.01,
         minTasksForDecay: 2
-    };
+    });
 
     constructor(config = {}) {
-        const defaultConfig = {
+        const defaultConfig = Object.freeze({
             priorityThreshold: 0.5,
             priorityDecayRate: 0.01,
             consolidationInterval: 10
-        };
+        });
 
         super(defaultConfig);
         this.configure(config);
@@ -38,21 +38,10 @@ export class Memory extends ConfigurableComponent {
         this._cyclesSinceConsolidation = 0;
     }
 
-    get config() {
-        return {...this._config};
-    }
-
-    get concepts() {
-        return new Map(this._concepts);
-    }
-
-    get focusConcepts() {
-        return new Set(this._focusConcepts);
-    }
-
-    get stats() {
-        return {...this._stats};
-    }
+    get config() { return {...this._config}; }
+    get concepts() { return new Map(this._concepts); }
+    get focusConcepts() { return new Set(this._focusConcepts); }
+    get stats() { return {...this._stats}; }
 
     addTask(task, currentTime = Date.now()) {
         if (!task?.term) return false;
@@ -105,24 +94,17 @@ export class Memory extends ConfigurableComponent {
     }
 
     getMostActiveConcepts(limit = 10) {
-        const {activation, useCount, taskCount} = Memory.SCORING_WEIGHTS;
+        const {activation: a, useCount: u, taskCount: t} = Memory.SCORING_WEIGHTS;
         const {useCount: useLimit, taskCount: taskLimit} = Memory.NORMALIZATION_LIMITS;
 
         return this.getAllConcepts()
-            .map(concept => this._calculateConceptScore(concept))
+            .map(concept => this._calculateConceptScore(concept, a, u, t, useLimit, taskLimit))
             .sort((a, b) => b.score - a.score)
             .slice(0, limit)
             .map(({concept}) => concept);
     }
 
-    _calculateConceptScore(concept) {
-        const {
-            activation: activationWeight,
-            useCount: useCountWeight,
-            taskCount: taskCountWeight
-        } = Memory.SCORING_WEIGHTS;
-        const {useCount: useLimit, taskCount: taskLimit} = Memory.NORMALIZATION_LIMITS;
-
+    _calculateConceptScore(concept, activationWeight, useCountWeight, taskCountWeight, useLimit, taskLimit) {
         const normalizedUseCount = clamp(concept.useCount / useLimit, 0, 1);
         const normalizedTaskCount = clamp(concept.totalTasks / taskLimit, 0, 1);
         const score = concept.activation * activationWeight +
@@ -133,16 +115,10 @@ export class Memory extends ConfigurableComponent {
     }
 
     removeConcept(term) {
-        if (!term) return false;
-
         const concept = this._concepts.get(term);
         if (!concept) return false;
 
-        if (this._focusConcepts.has(concept)) {
-            this._focusConcepts.delete(concept);
-            this._updateFocusConceptsCount();
-        }
-
+        this._focusConcepts.delete(concept) && this._updateFocusConceptsCount();
         this._concepts.delete(term);
         this._index.removeConcept(concept);
         this._stats.totalConcepts--;
@@ -166,10 +142,7 @@ export class Memory extends ConfigurableComponent {
         const concept = this._concepts.get(term);
         if (concept) {
             concept.boostActivation(boostAmount);
-            if (!this._focusConcepts.has(concept)) {
-                this._focusConcepts.add(concept);
-                this._updateFocusConceptsCount();
-            }
+            !this._focusConcepts.has(concept) && this._focusConcepts.add(concept) && this._updateFocusConceptsCount();
         }
     }
 
