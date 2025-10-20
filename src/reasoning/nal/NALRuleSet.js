@@ -15,10 +15,6 @@ export class NALRuleSet {
     }
 
     static getSyllogisticRules() {
-        return [
-            new DeductionRule(),
-            new InductionRule(),
-            new AbductionRule()
-        ];
+        return this.getAllRules();
     }
 }

@@ -1,6 +1,104 @@
 import {Logger} from '../../util/Logger.js';
 
 /**
+ * Helper class for resolving conflicts between NAL and LM results
+ */
+class ConflictResolver {
+    constructor() {
+        this.conflicts = [];
+        this.resolutionStrategies = new Map();
+        this.stats = {
+            conflictsDetected: 0,
+            conflictsResolved: 0,
+            resolutionMethodCounts: {}
+        };
+    }
+
+    /**
+     * Resolves conflicts between NAL, LM, and hybrid results
+     */
+    async resolveConflicts(nalResults, lmResults, hybridResults) {
+        const allResults = [...nalResults, ...lmResults, ...hybridResults];
+        const resolvedResults = [];
+        const potentialConflicts = [];
+
+        // Detect potential conflicts by comparing similar results
+        for (let i = 0; i < allResults.length; i++) {
+            for (let j = i + 1; j < allResults.length; j++) {
+                if (this._isConflicting(allResults[i], allResults[j])) {
+                    potentialConflicts.push([allResults[i], allResults[j]]);
+                    this.stats.conflictsDetected++;
+                }
+            }
+        }
+
+        if (potentialConflicts.length > 0) {
+            // Resolve each conflict
+            for (const [result1, result2] of potentialConflicts) {
+                const resolved = await this._resolvePair(result1, result2);
+                resolvedResults.push(resolved);
+                this.stats.conflictsResolved++;
+            }
+        } else {
+            // No conflicts, return all results
+            return allResults;
+        }
+
+        return resolvedResults;
+    }
+
+    /**
+     * Checks if two results are conflicting
+     */
+    _isConflicting(result1, result2) {
+        // Two results conflict if they have the same term but significantly different truth values
+        if (result1.term?.id !== result2.term?.id) {
+            return false; // Different terms, not conflicting
+        }
+
+        // Check for significant difference in truth values
+        const truthDiff = Math.abs((result1.truth?.f || 0.5) - (result2.truth?.f || 0.5));
+        return truthDiff > 0.3; // Consider conflicting if frequency differs by more than 0.3
+    }
+
+    /**
+     * Resolves a conflict between two results
+     */
+    async _resolvePair(result1, result2) {
+        // Resolution strategy: prefer result with higher confidence
+        const confidence1 = result1.truth?.c || 0.1;
+        const confidence2 = result2.truth?.c || 0.1;
+
+        if (confidence1 > confidence2) {
+            this._updateResolutionStats('confidence_based');
+            return result1;
+        } else if (confidence2 > confidence1) {
+            this._updateResolutionStats('confidence_based');
+            return result2;
+        } else {
+            // Same confidence, use other factors
+            // For now, prefer NAL results but in real implementation this could be configurable
+            this._updateResolutionStats('default_preference');
+            return result1;
+        }
+    }
+
+    /**
+     * Updates statistics for resolution method used
+     */
+    _updateResolutionStats(method) {
+        this.stats.resolutionMethodCounts[method] = (this.stats.resolutionMethodCounts[method] || 0) + 1;
+    }
+
+    /**
+     * Gets conflict resolution statistics
+     */
+    getStats() {
+        return this.stats;
+    }
+}
+
+/**
  * HybridReasoningEngine - Manages sophisticated collaboration between NAL and LM reasoning
  */
 export class HybridReasoningEngine {
@@ -49,13 +147,8 @@ export class HybridReasoningEngine {
 
             // Fill gaps using the other system
             for (const gap of gaps) {
-                if (gap.requiresLM) {
-                    const gapResult = await this._applyLMForGap(task, gap, context);
-                    results.hybridResults.push(...gapResult);
-                } else {
-                    const gapResult = await this._applyNALForGap(task, gap, context);
-                    results.hybridResults.push(...gapResult);
-                }
+                const gapResult = await this._fillGap(task, gap, context);
+                results.hybridResults.push(...gapResult);
             }
         }
 
@@ -70,6 +163,15 @@ export class HybridReasoningEngine {
         results.finalDecision = finalResults;
 
         return results;
+    }
+
+    /**
+     * Fills a reasoning gap using the appropriate system
+     */
+    async _fillGap(task, gap, context) {
+        return gap.requiresLM 
+            ? await this._applyLMForGap(task, gap, context)
+            : await this._applyNALForGap(task, gap, context);
     }
 
     /**
@@ -188,21 +290,8 @@ export class HybridReasoningEngine {
 
         try {
             // Create a targeted prompt based on the gap
-            let prompt;
-            switch (gap.type) {
-                case 'low_confidence_nal':
-                    prompt = `The following NAL reasoning produced low-confidence results: ${gap.target.map(r => r.toString()).join(', ')}. Can you provide a better reasoning path or explanation?`;
-                    break;
-                case 'complex_reasoning':
-                    prompt = `The following complex task requires reasoning: ${task.term?.toString() || task.toString()}. Please provide insights or conclusions.`;
-                    break;
-                case 'no_results':
-                    prompt = `The following task has not been resolved: ${task.term?.toString() || task.toString()}. Please provide relevant reasoning or conclusions.`;
-                    break;
-                default:
-                    prompt = `Task: ${task.term?.toString() || task.toString()}. Context: ${JSON.stringify(context)}. Please provide reasoning.`;
-            }
-
+            const prompt = this._createGapFillingPrompt(gap, task);
+            
             // Generate response using LM
             const lmResponse = await this.lm.process(prompt, {
                 temperature: 0.7,
@@ -210,13 +299,28 @@ export class HybridReasoningEngine {
             });
 
             // Process the response (in a real system, this would parse LM output to tasks)
-            // For now, we'll return an empty array as placeholder
             this.logger.info(`LM filled gap: ${gap.description}`);
 
             return []; // Placeholder - would convert LM response to tasks in real implementation
         } catch (error) {
             this.logger.error('Error filling gap with LM:', error);
             return [];
+        }
+    }
+
+    /**
+     * Creates a prompt for LM to fill the reasoning gap
+     */
+    _createGapFillingPrompt(gap, task) {
+        switch (gap.type) {
+            case 'low_confidence_nal':
+                return `The following NAL reasoning produced low-confidence results: ${gap.target.map(r => r.toString()).join(', ')}. Can you provide a better reasoning path or explanation?`;
+            case 'complex_reasoning':
+                return `The following complex task requires reasoning: ${task.term?.toString() || task.toString()}. Please provide insights or conclusions.`;
+            case 'no_results':
+                return `The following task has not been resolved: ${task.term?.toString() || task.toString()}. Please provide relevant reasoning or conclusions.`;
+            default:
+                return `Task: ${task.term?.toString() || task.toString()}. Context: ${JSON.stringify({}).substring(0, 100)}. Please provide reasoning.`;
         }
     }
 
@@ -284,7 +388,7 @@ export class HybridReasoningEngine {
     _boostConsistentResult(nalResult, lmResult) {
         // Combine truth values when results are consistent
         const combinedTruth = {
-            f: (nalResult.truth?.f || 0.5 + lmResult.truth?.f || 0.5) / 2,
+            f: ((nalResult.truth?.f || 0.5) + (lmResult.truth?.f || 0.5)) / 2,
             c: Math.min(0.95, (nalResult.truth?.c || 0.5) + (lmResult.truth?.c || 0.5))
         };
 
@@ -330,103 +434,5 @@ export class HybridReasoningEngine {
             feedbackLoopCount: this.feedbackLoops.size,
             conflictResolverStats: this.conflictResolver.getStats()
         };
-    }
-}
-
-/**
- * Helper class for resolving conflicts between NAL and LM results
- */
-class ConflictResolver {
-    constructor() {
-        this.conflicts = [];
-        this.resolutionStrategies = new Map();
-        this.stats = {
-            conflictsDetected: 0,
-            conflictsResolved: 0,
-            resolutionMethodCounts: {}
-        };
-    }
-
-    /**
-     * Resolves conflicts between NAL, LM, and hybrid results
-     */
-    async resolveConflicts(nalResults, lmResults, hybridResults) {
-        const allResults = [...nalResults, ...lmResults, ...hybridResults];
-        const resolvedResults = [];
-        const potentialConflicts = [];
-
-        // Detect potential conflicts by comparing similar results
-        for (let i = 0; i < allResults.length; i++) {
-            for (let j = i + 1; j < allResults.length; j++) {
-                if (this._isConflicting(allResults[i], allResults[j])) {
-                    potentialConflicts.push([allResults[i], allResults[j]]);
-                    this.stats.conflictsDetected++;
-                }
-            }
-        }
-
-        if (potentialConflicts.length > 0) {
-            // Resolve each conflict
-            for (const [result1, result2] of potentialConflicts) {
-                const resolved = await this._resolvePair(result1, result2);
-                resolvedResults.push(resolved);
-                this.stats.conflictsResolved++;
-            }
-        } else {
-            // No conflicts, return all results
-            return allResults;
-        }
-
-        return resolvedResults;
-    }
-
-    /**
-     * Checks if two results are conflicting
-     */
-    _isConflicting(result1, result2) {
-        // Two results conflict if they have the same term but significantly different truth values
-        if (result1.term?.id !== result2.term?.id) {
-            return false; // Different terms, not conflicting
-        }
-
-        // Check for significant difference in truth values
-        const truthDiff = Math.abs((result1.truth?.f || 0.5) - (result2.truth?.f || 0.5));
-        return truthDiff > 0.3; // Consider conflicting if frequency differs by more than 0.3
-    }
-
-    /**
-     * Resolves a conflict between two results
-     */
-    async _resolvePair(result1, result2) {
-        // Resolution strategy: prefer result with higher confidence
-        const confidence1 = result1.truth?.c || 0.1;
-        const confidence2 = result2.truth?.c || 0.1;
-
-        if (confidence1 > confidence2) {
-            this._updateResolutionStats('confidence_based');
-            return result1;
-        } else if (confidence2 > confidence1) {
-            this._updateResolutionStats('confidence_based');
-            return result2;
-        } else {
-            // Same confidence, use other factors
-            // For now, prefer NAL results but in real implementation this could be configurable
-            this._updateResolutionStats('default_preference');
-            return result1;
-        }
-    }
-
-    /**
-     * Updates statistics for resolution method used
-     */
-    _updateResolutionStats(method) {
-        this.stats.resolutionMethodCounts[method] = (this.stats.resolutionMethodCounts[method] || 0) + 1;
-    }
-
-    /**
-     * Gets conflict resolution statistics
-     */
-    getStats() {
-        return this.stats;
     }
 }

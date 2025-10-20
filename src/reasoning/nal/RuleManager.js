@@ -16,26 +16,12 @@ export class RuleManager {
         // Store the rule
         this._rules.set(rule.id, rule);
 
-        // Add to category
-        const categorySet = this._categories.get(category) || new Set();
-        categorySet.add(rule.id);
-        this._categories.set(category, categorySet);
-
-        // Add to groups
-        for (const group of groups) {
-            const groupSet = this._ruleGroups.get(group) || new Set();
-            groupSet.add(rule.id);
-            this._ruleGroups.set(group, groupSet);
-        }
+        // Add to category and groups
+        this._addToCategory(rule.id, category);
+        this._addToGroups(rule.id, groups);
 
         // Initialize performance metrics
-        this._performanceMetrics.set(rule.id, {
-            applications: 0,
-            successes: 0,
-            failures: 0,
-            avgTime: 0,
-            lastApplied: null
-        });
+        this._initializeMetrics(rule.id);
 
         // Enable the rule by default
         this._enabledRules.add(rule.id);
@@ -43,12 +29,39 @@ export class RuleManager {
         return this;
     }
 
+    _addToCategory(ruleId, category) {
+        const categorySet = this._categories.get(category) || new Set();
+        categorySet.add(ruleId);
+        this._categories.set(category, categorySet);
+    }
+
+    _addToGroups(ruleId, groups) {
+        for (const group of groups) {
+            const groupSet = this._ruleGroups.get(group) || new Set();
+            groupSet.add(ruleId);
+            this._ruleGroups.set(group, groupSet);
+        }
+    }
+
+    _initializeMetrics(ruleId) {
+        this._performanceMetrics.set(ruleId, {
+            applications: 0,
+            successes: 0,
+            failures: 0,
+            avgTime: 0,
+            lastApplied: null
+        });
+    }
+
     unregister(ruleId) {
         if (!this._rules.has(ruleId)) return false;
 
-        const rule = this._rules.get(ruleId);
-
         // Remove from all collections
+        this._removeFromCollections(ruleId);
+        return true;
+    }
+
+    _removeFromCollections(ruleId) {
         this._rules.delete(ruleId);
         this._enabledRules.delete(ruleId);
         this._performanceMetrics.delete(ruleId);
@@ -65,15 +78,12 @@ export class RuleManager {
             ruleIds.delete(ruleId);
             if (ruleIds.size === 0) this._ruleGroups.delete(group);
         }
-
-        return true;
     }
 
     enable(ruleId) {
         if (this._rules.has(ruleId)) {
             this._enabledRules.add(ruleId);
-            const rule = this._rules.get(ruleId);
-            if (rule.enable) this._rules.set(ruleId, rule.enable());
+            this._updateRuleInstance(ruleId, 'enable');
         }
         return this;
     }
@@ -81,10 +91,16 @@ export class RuleManager {
     disable(ruleId) {
         if (this._rules.has(ruleId)) {
             this._enabledRules.delete(ruleId);
-            const rule = this._rules.get(ruleId);
-            if (rule.disable) this._rules.set(ruleId, rule.disable());
+            this._updateRuleInstance(ruleId, 'disable');
         }
         return this;
+    }
+
+    _updateRuleInstance(ruleId, operation) {
+        const rule = this._rules.get(ruleId);
+        if (rule[operation]) {
+            this._rules.set(ruleId, rule[operation]());
+        }
     }
 
     enableCategory(category) {
@@ -122,7 +138,7 @@ export class RuleManager {
     getEnabled() {
         return Array.from(this._enabledRules)
             .map(id => this._rules.get(id))
-            .filter(rule => rule !== undefined);
+            .filter(Boolean);
     }
 
     getByCategory(category) {
@@ -131,7 +147,7 @@ export class RuleManager {
 
         return Array.from(ruleIds)
             .map(id => this._rules.get(id))
-            .filter(rule => rule !== undefined);
+            .filter(Boolean);
     }
 
     getByGroup(group) {
@@ -140,7 +156,7 @@ export class RuleManager {
 
         return Array.from(ruleIds)
             .map(id => this._rules.get(id))
-            .filter(rule => rule !== undefined);
+            .filter(Boolean);
     }
 
     addValidator(ruleId, validator) {
@@ -157,8 +173,7 @@ export class RuleManager {
         const metrics = this._performanceMetrics.get(ruleId);
         if (metrics) {
             metrics.applications++;
-            if (success) metrics.successes++;
-            else metrics.failures++;
+            metrics[success ? 'successes' : 'failures']++;
 
             // Update average time
             metrics.avgTime = (metrics.avgTime * (metrics.applications - 1) + executionTime) / metrics.applications;
@@ -173,35 +188,33 @@ export class RuleManager {
     getAggregatedMetrics() {
         const totalRules = this._rules.size;
         const enabledCount = this._enabledRules.size;
-        const categories = Array.from(this._categories.keys());
-        const groups = Array.from(this._ruleGroups.keys());
 
         // Calculate overall performance
         let totalApplications = 0;
         let totalSuccesses = 0;
         let totalFailures = 0;
-        let avgTime = 0;
+        let totalAvgTime = 0;
         let completedMetrics = 0;
 
-        for (const [ruleId, metrics] of this._performanceMetrics.entries()) {
+        for (const metrics of this._performanceMetrics.values()) {
             totalApplications += metrics.applications;
             totalSuccesses += metrics.successes;
             totalFailures += metrics.failures;
 
             if (metrics.applications > 0) {
-                avgTime += metrics.avgTime;
+                totalAvgTime += metrics.avgTime;
                 completedMetrics++;
             }
         }
 
-        if (completedMetrics > 0) avgTime = avgTime / completedMetrics;
+        const avgTime = completedMetrics > 0 ? totalAvgTime / completedMetrics : 0;
 
         return {
             totalRules,
             enabledCount,
             disabledCount: totalRules - enabledCount,
-            categories,
-            groups,
+            categories: Array.from(this._categories.keys()),
+            groups: Array.from(this._ruleGroups.keys()),
             performance: {
                 totalApplications,
                 totalSuccesses,
@@ -212,33 +225,36 @@ export class RuleManager {
     }
 
     async applyAllRules(task, context = {}) {
-        const results = [];
         const enabledRules = this.getEnabled();
-
-        // Sort rules by priority
         const sortedRules = sortByProperty(enabledRules, 'priority', true);
 
+        const results = [];
         for (const rule of sortedRules) {
             if (rule.canApply && rule.canApply(task, context)) {
-                try {
-                    const start = performance.now();
-                    const {results: ruleResults, rule: updatedRule} = await rule.apply(task, context);
-
-                    // Update metrics
-                    this.updateMetrics(rule.id, true, performance.now() - start);
-
-                    // Update the rule in the registry if it changed
-                    if (updatedRule && updatedRule !== rule) this._rules.set(rule.id, updatedRule);
-
-                    results.push(...ruleResults);
-                } catch (error) {
-                    // Update failure metrics
-                    this.updateMetrics(rule.id, false, performance.now() - start);
-                    console.error(`Rule ${rule.id} failed:`, error);
-                }
+                const ruleResult = await this._applySingleRule(rule, task, context);
+                results.push(...ruleResult);
             }
         }
 
         return results;
+    }
+
+    async _applySingleRule(rule, task, context) {
+        const start = performance.now();
+        try {
+            const {results: ruleResults, rule: updatedRule} = await rule.apply(task, context);
+
+            // Update metrics and rule instance if changed
+            this.updateMetrics(rule.id, true, performance.now() - start);
+            if (updatedRule && updatedRule !== rule) {
+                this._rules.set(rule.id, updatedRule);
+            }
+
+            return ruleResults;
+        } catch (error) {
+            this.updateMetrics(rule.id, false, performance.now() - start);
+            console.error(`Rule ${rule.id} failed:`, error);
+            return [];
+        }
     }
 }

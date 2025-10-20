@@ -51,9 +51,9 @@ export class RuleCache {
     set(ruleId, task, result, context = {}) {
         const key = this._createKey(ruleId, task, context);
 
-        // Check if we need to evict an item
+        // Evict if necessary
         if (this.cache.size >= this.capacity) {
-            this._evict();
+            this._evictLRU();
         }
 
         this.cache.set(key, result);
@@ -63,7 +63,7 @@ export class RuleCache {
     /**
      * Evicts the least recently used item
      */
-    _evict() {
+    _evictLRU() {
         let oldestKey = null;
         let oldestTime = Date.now();
 
@@ -95,8 +95,8 @@ export class RuleCache {
      * Gets cache statistics
      */
     getStats() {
-        const hitRate = this.stats.hits + this.stats.misses > 0 ?
-            this.stats.hits / (this.stats.hits + this.stats.misses) : 0;
+        const totalRequests = this.stats.hits + this.stats.misses;
+        const hitRate = totalRequests > 0 ? this.stats.hits / totalRequests : 0;
 
         return {
             ...this.stats,
