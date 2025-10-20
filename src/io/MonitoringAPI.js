@@ -24,50 +24,50 @@ export class MonitoringAPI {
     }
     
     _setupEventListeners() {
-        // Listen to NAR events and broadcast to WebSocket clients
-        this.nar.on('cycle.completed', (cycleData) => {
-            this.metrics.cycleCount++;
-            this._broadcastEvent('cycle.completed', {
-                cycle: this.metrics.cycleCount,
-                data: cycleData,
-                timestamp: Date.now()
-            });
-        });
+        const eventHandlers = {
+            'cycle.completed': (cycleData) => {
+                this.metrics.cycleCount++;
+                this._broadcastEvent('cycle.completed', {
+                    cycle: this.metrics.cycleCount,
+                    data: cycleData,
+                    timestamp: Date.now()
+                });
+            },
+            'task.input': (taskData) => {
+                this.metrics.taskCount++;
+                this._broadcastEvent('task.input', {
+                    ...taskData,
+                    timestamp: Date.now()
+                });
+            },
+            'task.added': (taskData) => {
+                this._broadcastEvent('task.added', {
+                    ...taskData,
+                    timestamp: Date.now()
+                });
+            },
+            'system.started': (systemData) => {
+                this._broadcastEvent('system.started', {
+                    ...systemData,
+                    timestamp: Date.now()
+                });
+            },
+            'system.stopped': (systemData) => {
+                this._broadcastEvent('system.stopped', {
+                    ...systemData,
+                    timestamp: Date.now()
+                });
+            },
+            'system.reset': (systemData) => {
+                this._broadcastEvent('system.reset', {
+                    ...systemData,
+                    timestamp: Date.now()
+                });
+            }
+        };
         
-        this.nar.on('task.input', (taskData) => {
-            this.metrics.taskCount++;
-            this._broadcastEvent('task.input', {
-                ...taskData,
-                timestamp: Date.now()
-            });
-        });
-        
-        this.nar.on('task.added', (taskData) => {
-            this._broadcastEvent('task.added', {
-                ...taskData,
-                timestamp: Date.now()
-            });
-        });
-        
-        this.nar.on('system.started', (systemData) => {
-            this._broadcastEvent('system.started', {
-                ...systemData,
-                timestamp: Date.now()
-            });
-        });
-        
-        this.nar.on('system.stopped', (systemData) => {
-            this._broadcastEvent('system.stopped', {
-                ...systemData,
-                timestamp: Date.now()
-            });
-        });
-        
-        this.nar.on('system.reset', (systemData) => {
-            this._broadcastEvent('system.reset', {
-                ...systemData,
-                timestamp: Date.now()
-            });
+        Object.entries(eventHandlers).forEach(([event, handler]) => {
+            this.nar.on(event, handler);
         });
     }
     
@@ -182,10 +182,7 @@ export class MonitoringAPI {
         return concepts;
     }
     
-    // Endpoint to get recent tasks
     getRecentTasks(limit = 50) {
-        // This would require the memory system to track recent tasks
-        // For now, we'll return a sample of beliefs
         const allBeliefs = this.nar.getBeliefs();
         return allBeliefs.slice(-limit).map(task => ({
             term: task.term.name,

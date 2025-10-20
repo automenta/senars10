@@ -15,23 +15,18 @@ export class ReplInterface {
             startTime: Date.now()
         };
         
-        this.commands = new Map([
-            ['help', this._help.bind(this)],
-            ['h', this._help.bind(this)],
-            ['?', this._help.bind(this)],
-            ['quit', this._quit.bind(this)],
-            ['q', this._quit.bind(this)],
-            ['exit', this._quit.bind(this)],
-            ['status', this._status.bind(this)],
-            ['s', this._status.bind(this)],
-            ['stats', this._status.bind(this)],
-            ['memory', this._memory.bind(this)],
-            ['m', this._memory.bind(this)],
-            ['trace', this._trace.bind(this)],
-            ['t', this._trace.bind(this)],
-            ['reset', this._reset.bind(this)],
-            ['r', this._reset.bind(this)]
-        ]);
+        this.commands = new Map();
+        const cmdMap = {
+            help: ['help', 'h', '?'],
+            quit: ['quit', 'q', 'exit'],
+            status: ['status', 's', 'stats'],
+            memory: ['memory', 'm'],
+            trace: ['trace', 't'],
+            reset: ['reset', 'r']
+        };
+        Object.entries(cmdMap).forEach(([method, aliases]) => {
+            aliases.forEach(alias => this.commands.set(alias, this[`_${method}`].bind(this)));
+        });
     }
 
     async start() {
