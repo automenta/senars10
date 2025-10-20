@@ -6,21 +6,10 @@ export class RuleSet {
         Object.freeze(this);
     }
 
-    get name() {
-        return this._name;
-    }
-
-    get rules() {
-        return Array.from(this._rules);
-    }
-
-    get enabled() {
-        return this._enabled;
-    }
-
-    get size() {
-        return this._rules.size;
-    }
+    get name() { return this._name; }
+    get rules() { return Array.from(this._rules); }
+    get enabled() { return this._enabled; }
+    get size() { return this._rules.size; }
 
     add(rule) {
         if (!rule || typeof rule.id !== 'string') return this;

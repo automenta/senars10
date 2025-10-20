@@ -19,17 +19,9 @@ export class NALRule extends Rule {
         Object.freeze(this);
     }
 
-    get premises() {
-        return this._premises;
-    }
-
-    get conclusion() {
-        return this._conclusion;
-    }
-
-    get truthFunction() {
-        return this._truthFunction;
-    }
+    get premises() { return this._premises; }
+    get conclusion() { return this._conclusion; }
+    get truthFunction() { return this._truthFunction; }
 
     /**
      * Applies the rule to a given set of premise tasks.
@@ -51,8 +43,7 @@ export class NALRule extends Rule {
             const term = premises[i].term;
 
             if (!this._unifyPatterns(pattern, term, combinedBindings)) {
-                // Unification failed for one of the premises with the current bindings.
-                return [];
+                return []; // Unification failed
             }
         }
 

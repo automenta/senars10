@@ -30,23 +30,14 @@ export class LMRule extends Rule {
         this._freeze();
     }
 
-    get promptTemplate() {
-        return this._promptTemplate;
-    }
-
-    get responseProcessor() {
-        return this._responseProcessor;
-    }
-
-    get lmConfig() {
-        return {...this._lmConfig};
-    }
+    get promptTemplate() { return this._promptTemplate; }
+    get responseProcessor() { return this._responseProcessor; }
+    get lmConfig() { return {...this._lmConfig}; }
 
     /**
      * Checks if this rule can be applied to the given task
      */
     _matches(task) {
-        // Check if LM is available and task is relevant
         return this._enabled && this.lm && this._isRelevant(task);
     }
 
@@ -54,7 +45,6 @@ export class LMRule extends Rule {
      * Determines if the task is relevant for this rule
      */
     _isRelevant(task) {
-        // Basic relevance check - can be overridden by subclasses
         return true;
     }
 
@@ -62,18 +52,19 @@ export class LMRule extends Rule {
      * Applies the rule to the given task
      */
     async _apply(task) {
+        if (!this.lm) {
+            throw new Error(`LM unavailable for rule ${this.id}`);
+        }
+
         const startTime = Date.now();
         try {
-            if (!this.lm) {
-                throw new Error(`LM unavailable for rule ${this.id}`);
-            }
-
             const prompt = this._buildPrompt(task);
             const response = await this._callLanguageModel(prompt);
             const processedResponse = await this._responseProcessor(response, task);
 
             // Update LM stats
-            this._updateLMStats(prompt.length + (response?.length || 0), Date.now() - startTime);
+            const tokens = prompt.length + (response?.length || 0);
+            this._updateLMStats(tokens, Date.now() - startTime);
 
             return Array.isArray(processedResponse) ? processedResponse : [processedResponse];
         } catch (error) {
@@ -87,7 +78,14 @@ export class LMRule extends Rule {
      * Builds the prompt for the language model based on the task
      */
     _buildPrompt(task) {
-        const templateVars = {
+        const templateVars = this._getTemplateVars(task);
+        return this._promptTemplate.replace(/\{\{(\w+)\}\}/g, (match, key) =>
+            templateVars[key] !== undefined ? templateVars[key] : match
+        );
+    }
+
+    _getTemplateVars(task) {
+        return {
             taskTerm: task.term?.toString() || 'unknown',
             taskType: task.type || 'unknown',
             taskTruth: task.truth ?
@@ -95,10 +93,6 @@ export class LMRule extends Rule {
                 'no truth',
             context: this._getContext(task)
         };
-
-        return this._promptTemplate.replace(/\{\{(\w+)\}\}/g, (match, key) =>
-            templateVars[key] !== undefined ? templateVars[key] : match
-        );
     }
 
     /**

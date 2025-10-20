@@ -18,29 +18,12 @@ export class Rule {
         });
     }
 
-    get id() {
-        return this._id;
-    }
-
-    get type() {
-        return this._type;
-    }
-
-    get priority() {
-        return this._priority;
-    }
-
-    get enabled() {
-        return this._enabled;
-    }
-
-    get config() {
-        return this._config;
-    }
-
-    get metrics() {
-        return this._metrics;
-    }
+    get id() { return this._id; }
+    get type() { return this._type; }
+    get priority() { return this._priority; }
+    get enabled() { return this._enabled; }
+    get config() { return this._config; }
+    get metrics() { return this._metrics; }
 
     // Immutable state modifiers
     enable() {
@@ -105,8 +88,7 @@ export class Rule {
 
     _updateMetrics(success, time) {
         const metrics = Metrics.update(this._metrics, success, time);
-        const newRule = this._clone({metrics});
-        return newRule;
+        return this._clone({metrics});
     }
 
     // Freeze the rule instance - should be called at the end of subclass constructors
