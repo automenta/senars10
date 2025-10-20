@@ -124,10 +124,10 @@ Available commands:
   :reset, :r        - Reset the NAR system
 
 Narsese input examples:
-  <bird --> animal>.                     (inheritance statement)
-  <robin --> bird>. %1.0;0.9%           (with truth values)
-  <robin --> animal>?                   (question)
-  <robin --> fly>!                      (goal)
+  (bird --> animal).                     (inheritance statement)
+  (robin --> bird). %1.0;0.9%           (with truth values)
+  (robin --> animal)?                   (question)
+  (robin --> fly)!                      (goal)
         `.trim();
     }
     

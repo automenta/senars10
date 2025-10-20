@@ -124,7 +124,7 @@ async function runPerformanceBenchmarks() {
     await benchmark.runBenchmark('NAR Input Processing', async (i) => {
         // We'll time the parsing part without storing to avoid memory issues
         try {
-            const input = `<term_${i} --> property_${i}>. %${(i % 100) / 100};0.9%`;
+            const input = `(term_${i} --> property_${i}). %${(i % 100) / 100};0.9%`;
             return nar._parser.parse(input);
         } catch (e) {
             // If parsing fails, return a simple value

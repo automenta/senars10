@@ -29,8 +29,8 @@ async function testMonitoringAPI() {
         
         // Add some inputs to generate events
         console.log('\nAdding test inputs to generate events...');
-        await nar.input('<test --> concept1>. %0.9;0.8%');
-        await nar.input('<test --> concept2>?');
+        await nar.input('(test --> concept1). %0.9;0.8%');
+        await nar.input('(test --> concept2)?');
         
         // Let it run for a few seconds to generate events
         await new Promise(resolve => setTimeout(resolve, 2000));

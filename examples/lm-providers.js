@@ -37,8 +37,8 @@ console.log(`   Natural: "Cats are animals"`);
 console.log(`   Narsese: "${naturalToNarsese.narsese}" (confidence: ${naturalToNarsese.confidence})`);
 
 // Test Narsese to natural language
-const narseseToNatural = translator.fromNarsese('<cat --> animal>.');
-console.log(`   Narsese: "<cat --> animal>."`);
+const narseseToNatural = translator.fromNarsese('(cat --> animal).');
+console.log(`   Narsese: "(cat --> animal)."`);
 console.log(`   Natural: "${narseseToNatural.text}" (confidence: ${narseseToNatural.confidence})`);
 
 // Show quality metrics

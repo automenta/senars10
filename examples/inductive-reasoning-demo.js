@@ -17,7 +17,7 @@ async function inductiveDemo() {
     await nar.input('<swan3 --> [white]>. %1.0;0.8%');
     
     console.log('Input: This is a swan');
-    await nar.input('<this_swan --> swan>. %1.0;0.9%');
+    await nar.input('(this_swan --> swan). %1.0;0.9%');
     
     console.log('\nRunning reasoning cycles to explore inductive inference...\n');
     await nar.runCycles(15);

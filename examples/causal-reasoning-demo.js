@@ -12,10 +12,10 @@ async function causalDemo() {
     const nar = new NAR({lm: {enabled: false}});
     
     console.log('Input: If it rains, the ground gets wet');
-    await nar.input('<(&/, <rains =/> #1>, <?1 --> [raining]>) =/> <ground --> [wet]>>. %0.9;0.8%');
+    await nar.input('((&/, (rains =/> #1), (?1 --> [raining])) =/> (ground --> [wet])). %0.9;0.8%');
     
     console.log('Input: It is raining now');
-    await nar.input('<rains =/> [raining]>. %1.0;0.9%');
+    await nar.input('(rains =/> [raining]). %1.0;0.9%');
     
     console.log('\nRunning reasoning cycles...\n');
     await nar.runCycles(10);

@@ -68,10 +68,10 @@ async function runDemo() {
     
     // Example demonstration of syllogistic reasoning
     console.log('\nInput: All birds are animals');
-    await nar.input('<bird --> animal>. %1.0;0.9%');
+    await nar.input('(bird --> animal). %1.0;0.9%');
     
     console.log('Input: Tweety is a bird');
-    await nar.input('<Tweety --> bird>. %1.0;0.8%');
+    await nar.input('(Tweety --> bird). %1.0;0.8%');
     
     console.log('\nRunning reasoning cycles...');
     await nar.runCycles(5);

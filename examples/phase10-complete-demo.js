@@ -22,10 +22,10 @@ async function runCompleteDemo() {
     // 2. Demonstrate core reasoning capabilities
     console.log('2. Demonstrating core NAL reasoning capabilities...\n');
     console.log('Input: All humans are mortal');
-    await nar.input('<human --> mortal>. %1.0;0.9%');
+    await nar.input('(human --> mortal). %1.0;0.9%');
     
     console.log('Input: Socrates is human');
-    await nar.input('<Socrates --> human>. %1.0;0.85%');
+    await nar.input('(Socrates --> human). %1.0;0.85%');
     
     console.log('Running reasoning cycles...');
     await nar.runCycles(3);

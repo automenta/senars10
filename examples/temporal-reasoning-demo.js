@@ -12,10 +12,10 @@ async function temporalDemo() {
     const nar = new NAR({lm: {enabled: false}});
     
     console.log('Input: A happens before B');
-    await nar.input('<A =/> B>. %0.9;0.8%');
+    await nar.input('(A =/> B). %0.9;0.8%');
     
     console.log('Input: B happens before C');
-    await nar.input('<B =/> C>. %0.9;0.7%');
+    await nar.input('(B =/> C). %0.9;0.7%');
     
     console.log('\nRunning reasoning cycles to explore temporal transitivity...\n');
     await nar.runCycles(15);

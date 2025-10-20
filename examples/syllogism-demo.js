@@ -12,10 +12,10 @@ async function syllogismDemo() {
     const nar = new NAR({lm: {enabled: false}});
     
     console.log('Input: All men are mortal');
-    await nar.input('<man --> mortal>. %1.0;0.9%');
+    await nar.input('(man --> mortal). %1.0;0.9%');
     
     console.log('Input: Socrates is a man');
-    await nar.input('<Socrates --> man>. %1.0;0.8%');
+    await nar.input('(Socrates --> man). %1.0;0.8%');
     
     console.log('\nRunning reasoning cycles...\n');
     await nar.runCycles(10);

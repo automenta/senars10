@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import WebSocket from 'ws';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
 
 export class MonitoringAPI {
     constructor(nar, options = {}) {
@@ -72,8 +73,8 @@ export class MonitoringAPI {
     
     async start() {
         return new Promise((resolve, reject) => {
-            this.server = require('http').createServer();
-            this.wss = new WebSocket.Server({ server: this.server });
+            this.server = createServer();
+            this.wss = new WebSocketServer({ server: this.server });
             
             this.wss.on('connection', (ws, req) => {
                 this.clients.add(ws);
