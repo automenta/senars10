@@ -1,0 +1,335 @@
+/**
+ * @file src/tools/FileOperationsTool.js
+ * @description Tool for file operations with safety validations
+ */
+
+import { BaseTool } from './BaseTool.js';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+/**
+ * Tool for safe file operations (read, write, append, list)
+ * Implements safety restrictions to prevent malicious file access
+ */
+export class FileOperationsTool extends BaseTool {
+    constructor(config = {}) {
+        super(config);
+        this.name = 'FileOperationsTool';
+        
+        // Define safe base directories for operations
+        this.safeBaseDirs = config.safeBaseDirs || [
+            path.join(process.cwd(), 'work'),
+            path.join(process.cwd(), 'data'),
+            path.join(process.cwd(), 'temp')
+        ];
+        
+        // Default file size limit (10MB)
+        this.maxFileSize = config.maxFileSize || 10 * 1024 * 1024;
+    }
+
+    /**
+     * Execute file operations based on the operation type
+     * @param {object} params - Tool parameters
+     * @param {object} context - Execution context
+     * @returns {Promise<any>} - Operation result
+     */
+    async execute(params, context) {
+        const { operation, filePath, content, encoding = 'utf8' } = params;
+        
+        if (!operation || !filePath) {
+            throw new Error('Operation and filePath are required parameters');
+        }
+
+        // Ensure the file path is within safe directories
+        this._validateFilePath(filePath);
+
+        switch (operation.toLowerCase()) {
+            case 'read':
+                return await this._readFile(filePath, encoding);
+            case 'write':
+                if (!content) throw new Error('Content is required for write operation');
+                return await this._writeFile(filePath, content, encoding);
+            case 'append':
+                if (!content) throw new Error('Content is required for append operation');
+                return await this._appendFile(filePath, content, encoding);
+            case 'delete':
+                return await this._deleteFile(filePath);
+            case 'list':
+                return await this._listDirectory(path.dirname(filePath));
+            case 'stat':
+                return await this._getFileInfo(filePath);
+            default:
+                throw new Error(`Unsupported operation: ${operation}. Supported operations: read, write, append, delete, list, stat`);
+        }
+    }
+
+    /**
+     * Read file content
+     * @private
+     */
+    async _readFile(filePath, encoding) {
+        try {
+            // Check file size first to prevent reading huge files
+            const stats = await fs.stat(filePath);
+            if (stats.size > this.maxFileSize) {
+                throw new Error(`File exceeds maximum size limit (${this.maxFileSize} bytes)`);
+            }
+            
+            const content = await fs.readFile(filePath, encoding);
+            return {
+                success: true,
+                operation: 'read',
+                filePath,
+                content,
+                size: stats.size,
+                type: 'file'
+            };
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                throw new Error(`File not found: ${filePath}`);
+            }
+            throw new Error(`Failed to read file: ${error.message}`);
+        }
+    }
+
+    /**
+     * Write content to file
+     * @private
+     */
+    async _writeFile(filePath, content, encoding) {
+        try {
+            // Ensure directory exists
+            const dir = path.dirname(filePath);
+            await fs.mkdir(dir, { recursive: true });
+            
+            // Convert content to string if not already
+            const fileContent = typeof content === 'string' ? content : JSON.stringify(content);
+            
+            await fs.writeFile(filePath, fileContent, encoding);
+            
+            return {
+                success: true,
+                operation: 'write',
+                filePath,
+                size: Buffer.byteLength(fileContent, encoding),
+                type: 'file'
+            };
+        } catch (error) {
+            throw new Error(`Failed to write file: ${error.message}`);
+        }
+    }
+
+    /**
+     * Append content to file
+     * @private
+     */
+    async _appendFile(filePath, content, encoding) {
+        try {
+            // Convert content to string if not already
+            const fileContent = typeof content === 'string' ? content : JSON.stringify(content);
+            
+            await fs.appendFile(filePath, fileContent, encoding);
+            
+            return {
+                success: true,
+                operation: 'append',
+                filePath,
+                size: Buffer.byteLength(fileContent, encoding),
+                type: 'file'
+            };
+        } catch (error) {
+            throw new Error(`Failed to append to file: ${error.message}`);
+        }
+    }
+
+    /**
+     * Delete file
+     * @private
+     */
+    async _deleteFile(filePath) {
+        try {
+            await fs.unlink(filePath);
+            
+            return {
+                success: true,
+                operation: 'delete',
+                filePath,
+                type: 'file'
+            };
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                throw new Error(`File not found: ${filePath}`);
+            }
+            throw new Error(`Failed to delete file: ${error.message}`);
+        }
+    }
+
+    /**
+     * List directory contents
+     * @private
+     */
+    async _listDirectory(dirPath) {
+        try {
+            // Validate directory path
+            this._validateFilePath(dirPath);
+            
+            const items = await fs.readdir(dirPath, { withFileTypes: true });
+            
+            const fileList = items.map(item => ({
+                name: item.name,
+                type: item.isDirectory() ? 'directory' : 'file',
+                path: path.join(dirPath, item.name)
+            }));
+            
+            return {
+                success: true,
+                operation: 'list',
+                directory: dirPath,
+                files: fileList,
+                count: fileList.length
+            };
+        } catch (error) {
+            throw new Error(`Failed to list directory: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get file information
+     * @private
+     */
+    async _getFileInfo(filePath) {
+        try {
+            const stats = await fs.stat(filePath);
+            
+            return {
+                success: true,
+                operation: 'stat',
+                filePath,
+                info: {
+                    size: stats.size,
+                    isFile: stats.isFile(),
+                    isDirectory: stats.isDirectory(),
+                    isSymbolicLink: stats.isSymbolicLink(),
+                    atime: stats.atime.toISOString(),
+                    mtime: stats.mtime.toISOString(),
+                    ctime: stats.ctime.toISOString(),
+                    birthtime: stats.birthtime.toISOString()
+                },
+                type: 'file'
+            };
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                throw new Error(`File not found: ${filePath}`);
+            }
+            throw new Error(`Failed to get file info: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get tool description
+     */
+    getDescription() {
+        return 'Tool for secure file operations including read, write, append, delete, list, and stat operations. Only operates within safe directories.';
+    }
+
+    /**
+     * Get parameter schema
+     */
+    getParameterSchema() {
+        return {
+            type: 'object',
+            properties: {
+                operation: {
+                    type: 'string',
+                    enum: ['read', 'write', 'append', 'delete', 'list', 'stat'],
+                    description: 'The file operation to perform'
+                },
+                filePath: {
+                    type: 'string',
+                    description: 'The path to the file or directory'
+                },
+                content: {
+                    type: 'string',
+                    description: 'Content to write or append (required for write/append operations)'
+                },
+                encoding: {
+                    type: 'string',
+                    default: 'utf8',
+                    description: 'File encoding (default: utf8)'
+                }
+            },
+            required: ['operation', 'filePath']
+        };
+    }
+
+    /**
+     * Validate parameters
+     */
+    validate(params) {
+        const errors = [];
+
+        if (!params.operation) {
+            errors.push('Operation is required');
+        } else if (!['read', 'write', 'append', 'delete', 'list', 'stat'].includes(params.operation.toLowerCase())) {
+            errors.push('Invalid operation. Must be one of: read, write, append, delete, list, stat');
+        }
+
+        if (!params.filePath) {
+            errors.push('filePath is required');
+        } else {
+            try {
+                this._validateFilePath(params.filePath);
+            } catch (error) {
+                errors.push(error.message);
+            }
+        }
+
+        if (params.operation === 'write' || params.operation === 'append') {
+            if (params.content === undefined) {
+                errors.push('Content is required for write/append operations');
+            }
+        }
+
+        return {
+            valid: errors.length === 0,
+            errors
+        };
+    }
+
+    /**
+     * Get tool capabilities
+     */
+    getCapabilities() {
+        return ['file-read', 'file-write', 'file-append', 'file-delete', 'file-list', 'file-stat'];
+    }
+
+    /**
+     * Get tool category
+     */
+    getCategory() {
+        return 'file-operations';
+    }
+
+    /**
+     * Validate that the file path is within safe directories
+     * @private
+     */
+    _validateFilePath(filePath) {
+        const resolvedPath = path.resolve(filePath);
+        const isSafe = this.safeBaseDirs.some(safeDir => {
+            const resolvedSafeDir = path.resolve(safeDir);
+            return resolvedPath.startsWith(resolvedSafeDir + path.sep) || resolvedPath === resolvedSafeDir;
+        });
+
+        if (!isSafe) {
+            throw new Error(`File path is not within safe directories: ${filePath}`);
+        }
+
+        // Additional safety checks
+        if (filePath.includes('..') || filePath.includes('../') || filePath.includes('..\\')) {
+            throw new Error(`Invalid file path: ${filePath}. Path traversal not allowed.`);
+        }
+
+        return true;
+    }
+}

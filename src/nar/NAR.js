@@ -16,6 +16,8 @@ import {Focus} from '../memory/Focus.js';
 import {LM} from '../lm/LM.js';
 import {Task} from '../task/Task.js';
 import {Truth} from '../Truth.js';
+import {ToolIntegration} from '../tools/ToolIntegration.js';
+import {ExplanationService} from '../tools/ExplanationService.js';
 
 export class NAR {
     constructor(config = {}) {
@@ -61,6 +63,24 @@ export class NAR {
             reasoningStrategy: reasoningStrategy,
             termFactory: this._termFactory
         });
+
+        // Initialize tool integration
+        this._tools = null;
+        this._toolIntegration = null;
+        this._explanationService = null;
+        
+        // Initialize tool integration if enabled
+        if (config.tools?.enabled !== false) {
+            this._toolIntegration = new ToolIntegration(config.tools || {});
+            this._toolIntegration.connectToReasoningCore(this);
+            
+            // Initialize explanation service with LM if available
+            const explanationConfig = {
+                lm: this._lm || null,
+                ...config.tools?.explanation
+            };
+            this._explanationService = new ExplanationService(explanationConfig);
+        }
 
         this._isRunning = false;
         this._cycleInterval = null;
@@ -287,5 +307,109 @@ export class NAR {
         for (const task of this._taskManager.processPendingTasks(Date.now())) {
             this._eventBus.emit('task.added', {task});
         }
+    }
+    
+    // Tool Integration Methods
+    get tools() {
+        return this._toolIntegration;
+    }
+    
+    async initializeTools() {
+        if (this._toolIntegration) {
+            await this._toolIntegration.initializeTools(this);
+            this.logger.info('Tools initialized successfully');
+            return true;
+        }
+        return false;
+    }
+    
+    async executeTool(toolId, params, context = {}) {
+        if (!this._toolIntegration) {
+            throw new Error('Tool integration is not enabled');
+        }
+        
+        return await this._toolIntegration.executeTool(toolId, params, {
+            nar: this,
+            memory: this._memory,
+            timestamp: Date.now(),
+            ...context
+        });
+    }
+    
+    async executeTools(toolCalls, context = {}) {
+        if (!this._toolIntegration) {
+            throw new Error('Tool integration is not enabled');
+        }
+        
+        return await this._toolIntegration.executeTools(toolCalls, {
+            nar: this,
+            memory: this._memory,
+            timestamp: Date.now(),
+            ...context
+        });
+    }
+    
+    getAvailableTools() {
+        if (!this._toolIntegration) {
+            return [];
+        }
+        return this._toolIntegration.getAvailableTools();
+    }
+    
+    // Tool Explanation Methods
+    get explanationService() {
+        return this._explanationService;
+    }
+    
+    async explainToolResult(toolResult, context = {}) {
+        if (!this._explanationService) {
+            throw new Error('Explanation service is not enabled');
+        }
+        
+        return await this._explanationService.explainToolResult(toolResult, {
+            nar: this,
+            memory: this._memory,
+            timestamp: Date.now(),
+            ...context
+        });
+    }
+    
+    async explainToolResults(toolResults, context = {}) {
+        if (!this._explanationService) {
+            throw new Error('Explanation service is not enabled');
+        }
+        
+        return await this._explanationService.explainToolResults(toolResults, {
+            nar: this,
+            memory: this._memory,
+            timestamp: Date.now(),
+            ...context
+        });
+    }
+    
+    async summarizeToolExecution(toolResults, context = {}) {
+        if (!this._explanationService) {
+            throw new Error('Explanation service is not enabled');
+        }
+        
+        return await this._explanationService.summarizeToolExecution(toolResults, {
+            nar: this,
+            memory: this._memory,
+            timestamp: Date.now(),
+            ...context
+        });
+    }
+    
+    async assessToolResults(toolResults, context = {}) {
+        if (!this._explanationService) {
+            throw new Error('Explanation service is not enabled');
+        }
+        
+        return await this._explanationService.assessToolResults(toolResults, {
+            nar: this,
+            memory: this._memory,
+            timestamp: Date.now(),
+            ...context
+        });
     }
 }
