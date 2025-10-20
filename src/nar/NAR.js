@@ -11,6 +11,7 @@ import {ModusPonensRule} from '../reasoning/rules/modusponens.js';
 import {PRIORITY} from '../config/constants.js';
 import {Logger} from '../util/Logger.js';
 import { NaiveExhaustiveStrategy } from '../reasoning/NaiveExhaustiveStrategy.js';
+import { CoordinatedReasoningStrategy } from '../reasoning/CoordinatedReasoningStrategy.js';
 import {Focus} from '../memory/Focus.js';
 import {LM} from '../lm/LM.js';
 import {Task} from '../task/Task.js';
@@ -39,14 +40,17 @@ export class NAR {
         // Use the pre-stored LM enabled state to avoid potential config processing issues
         if (desiredLmEnabled) {
             this._lm = new LM();
-            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._termFactory, this._lm);
+            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm);
         } else {
-            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._termFactory);
+            this._ruleEngine = new RuleEngine(this._config.ruleEngine || {});
         }
 
         this._setupDefaultRules();
 
-        const reasoningStrategy = new NaiveExhaustiveStrategy();
+        // Use coordinated reasoning strategy if LM is enabled, otherwise use naive strategy
+        const reasoningStrategy = desiredLmEnabled 
+            ? new CoordinatedReasoningStrategy(this._ruleEngine, this._config.reasoning || {}) 
+            : new NaiveExhaustiveStrategy();
 
         this._cycle = new Cycle({
             memory: this._memory,

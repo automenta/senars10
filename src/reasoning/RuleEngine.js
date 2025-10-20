@@ -6,11 +6,12 @@ import {Metrics as MetricsUtil} from '../util/Metrics.js';
 import {sortByProperty} from '../util/collections.js';
 
 export class RuleEngine {
-    constructor(config = {}, lm = null) {
+    constructor(config = {}, lm = null, termFactory = null) {
         this._config = config;
         this._rules = new Map();
         this._ruleSets = new Map();
         this._lm = lm;
+        this._termFactory = termFactory;
         this.logger = Logger;
         this._metrics = MetricsUtil.create();
         this._typeMetrics = {lmRuleApplications: 0, nalRuleApplications: 0};
@@ -66,14 +67,14 @@ export class RuleEngine {
             .sort((a, b) => b.priority - a.priority); // Sort by priority descending
     }
 
-    applyRule(rule, task) {
+    applyRule(rule, task, memory = null) {
         if (!rule || !this._rules.has(rule.id)) return {results: [], rule};
 
         const startTime = Date.now();
         let success = false;
 
         try {
-            const {results, rule: updatedRule} = rule.apply(task);
+            const {results, rule: updatedRule} = rule.apply(task, memory, this._termFactory);
             this._rules.set(rule.id, updatedRule);
             success = true;
             this._incrementTypeMetric(rule);
@@ -86,16 +87,51 @@ export class RuleEngine {
         }
     }
 
-    applyRules(task, ruleIds = null, ruleType = null) {
+    applyRules(task, ruleIds = null, ruleType = null, memory = null) {
         const rulesToApply = ruleIds 
             ? this._getValidRules(ruleIds) 
             : this.getApplicableRules(task, ruleType);
             
-        return this._applyRulesWithLogging(rulesToApply, task);
+        return this._applyRulesWithLogging(rulesToApply, task, memory);
     }
 
-    applyLMRules = (task, ruleIds = null) => this.applyRules(task, ruleIds, 'lm');
-    applyNALRules = (task, ruleIds = null) => this.applyRules(task, ruleIds, 'nal');
+    applyLMRules = (task, ruleIds = null, memory = null) => this.applyRules(task, ruleIds, 'lm', memory);
+    applyNALRules = (task, ruleIds = null, memory = null) => this.applyRules(task, ruleIds, 'nal', memory);
+    
+    /**
+     * Applies both LM and NAL rules to a task and returns combined results
+     */
+    applyHybridRules(task, lmRuleIds = null, nalRuleIds = null, memory = null) {
+        const lmResults = this.applyLMRules(task, lmRuleIds, memory);
+        const nalResults = this.applyNALRules(task, nalRuleIds, memory);
+        return [...lmResults, ...nalResults];
+    }
+    
+    /**
+     * Performs coordinated reasoning between LM and NAL rules
+     * Applies LM rules first, then NAL rules on the combined results
+     */
+    async coordinateRules(task, memory = null) {
+        // Apply LM rules to original task
+        const lmResults = this.applyLMRules(task, null, memory);
+        
+        // Combine original task results with LM results
+        const allTasks = [task, ...lmResults];
+        
+        // Apply NAL rules to all tasks
+        const nalResults = allTasks.flatMap(t => this.applyNALRules(t, null, memory));
+        
+        // Optionally, apply LM rules to NAL results as well
+        const additionalLmResults = nalResults.flatMap(t => this.applyLMRules(t, null, memory));
+        
+        return {
+            initial: [task],
+            lmResults,
+            nalResults,
+            additionalLmResults,
+            all: [...lmResults, ...nalResults, ...additionalLmResults]
+        };
+    }
 
     _toggleRule = (ruleId, enable) => {
         const rule = this.getRule(ruleId);
@@ -138,10 +174,10 @@ export class RuleEngine {
         this._typeMetrics[rule instanceof LMRule ? 'lmRuleApplications' : 'nalRuleApplications']++;
     }
 
-    _applyRulesWithLogging(rules, task) {
+    _applyRulesWithLogging(rules, task, memory = null) {
         return rules.flatMap(rule => {
             try {
-                return this.applyRule(rule, task).results;
+                return this.applyRule(rule, task, memory).results;
             } catch (error) {
                 this.logger.warn(`Rule ${rule.id} failed:`, error);
                 return [];
