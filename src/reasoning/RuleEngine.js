@@ -3,10 +3,11 @@ import {Rule} from './Rule.js';
 import {LMRule} from './LMRule.js';
 import {RuleSet} from './RuleSet.js';
 import {Metrics as MetricsUtil} from '../util/Metrics.js';
+import {SequentialRuleProcessor} from './SequentialRuleProcessor.js';
 import {sortByProperty} from '../util/collections.js';
 
 export class RuleEngine {
-    constructor(config = {}, lm = null, termFactory = null) {
+    constructor(config = {}, lm = null, termFactory = null, ruleProcessor = null) {
         this._config = config;
         this._rules = new Map();
         this._ruleSets = new Map();
@@ -15,6 +16,9 @@ export class RuleEngine {
         this.logger = Logger;
         this._metrics = MetricsUtil.create();
         this._typeMetrics = {lmRuleApplications: 0, nalRuleApplications: 0};
+        
+        // Use provided rule processor or default to SequentialRuleProcessor
+        this._ruleProcessor = ruleProcessor || new SequentialRuleProcessor(config.ruleProcessor || {});
     }
 
     get rules() {
@@ -131,6 +135,15 @@ export class RuleEngine {
             additionalLmResults,
             all: [...lmResults, ...nalResults, ...additionalLmResults]
         };
+    }
+
+    /**
+     * Process a batch of rules against tasks using the configured rule processor
+     */
+    async processBatch(rules, tasks, memory = null, termFactory = null) {
+        // Use the termFactory if provided, otherwise use the stored one
+        const effectiveTermFactory = termFactory || this._termFactory;
+        return await this._ruleProcessor.process(rules, tasks, memory, effectiveTermFactory);
     }
 
     _toggleRule = (ruleId, enable) => {

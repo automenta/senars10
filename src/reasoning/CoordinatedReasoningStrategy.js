@@ -1,5 +1,5 @@
 import { ReasoningStrategy } from './ReasoningStrategy.js';
-import { RuleCooperationManager } from './RuleCooperationManager.js';
+import { CooperationEngine } from './CooperationEngine.js';
 import {Logger} from '../util/Logger.js';
 
 /**
@@ -15,13 +15,13 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
             confidenceThreshold: config.confidenceThreshold || 0.1,
             enableCrossValidation: config.enableCrossValidation !== false,
             enableFeedbackLoops: config.enableFeedbackLoops !== false,
-            enableCooperationManager: config.enableCooperationManager !== false,
+            enableCooperationEngine: config.enableCooperationEngine !== false,
             ...config
         };
         this.logger = Logger;
         
-        if (this.config.enableCooperationManager) {
-            this.cooperationManager = new RuleCooperationManager(this.config.cooperation || {});
+        if (this.config.enableCooperationEngine) {
+            this.cooperationEngine = new CooperationEngine(this.config.cooperation || {});
         }
     }
 
@@ -41,9 +41,9 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
         // Get all tasks from memory concepts
         const tasks = this._getAllTasksFromMemory(memory);
 
-        if (this.cooperationManager && this.config.enableCooperationManager) {
-            // Use cooperation manager for advanced coordination
-            return await this._executeWithCooperationManager(tasks, memory, termFactory);
+        if (this.cooperationEngine && this.config.enableCooperationEngine) {
+            // Use cooperation engine for advanced coordination
+            return await this._executeWithCooperationEngine(tasks, memory, termFactory);
         } else {
             // Use basic coordinated approach
             return await this._executeBasicCoordination(tasks, memory, termFactory);
@@ -51,13 +51,13 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
     }
 
     /**
-     * Executes reasoning using the cooperation manager for advanced coordination
+     * Executes reasoning using the cooperation engine for advanced coordination
      */
-    async _executeWithCooperationManager(tasks, memory, termFactory) {
+    async _executeWithCooperationEngine(tasks, memory, termFactory) {
         const allResults = [];
         
         for (const task of tasks) {
-            const cooperationResult = await this.cooperationManager.performCooperativeReasoning(
+            const cooperationResult = await this.cooperationEngine.performCooperativeReasoning(
                 task, 
                 this.ruleEngine, 
                 memory, 
@@ -68,8 +68,8 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
         }
 
         // Apply feedback mechanisms if enabled
-        if (this.config.enableCrossValidation && this.cooperationManager) {
-            const feedbackResults = this.cooperationManager.applyCrossTypeFeedback(
+        if (this.config.enableCrossValidation && this.cooperationEngine) {
+            const feedbackResults = this.cooperationEngine.applyCrossTypeFeedback(
                 allResults.filter(r => r._ruleType === 'LM'),
                 allResults.filter(r => r._ruleType === 'NAL')
             );
@@ -80,7 +80,7 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
     }
 
     /**
-     * Executes basic coordinated reasoning without cooperation manager
+     * Executes basic coordinated reasoning without cooperation engine
      */
     async _executeBasicCoordination(tasks, memory, termFactory) {
         // Perform coordinated reasoning iterations
@@ -186,7 +186,7 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
         return {
             ...this.ruleEngine.metrics,
             config: this.config,
-            cooperationStats: this.cooperationManager ? this.cooperationManager.getFeedbackStats() : null
+            cooperationStats: this.cooperationEngine ? this.cooperationEngine.getFeedbackStats() : null
         };
     }
 }
