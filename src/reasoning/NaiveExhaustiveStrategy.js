@@ -15,40 +15,39 @@ export class NaiveExhaustiveStrategy extends ReasoningStrategy {
      * @returns {Promise<Task[]>} A promise that resolves to an array of new tasks.
      */
     async execute(memory, rules, termFactory) {
-        const allTasks = memory.getAllConcepts().flatMap(c => c.getAllTasks());
-        const allDerivedTasks = [];
+        const existingTasks = memory.getAllConcepts().flatMap(c => c.getAllTasks());
+        const allDerivedTasks = new Set(); // Use a Set to avoid duplicates
 
         for (const rule of rules) {
             const numPremises = rule.premises.length;
 
             if (numPremises === 1) {
-                // For unary rules, apply to each task individually.
-                for (const task of allTasks) {
+                for (const task of existingTasks) {
                     const derived = await rule._apply([task], termFactory);
-                    allDerivedTasks.push(...derived);
+                    derived.forEach(t => allDerivedTasks.add(t));
                 }
             } else if (numPremises === 2) {
-                // For binary rules, try every permutation of two distinct tasks.
-                if (allTasks.length < 2) continue;
+                if (existingTasks.length < 2) continue;
 
-                for (let i = 0; i < allTasks.length; i++) {
-                    for (let j = 0; j < allTasks.length; j++) {
+                for (let i = 0; i < existingTasks.length; i++) {
+                    for (let j = 0; j < existingTasks.length; j++) {
                         if (i === j) continue;
 
-                        const task1 = allTasks[i];
-                        const task2 = allTasks[j];
+                        const task1 = existingTasks[i];
+                        const task2 = existingTasks[j];
 
-                        // The rule's _apply method will check if the terms unify correctly
-                        // with the premises in this order.
-                        const derived = await rule._apply([task1, task2], termFactory);
-                        allDerivedTasks.push(...derived);
+                        // Permutation 1
+                        let derived1 = await rule._apply([task1, task2], termFactory);
+                        derived1.forEach(t => allDerivedTasks.add(t));
+
+                        // Permutation 2
+                        let derived2 = await rule._apply([task2, task1], termFactory);
+                        derived2.forEach(t => allDerivedTasks.add(t));
                     }
                 }
             }
-            // Note: This strategy currently only supports rules with 1 or 2 premises.
-            // A more general implementation would handle n-ary rules.
         }
 
-        return allDerivedTasks;
+        return Array.from(allDerivedTasks);
     }
 }

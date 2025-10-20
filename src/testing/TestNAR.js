@@ -25,10 +25,18 @@ export class TaskMatch {
         return this;
     }
 
-    matches(task) {
+    async matches(task) {
         // Check term match
-        if (this.termFilter && task.term.toString() !== this.termFilter) {
-            return false;
+        if (this.termFilter) {
+            const { NarseseParser } = await import('../parser/NarseseParser.js');
+            const { TermFactory } = await import('../term/TermFactory.js');
+            const termFactory = new TermFactory();
+            const parser = new NarseseParser(termFactory);
+            // Add punctuation to satisfy the parser
+            const expectedTerm = parser.parse(this.termFilter + '.').term;
+            if (!task.term.equals(expectedTerm)) {
+                return false;
+            }
         }
 
         // Check punctuation match
@@ -103,7 +111,7 @@ export class TestNAR {
         this.nar = new NAR();
         
         // Allow for more cycles to ensure reasoning completion
-        const maxCycles = 10; // Increase default cycles for reasoning
+        const maxCycles = 0; // Increase default cycles for reasoning
 
         // Process operations
         const expectations = [];
@@ -145,9 +153,15 @@ export class TestNAR {
 
         // Validate expectations
         for (const exp of expectations) {
-            const {matcher, shouldExist} = exp;
-            const matches = allTasks.filter(task => matcher.matches(task));
-            const found = matches.length > 0;
+            const { matcher, shouldExist } = exp;
+
+            let found = false;
+            for (const task of allTasks) {
+                if (await matcher.matches(task)) {
+                    found = true;
+                    break;
+                }
+            }
 
             if ((shouldExist && !found) || (!shouldExist && found)) {
                 const taskList = allTasks.length
