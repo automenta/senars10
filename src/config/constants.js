@@ -10,4 +10,45 @@ export const TRUTH = {
 
 export const PRIORITY = {
     DEFAULT: 0.5,
+    MIN: 0.0,
+    MAX: 1.0,
+    DECAY_FACTOR: 0.9,
+};
+
+export const MEMORY = {
+    DEFAULT_CAPACITY: 1000,
+    FOCUS_SET_SIZE: 10,
+    FORGETTING_THRESHOLD: 0.1,
+    CONSOLIDATION_INTERVAL: 100,
+    ACTIVATION_DECAY: 0.95,
+};
+
+export const CYCLE = {
+    DEFAULT_DELAY: 50,
+    MIN_DELAY: 1,
+    MAX_DELAY: 1000,
+    DEFAULT_CYCLES: 100,
+};
+
+export const SYSTEM = {
+    DEFAULT_PORT: 8080,
+    DEFAULT_HOST: 'localhost',
+    MAX_ERROR_RATE: 0.1,
+    RECOVERY_ATTEMPTS: 3,
+    RETRY_DELAY: 100,
+    GRACEFUL_DEGRADATION_THRESHOLD: 0.5,
+};
+
+export const PERFORMANCE = {
+    CACHE_SIZE: 1000,
+    BATCH_SIZE: 10,
+    TIMEOUT_MS: 5000,
+    MAX_CONCURRENT_OPERATIONS: 5,
+};
+
+export const VALIDATION = {
+    MAX_TERM_LENGTH: 1000,
+    MAX_NARSESSE_LENGTH: 10000,
+    MIN_TRUTH_VALUE: 0.0,
+    MAX_TRUTH_VALUE: 1.0,
 };

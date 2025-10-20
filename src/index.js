@@ -4,94 +4,84 @@ import {ReplInterface} from './io/ReplInterface.js';
 import {MonitoringAPI} from './io/MonitoringAPI.js';
 import {NAR} from './nar/NAR.js';
 
+const MODES = {REPL: 'repl', SERVER: 'server', DEMO: 'demo'};
+const DEFAULT_CONFIG = {lm: {enabled: false}, cycle: {delay: 50}};
+const DEFAULT_PORT = 8080;
+
 const args = process.argv.slice(2);
-const mode = args[0]?.toLowerCase() || 'repl';
+const mode = args[0]?.toLowerCase() || MODES.REPL;
 
-async function main() {
-    switch (mode) {
-        case 'repl':
-            await runRepl();
-            break;
-        case 'server':
-        case 'monitor':
-            await runServer();
-            break;
-        case 'demo':
-            await runDemo();
-            break;
-        default:
-            console.log(`Usage: node src/index.js [repl|server|demo]`);
-            console.log(`  repl   - Start the REPL interface (default)`);
-            console.log(`  server - Start with monitoring API`);
-            console.log(`  demo   - Run a demonstration`);
-            process.exit(1);
-    }
-}
+const createNAR = (config = {}) => new NAR({...DEFAULT_CONFIG, ...config});
+const showUsage = () => {
+    console.log('Usage: node src/index.js [repl|server|demo]');
+    console.log('  repl   - Start the REPL interface (default)');
+    console.log('  server - Start with monitoring API');
+    console.log('  demo   - Run a demonstration');
+    process.exit(1);
+};
 
-async function runRepl() {
-    const repl = new ReplInterface();
-    await repl.start();
-}
+const runRepl = async () => new ReplInterface().start();
 
-async function runServer() {
-    // Create NAR instance
-    const nar = new NAR({
-        lm: {enabled: false},
-        cycle: {delay: 50}
-    });
-
-    // Start the reasoning cycle
+const runServer = async () => {
+    const nar = createNAR();
     nar.start();
 
-    // Create and start monitoring API
-    const monitor = new MonitoringAPI(nar, {port: 8080});
+    const monitor = new MonitoringAPI(nar, {port: DEFAULT_PORT});
     await monitor.start();
 
-    console.log(`NAR running with monitoring API on ws://localhost:8080`);
-    console.log(`Press Ctrl+C to stop`);
+    console.log(`NAR running with monitoring API on ws://localhost:${DEFAULT_PORT}`);
+    console.log('Press Ctrl+C to stop');
 
-    // Handle graceful shutdown
     process.on('SIGINT', () => {
         console.log('\nShutting down...');
         monitor.stop();
         nar.stop();
         process.exit(0);
     });
-}
+};
 
-async function runDemo() {
-    console.log('Running Phase 10 demonstration...');
+const runDemo = async () => {
+    console.log('Running Phase 10 demonstration...\n');
 
-    // Create NAR instance
-    const nar = new NAR({lm: {enabled: false}});
+    const nar = createNAR();
 
-    // Example demonstration of syllogistic reasoning
-    console.log('\nInput: All birds are animals');
-    await nar.input('(bird --> animal). %1.0;0.9%');
+    const demonstrations = [
+        {input: '(bird --> animal). %1.0;0.9%', desc: 'All birds are animals'},
+        {input: '(Tweety --> bird). %1.0;0.8%', desc: 'Tweety is a bird'}
+    ];
 
-    console.log('Input: Tweety is a bird');
-    await nar.input('(Tweety --> bird). %1.0;0.8%');
+    for (const demo of demonstrations) {
+        console.log(`Input: ${demo.desc}`);
+        await nar.input(demo.input);
+    }
 
     console.log('\nRunning reasoning cycles...');
     await nar.runCycles(5);
 
-    // Check results
     const beliefs = nar.getBeliefs();
     console.log('\nBeliefs after reasoning:');
-    beliefs.forEach((task, index) => {
-        console.log(`${index + 1}. ${task.term.name} ${task.truth ? task.truth.toString() : ''}`);
-    });
+    beliefs.forEach((task, index) =>
+        console.log(`${index + 1}. ${task.term.name} ${task.truth?.toString() || ''}`));
 
-    console.log(`\nTotal concepts: ${nar.memory.getAllConcepts().length}`);
+    const concepts = nar.memory.getAllConcepts();
+    console.log(`\nTotal concepts: ${concepts.length}`);
     console.log(`Reasoning cycles: ${nar.cycleCount}`);
 
-    // Test REPL functionality
-    console.log('\nREPL interface available:');
-    const repl = new ReplInterface({nar: {lm: {enabled: false}}});
-    console.log('REPL can be started with: await repl.start()');
-}
+    const repl = new ReplInterface(createNAR());
+    console.log('\nREPL interface available: await repl.start()');
+};
 
-// Run the application
+const modeHandlers = {
+    [MODES.REPL]: runRepl,
+    [MODES.SERVER]: runServer,
+    [MODES.DEMO]: runDemo
+};
+
+const main = async () => {
+    const handler = modeHandlers[mode];
+    handler ? await handler() : showUsage();
+};
+
 main().catch(error => {
     console.error('Application error:', error);
     process.exit(1);

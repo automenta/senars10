@@ -1,19 +1,13 @@
 import {Logger} from './util/Logger.js';
 import {SystemConfig} from './nar/SystemConfig.js';
 
-const ERROR_TYPES = {
-    LOGIC: 'logic',
-    NETWORK: 'network',
-    RESOURCE: 'resource',
-    SYNTAX: 'syntax',
-    VALIDATION: 'validation',
-    UNKNOWN: 'unknown'
-};
+const ERROR_TYPES = {LOGIC: 'logic', NETWORK: 'network', RESOURCE: 'resource', SYNTAX: 'syntax', VALIDATION: 'validation', UNKNOWN: 'unknown'};
 const SEVERITY_LEVELS = {HIGH: 'high', MEDIUM: 'medium', LOW: 'low'};
 
 class ErrorClassifier {
     static classify = error => {
-        if (['TypeError', 'ReferenceError'].includes(error.name)) return ERROR_TYPES.LOGIC;
+        const logicErrors = ['TypeError', 'ReferenceError'];
+        if (logicErrors.includes(error.name)) return ERROR_TYPES.LOGIC;
         if (/(timeout|network)/.test(error.message)) return ERROR_TYPES.NETWORK;
         if (/(memory|heap)/.test(error.message)) return ERROR_TYPES.RESOURCE;
         if (error.name === 'SyntaxError') return ERROR_TYPES.SYNTAX;
@@ -28,7 +22,7 @@ class ErrorClassifier {
         [ERROR_TYPES.SYNTAX]: SEVERITY_LEVELS.HIGH,
         [ERROR_TYPES.VALIDATION]: SEVERITY_LEVELS.LOW,
         [ERROR_TYPES.UNKNOWN]: SEVERITY_LEVELS.MEDIUM,
-    }[this.classify(error)];
+    }[ErrorClassifier.classify(error)];
 }
 
 class ErrorTracker {
@@ -48,7 +42,8 @@ class ErrorTracker {
 
     getErrorRate = () => {
         if (this.errorRateWindow.length === 0) return 0;
-        const recentErrors = this.errorRateWindow.filter(err => [SEVERITY_LEVELS.HIGH, SEVERITY_LEVELS.MEDIUM].includes(err.severity));
+        const recentErrors = this.errorRateWindow.filter(err =>
+            [SEVERITY_LEVELS.HIGH, SEVERITY_LEVELS.MEDIUM].includes(err.severity));
         return recentErrors.length / this.errorRateWindow.length;
     };
 
@@ -103,10 +98,8 @@ class ErrorRecovery {
 
     _recoverNetwork = async () => ({success: false, needsRetry: true});
     _recoverResource = async () => ({success: false, degraded: true});
-    _recoverValidation = async (errorInfo, options) => options.defaultValue !== undefined ? {
-        success: true,
-        value: options.defaultValue
-    } : {success: false, skip: true};
+    _recoverValidation = async (errorInfo, options) =>
+        options.defaultValue !== undefined ? {success: true, value: options.defaultValue} : {success: false, skip: true};
     _recoverGeneric = async () => ({success: false, degraded: true});
 
     _delay = ms => new Promise(resolve => setTimeout(resolve, ms));

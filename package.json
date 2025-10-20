@@ -1,7 +1,7 @@
 {
-  "name": "senars9-v10",
+  "name": "senars",
   "version": "10.0.0",
-  "description": "SENARS9.js Re-implementation - Complete Architecture Refactor",
+  "description": "SeNARS (Semantic Non-Axiomatic Reasoning System)",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
