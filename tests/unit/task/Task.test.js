@@ -1,9 +1,22 @@
 import {Task} from '../../../src/task/Task.js';
 import {Stamp} from '../../../src/Stamp.js';
 import {createTask, createTerm, createTruth, TEST_CONSTANTS} from '../../support/factories.js';
-import {taskAssertions, testImmutability} from '../../support/baseTestUtils.js';
+import {
+    TestSuiteFactory,
+    taskAssertions,
+    testImmutability
+} from '../../support/testOrganizer.js';
 
-describe('Task', () => {
+// Use the TestSuiteFactory to create a comprehensive Task test suite
+TestSuiteFactory.createTaskRelatedSuite({
+    className: 'Task',
+    Constructor: Task,
+    validInput: {term: createTerm('A')},
+    testAssertions: true,
+    assertionUtils: taskAssertions
+});
+
+describe('Task - Additional Specific Tests', () => {
     let term;
 
     beforeEach(() => {

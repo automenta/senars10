@@ -1,7 +1,21 @@
 import {Memory} from '../../../src/memory/Memory.js';
 import {createMemoryConfig, createTask, createTerm, TEST_CONSTANTS} from '../../support/factories.js';
+import {
+    TestSuiteFactory,
+    memoryAssertions
+} from '../../support/testOrganizer.js';
 
-describe('Memory', () => {
+// Use the TestSuiteFactory to create a comprehensive Memory test suite
+TestSuiteFactory.createMemoryRelatedSuite({
+    className: 'Memory',
+    Constructor: Memory,
+    validInput: createMemoryConfig(),
+    testAssertions: true,
+    testDataModel: false,  // Memory has complex initialization, skip data model tests
+    assertionUtils: memoryAssertions
+});
+
+describe('Memory - Additional Specific Tests', () => {
     let memory;
     let config;
 

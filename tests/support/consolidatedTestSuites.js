@@ -15,7 +15,10 @@ import {
     runPerformanceTest,
     stringRepresentationTests,
     testData,
-    waitForCondition
+    waitForCondition,
+    taskAssertions,
+    truthAssertions,
+    memoryAssertions
 } from './baseTestUtils.js';
 
 import {narTestSuites} from './narTestSetup.js';
@@ -198,6 +201,85 @@ export const StandardTestSuites = {
                 const instance3 = createDifferentInstance();
                 equalityTests.runEqualityLaws(instance1, instance2, instance3);
             });
+        });
+    },
+
+    /**
+     * Complete test suite for task-related classes
+     */
+    taskRelated: (className, Constructor, options = {}) => {
+        const {
+            validInput,
+            testAssertions = true,
+            assertionUtils
+        } = options;
+
+        describe(`${className} - Task Related Tests`, () => {
+            if (testAssertions) {
+                test('should have proper task assertion utilities', () => {
+                    expect(assertionUtils || taskAssertions).toBeDefined();
+                    expect(typeof (assertionUtils || taskAssertions).expectTaskType).toBe('function');
+                    expect(typeof (assertionUtils || taskAssertions).expectTaskPunctuation).toBe('function');
+                });
+            }
+
+            // Standard data model tests
+            if (validInput) {
+                StandardTestSuites.dataModel(className, Constructor, options);
+            }
+        });
+    },
+
+    /**
+     * Complete test suite for truth-related classes
+     */
+    truthRelated: (className, Constructor, options = {}) => {
+        const {
+            validInput,
+            testAssertions = true,
+            assertionUtils
+        } = options;
+
+        describe(`${className} - Truth Related Tests`, () => {
+            if (testAssertions) {
+                test('should have proper truth assertion utilities', () => {
+                    expect(assertionUtils || truthAssertions).toBeDefined();
+                    expect(typeof (assertionUtils || truthAssertions).expectTruthCloseTo).toBe('function');
+                    expect(typeof (assertionUtils || truthAssertions).expectTruthExpectation).toBe('function');
+                });
+            }
+
+            // Standard data model tests
+            if (validInput) {
+                StandardTestSuites.dataModel(className, Constructor, options);
+            }
+        });
+    },
+
+    /**
+     * Complete test suite for memory-related classes
+     */
+    memoryRelated: (className, Constructor, options = {}) => {
+        const {
+            validInput,
+            testAssertions = true,
+            testDataModel = true,
+            assertionUtils
+        } = options;
+
+        describe(`${className} - Memory Related Tests`, () => {
+            if (testAssertions) {
+                test('should have proper memory assertion utilities', () => {
+                    expect(assertionUtils || memoryAssertions).toBeDefined();
+                    expect(typeof (assertionUtils || memoryAssertions).expectConceptContains).toBe('function');
+                    expect(typeof (assertionUtils || memoryAssertions).expectMemoryConcepts).toBe('function');
+                });
+            }
+
+            // Standard data model tests (only if specifically requested and validInput provided)
+            if (testDataModel && validInput) {
+                StandardTestSuites.dataModel(className, Constructor, options);
+            }
         });
     }
 };

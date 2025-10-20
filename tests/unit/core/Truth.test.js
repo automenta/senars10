@@ -2,6 +2,8 @@ import {Truth} from '../../../src/Truth.js';
 import {TRUTH} from '../../../src/config/constants.js';
 import {createTruth, TEST_CONSTANTS} from '../../support/factories.js';
 import {
+    StandardTestSuites,
+    TestSuiteFactory,
     equalityTests,
     flexibleAssertions,
     stringRepresentationTests,
@@ -9,7 +11,16 @@ import {
 } from '../../support/testOrganizer.js';
 import fc from 'fast-check';
 
-describe('Truth', () => {
+// Use the TestSuiteFactory to create a comprehensive Truth test suite
+TestSuiteFactory.createTruthRelatedSuite({
+    className: 'Truth',
+    Constructor: Truth,
+    validInput: {f: 0.9, c: 0.8},
+    testAssertions: true,
+    assertionUtils: truthAssertions
+});
+
+describe('Truth - Additional Specific Tests', () => {
     describe('Initialization', () => {
         test.each([
             {

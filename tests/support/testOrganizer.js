@@ -14,6 +14,7 @@ import * as commonSuites from './commonTestSuites.js';
 import * as generalSuites from './generalTestSuites.js';
 import * as consolidatedSuites from './consolidatedTestSuites.js';
 import * as enhancedSuites from './enhancedTestSuites.js';
+import * as testSuiteFactory from './testSuiteFactory.js';
 
 /**
  * Consolidated test utilities organized by functionality
@@ -61,6 +62,7 @@ const TestOrganizer = {
         ...generalSuites,
         ...consolidatedSuites, // Include the new consolidated test suites
         ...enhancedSuites,     // Include the enhanced test suites
+        factory: testSuiteFactory, // Include the test suite factory
         comprehensive: baseUtils.comprehensiveTestSuites
     },
 
@@ -96,6 +98,7 @@ export * from './generalTestSuites.js';
 export * from './consolidatedTestSuites.js';
 export * from './enhancedTestSuites.js';
 export * from './agileRobustnessUtils.js';
+export * from './testSuiteFactory.js';
 
 /**
  * Fluent test API for more readable and expressive tests
