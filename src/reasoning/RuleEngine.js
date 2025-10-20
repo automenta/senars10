@@ -10,7 +10,10 @@ import {sortByProperty} from '../util/collections.js';
 
 export class RuleEngine {
     constructor(config = {}, lm = null, termFactory = null, ruleProcessor = null) {
-        this._config = config;
+        this._config = {
+            autoRegisterLM: true,
+            ...config
+        };
         this._rules = new Map();
         this._ruleSets = new Map();
         this._lm = lm;
@@ -42,9 +45,18 @@ export class RuleEngine {
         return this._lm;
     }
 
+    get termFactory() {
+        return this._termFactory;
+    }
+
     setLM(lm) {
         this._lm = lm;
         this._refreshLMRuleInstances();
+    }
+    
+    setTermFactory(termFactory) {
+        this._termFactory = termFactory;
+        return this;
     }
 
     register(rule) {
@@ -57,6 +69,41 @@ export class RuleEngine {
             this._rules.set(rule.id, rule);
         }
         return this;
+    }
+
+    /**
+     * Register multiple rules at once
+     */
+    registerMany(rules) {
+        for (const rule of rules) {
+            this.register(rule);
+        }
+        return this;
+    }
+
+    /**
+     * Register a rule set by name
+     */
+    registerSet(name, ruleIds = []) {
+        const ruleSet = this.createSet(name, ruleIds);
+        return ruleSet;
+    }
+
+    /**
+     * Factory method to create a rule engine with preconfigured components
+     */
+    static create(config = {}) {
+        const { lm, termFactory, ruleProcessor } = config;
+        return new RuleEngine(config, lm, termFactory, ruleProcessor);
+    }
+
+    /**
+     * Factory method to create a rule engine with specific rule types
+     */
+    static createWithRules(rules, config = {}) {
+        const engine = new RuleEngine(config);
+        engine.registerMany(rules);
+        return engine;
     }
 
     unregister = (ruleId) => (this._rules.delete(ruleId), this);

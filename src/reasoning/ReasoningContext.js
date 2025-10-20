@@ -173,6 +173,50 @@ export class ReasoningContext {
         
         return childContext;
     }
+    
+    /**
+     * Create a copy of this context with new configuration values
+     */
+    copy(config = {}) {
+        // Create a new context with merged configuration
+        // Use a deep merge approach for nested objects
+        const mergedConfig = this._deepMerge(this._config, config);
+        
+        const newContext = new ReasoningContext(mergedConfig);
+        
+        // Copy properties and history to the new context
+        for (const [key, value] of this._properties.entries()) {
+            newContext.setProperty(key, value);
+        }
+        
+        newContext._history = [...this._history];
+        newContext._metrics = { ...this._metrics };
+        
+        return newContext;
+    }
+    
+    /**
+     * Helper method to perform deep merge of configuration objects
+     */
+    _deepMerge(target, source) {
+        const result = { ...target };
+        
+        for (const key in source) {
+            if (source.hasOwnProperty(key)) {
+                if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
+                    if (typeof result[key] === 'object' && result[key] !== null && !Array.isArray(result[key])) {
+                        result[key] = { ...result[key], ...source[key] };
+                    } else {
+                        result[key] = { ...source[key] };
+                    }
+                } else {
+                    result[key] = source[key];
+                }
+            }
+        }
+        
+        return result;
+    }
 
     /**
      * Create a context from an existing task and memory state
@@ -182,6 +226,37 @@ export class ReasoningContext {
             memory,
             task,
             timestamp: Date.now(),
+            ...config
+        });
+    }
+    
+    /**
+     * Factory method to create a context with common configurations
+     */
+    static create(config = {}) {
+        return new ReasoningContext(config);
+    }
+    
+    /**
+     * Create a context specifically for rule application
+     */
+    static forRuleApplication(memory, termFactory, ruleEngine, config = {}) {
+        return new ReasoningContext({
+            memory,
+            termFactory,
+            ruleEngine,
+            ...config
+        });
+    }
+    
+    /**
+     * Create a context specifically for strategy execution
+     */
+    static forStrategyExecution(memory, termFactory, strategy, config = {}) {
+        return new ReasoningContext({
+            memory,
+            termFactory,
+            strategy,
             ...config
         });
     }

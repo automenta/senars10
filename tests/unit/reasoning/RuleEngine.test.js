@@ -101,6 +101,54 @@ describe('RuleEngine', () => {
         const metricsBefore = ruleEngine.metrics;
         expect(metricsBefore).toBeDefined();
     });
+
+    it('should register multiple rules at once', () => {
+        const rule1 = new Rule('rule1', 'test', 0.8);
+        const rule2 = new Rule('rule2', 'test', 0.7);
+        
+        ruleEngine.registerMany([rule1, rule2]);
+        
+        expect(ruleEngine.rules.length).toBe(2);
+        expect(ruleEngine.getRule('rule1')).toBe(rule1);
+        expect(ruleEngine.getRule('rule2')).toBe(rule2);
+    });
+
+    it('should register a rule set', () => {
+        const rule = new Rule('test-rule', 'test', 0.8);
+        ruleEngine.register(rule);
+        
+        const ruleSet = ruleEngine.registerSet('test-set', ['test-rule']);
+        
+        expect(ruleSet.name).toBe('test-set');
+        expect(ruleSet.size).toBe(1);
+        expect(ruleEngine.getSet('test-set')).toBe(ruleSet);
+    });
+
+    it('should create a rule engine with factory method', () => {
+        const config = { test: true };
+        const engine = RuleEngine.create(config);
+        
+        expect(engine).toBeInstanceOf(RuleEngine);
+        expect(engine._config.test).toBe(true);
+    });
+
+    it('should create a rule engine with preconfigured rules', () => {
+        const rule1 = new Rule('factory-rule1', 'test', 0.8);
+        const rule2 = new Rule('factory-rule2', 'test', 0.7);
+        
+        const engine = RuleEngine.createWithRules([rule1, rule2]);
+        
+        expect(engine.rules.length).toBe(2);
+        expect(engine.getRule('factory-rule1')).toBe(rule1);
+        expect(engine.getRule('factory-rule2')).toBe(rule2);
+    });
+
+    it('should set term factory', () => {
+        const termFactory = { mock: true };
+        ruleEngine.setTermFactory(termFactory);
+        
+        expect(ruleEngine.termFactory).toBe(termFactory);
+    });
 });
 
 describe('NALRule', () => {
