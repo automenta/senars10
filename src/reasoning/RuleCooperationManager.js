@@ -11,6 +11,15 @@ export class RuleCooperationManager {
         this.logger = Logger;
     }
 
+    // Delegate other methods to cooperation engine
+    get feedbackRegistry() {
+        return this.cooperationEngine.feedbackRegistry;
+    }
+
+    get config() {
+        return this.cooperationEngine.config;
+    }
+
     /**
      * Performs cooperative reasoning where LM and NAL rules enhance each other
      */
@@ -38,15 +47,6 @@ export class RuleCooperationManager {
      */
     clearFeedbackHistory() {
         return this.cooperationEngine.clearFeedbackHistory();
-    }
-
-    // Delegate other methods to cooperation engine
-    get feedbackRegistry() {
-        return this.cooperationEngine.feedbackRegistry;
-    }
-
-    get config() {
-        return this.cooperationEngine.config;
     }
 
     combineAndFilterResults(results, memory) {

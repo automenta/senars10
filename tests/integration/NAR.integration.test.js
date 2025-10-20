@@ -5,17 +5,8 @@
 
 import {NAR} from '../../src/nar/NAR.js';
 import {TermFactory} from '../../src/term/TermFactory.js';
-import {Truth} from '../../src/Truth.js';
-import { 
-  completeNARIntegrationSuite, 
-  narTestSetup, 
-  flexibleNARIntegrationSuite 
-} from '../support/commonTestSuites.js';
-import { 
-  comprehensiveTestSuites, 
-  flexibleAssertions,
-  NARTestSuites
-} from '../support/testOrganizer.js';
+import {completeNARIntegrationSuite, flexibleNARIntegrationSuite, narTestSetup} from '../support/commonTestSuites.js';
+import {comprehensiveTestSuites, flexibleAssertions} from '../support/testOrganizer.js';
 
 // Using the common test setup to avoid duplication
 const narProvider = narTestSetup({
@@ -25,7 +16,7 @@ const narProvider = narTestSetup({
 
 describe('NAR Integration Tests', () => {
     // Apply input/output module tests for NAR
-    comprehensiveTestSuites.inputOutputModuleTests('NAR', 
+    comprehensiveTestSuites.inputOutputModuleTests('NAR',
         async () => {
             const nar = new NAR({
                 debug: {enabled: false},
@@ -41,7 +32,7 @@ describe('NAR Integration Tests', () => {
                     if (nar.isRunning) nar.stop();
                 }
             };
-        }, 
+        },
         [
             {
                 description: 'handles simple belief input',
@@ -66,7 +57,7 @@ describe('NAR Integration Tests', () => {
 
     // Run the complete NAR integration test suite
     completeNARIntegrationSuite(narProvider);
-    
+
     // Run the flexible NAR integration test suite for agile development
     flexibleNARIntegrationSuite(narProvider);
 
@@ -86,7 +77,7 @@ describe('NAR Integration Tests', () => {
             // Use flexible assertions to make the test more resilient to implementation changes
             const concepts = narProvider().memory.getAllConcepts();
             flexibleAssertions.expectAtLeast(concepts, 3, 'concepts in memory');
-            
+
             // Check specific concepts exist using flexible pattern matching
             const allConceptTerms = concepts.map(c => c.term.toString());
             expect(allConceptTerms.some(term => term.includes('cat'))).toBe(true);
@@ -108,7 +99,7 @@ describe('NAR Integration Tests', () => {
             // Use flexible approach since direct query might not be available or implemented exactly as expected
             const beliefs = narProvider().getBeliefs();
             const catBeliefs = beliefs.filter(b => b.term.toString().toLowerCase().includes('cat'));
-            
+
             flexibleAssertions.expectAtLeast(catBeliefs, 1, 'beliefs containing "cat"');
             if (catBeliefs.length > 0) {
                 expect(catBeliefs[0].term.toString()).toContain('cat');
@@ -139,7 +130,7 @@ describe('NAR Integration Tests', () => {
             expect(stats.memoryStats).toBeDefined();
             expect(stats.taskManagerStats).toBeDefined();
             expect(stats.cycleStats).toBeDefined();
-            
+
             // Use flexible assertions for values that might change with implementation
             expect(stats.cycleStats).toBeDefined();
         });

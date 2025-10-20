@@ -1,4 +1,4 @@
-import { RuleProcessor } from './RuleProcessor.js';
+import {RuleProcessor} from './RuleProcessor.js';
 
 /**
  * ParallelRuleProcessor: Applies rules in parallel to tasks for better performance
@@ -18,7 +18,7 @@ export class ParallelRuleProcessor extends RuleProcessor {
 
         // Split tasks into batches to manage memory and performance
         const taskBatches = this._createBatches(tasks, this.batchSize);
-        
+
         for (const taskBatch of taskBatches) {
             const batchResults = await this._processBatch(rules, taskBatch, context);
             results.push(...batchResults);
@@ -32,7 +32,7 @@ export class ParallelRuleProcessor extends RuleProcessor {
      */
     async _processBatch(rules, tasks, context) {
         const allPromises = [];
-        
+
         // Create task-rule combinations
         for (const rule of rules) {
             for (const task of tasks) {
@@ -60,12 +60,12 @@ export class ParallelRuleProcessor extends RuleProcessor {
      */
     async _applyRuleToTask(rule, task, context) {
         try {
-            const { results: ruleResults } = await rule.apply(task, context);
-            
+            const {results: ruleResults} = await rule.apply(task, context);
+
             // Update context metrics
             context.incrementMetric('rulesApplied');
             context.incrementMetric('inferencesMade', ruleResults.length);
-            
+
             return ruleResults;
         } catch (error) {
             console.warn(`Rule ${rule.id} failed:`, error);

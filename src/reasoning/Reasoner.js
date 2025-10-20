@@ -1,6 +1,6 @@
-import { RuleEngine } from './RuleEngine.js';
-import { StrategySelector } from './StrategySelector.js';
-import { ReasoningContext } from './ReasoningContext.js';
+import {RuleEngine} from './RuleEngine.js';
+import {StrategySelector} from './StrategySelector.js';
+import {ReasoningContext} from './ReasoningContext.js';
 import {Logger} from '../util/Logger.js';
 
 /**
@@ -17,13 +17,13 @@ export class Reasoner {
             maxDerivedTasks: Infinity,
             ...config
         };
-        
+
         // Initialize core components
         this.ruleEngine = config.ruleEngine || new RuleEngine(config.ruleEngine || {});
         this.strategySelector = config.strategySelector || new StrategySelector(config.strategySelector || {});
         this.temporalReasoner = config.temporalReasoner || null;
         this.systemContext = null;
-        
+
         // Initialize metrics and tracking
         this.metrics = {
             totalInferences: 0,
@@ -32,7 +32,7 @@ export class Reasoner {
             modularInferences: 0,
             startTime: Date.now()
         };
-        
+
         this.logger = Logger;
     }
 
@@ -51,11 +51,11 @@ export class Reasoner {
         if (!Array.isArray(focusSet)) {
             throw new Error(`Focus set must be an array, received: ${typeof focusSet}`);
         }
-        
+
         if (focusSet.length === 0) {
             return [];
         }
-        
+
         return await this._executeInference(focusSet, options);
     }
 
@@ -94,7 +94,7 @@ export class Reasoner {
 
         const finalTasks = allDerivedTasks.slice(0, maxDerivedTasks);
         this.logger.debug(`Total inference produced ${finalTasks.length} derived tasks`);
-        
+
         // Update metrics
         this.metrics.totalInferences += finalTasks.length;
 
@@ -106,27 +106,27 @@ export class Reasoner {
      */
     async _performSymbolicInference(focusSet, maxDerived) {
         const derivedTasks = [];
-        
+
         this.logger.debug(`Starting symbolic inference with ${this.ruleEngine.rules.length} rules on ${focusSet.length} tasks`);
-        
+
         // Create context for the rules
         const reasoningContext = this._createReasoningContext();
-        
+
         // Process all focus set tasks using rule engine with the selected strategy
         const strategy = this.strategySelector.selectStrategy(reasoningContext, focusSet, this.ruleEngine.rules);
-        
+
         // Apply reasoning strategy to the entire focus set to allow for multi-task rule applications
         const strategyResults = await strategy.execute(
-            reasoningContext, 
-            this.ruleEngine.rules, 
+            reasoningContext,
+            this.ruleEngine.rules,
             focusSet  // Pass the entire focus set to allow for multi-premise rules
         );
-        
+
         derivedTasks.push(...strategyResults.slice(0, maxDerived));
 
         this.metrics.symbolicInferences += derivedTasks.length;
         this.logger.debug(`Symbolic inference produced ${derivedTasks.length} derived tasks`);
-        
+
         return derivedTasks;
     }
 
@@ -144,10 +144,10 @@ export class Reasoner {
         try {
             const temporalTasks = this.temporalReasoner.infer(focusSet);
             const limitedTasks = Array.isArray(temporalTasks) ? temporalTasks.slice(0, maxTemporalTasks) : [];
-            
+
             this.metrics.temporalInferences += limitedTasks.length;
             this.logger.debug(`Temporal inference produced ${limitedTasks.length} derived tasks`);
-            
+
             return limitedTasks;
         } catch (error) {
             this.logger.warn('Temporal reasoning failed:', error);
@@ -167,7 +167,7 @@ export class Reasoner {
         this.logger.debug(`Starting modular inference on ${focusSet.length} tasks with max ${maxModularTasks} derived tasks`);
 
         const derivedTasks = [];
-        
+
         for (const task of focusSet) {
             if (derivedTasks.length >= maxModularTasks) {
                 break;
@@ -177,7 +177,7 @@ export class Reasoner {
                 // Analyze task to determine appropriate strategy
                 const taskAnalysis = this.strategySelector.analyzeTasks([task]);
                 const strategy = this.strategySelector.selectStrategy(
-                    { ruleEngine: this.ruleEngine, systemContext: this.systemContext },
+                    {ruleEngine: this.ruleEngine, systemContext: this.systemContext},
                     [task],
                     []
                 );
@@ -188,7 +188,7 @@ export class Reasoner {
                     [],
                     this.systemContext.termFactory
                 );
-                
+
                 // Add results to derived tasks
                 for (const inferredTask of result) {
                     if (derivedTasks.length >= maxModularTasks) break;
@@ -201,7 +201,7 @@ export class Reasoner {
 
         this.metrics.modularInferences += derivedTasks.length;
         this.logger.debug(`Modular inference produced ${derivedTasks.length} derived tasks`);
-        
+
         return derivedTasks;
     }
 
@@ -235,7 +235,7 @@ export class Reasoner {
             ...this.metrics,
             uptime: Date.now() - this.metrics.startTime,
             ruleEngineStats: this.ruleEngine.metrics || null,
-            strategySelectorStats: this.strategySelector.getPerformanceRecommendation ? 
+            strategySelectorStats: this.strategySelector.getPerformanceRecommendation ?
                 this.strategySelector.getPerformanceRecommendation() : null
         };
     }

@@ -1,5 +1,5 @@
-import { StrategyInterface } from './StrategyInterface.js';
-import { StrategyMetrics } from './StrategyMetrics.js';
+import {StrategyInterface} from './StrategyInterface.js';
+import {StrategyMetrics} from './StrategyMetrics.js';
 
 /**
  * A naive, exhaustive reasoning strategy that iterates through all task combinations.
@@ -7,7 +7,7 @@ import { StrategyMetrics } from './StrategyMetrics.js';
  */
 export class NaiveExhaustiveStrategy extends StrategyInterface {
     constructor(config = {}) {
-        super({ id: 'naive-exhaustive', ...config });
+        super({id: 'naive-exhaustive', ...config});
         this.config = {
             maxCombinations: config.maxCombinations || 100,
             maxTasksPerBatch: config.maxTasksPerBatch || 50,
@@ -15,7 +15,7 @@ export class NaiveExhaustiveStrategy extends StrategyInterface {
             enableMetrics: config.enableMetrics !== false,
             ...config
         };
-        
+
         // Initialize metrics if enabled
         if (this.config.enableMetrics) {
             this.metrics = new StrategyMetrics({
@@ -35,7 +35,7 @@ export class NaiveExhaustiveStrategy extends StrategyInterface {
 
         try {
             let memory, termFactory, tasks;
-            
+
             // Handle context appropriately
             if (context && typeof context === 'object' && context.hasOwnProperty('memory')) {
                 // It's a ReasoningContext
@@ -56,7 +56,7 @@ export class NaiveExhaustiveStrategy extends StrategyInterface {
                     memory = context;
                     termFactory = rules;
                     tasks = Array.isArray(taskOrTasks) ? taskOrTasks : [taskOrTasks].filter(t => t !== undefined);
-                    
+
                     // For backward compatibility, if tasks is just undefined, try to get from memory
                     if (tasks.length === 1 && tasks[0] === undefined) {
                         // Get tasks from memory if needed for backward compatibility
@@ -76,14 +76,14 @@ export class NaiveExhaustiveStrategy extends StrategyInterface {
 
             // Use the tasks provided rather than getting from memory since we now have tasks parameter
             const taskBatches = this._createBatches(tasks, this.config.maxTasksPerBatch);
-            
+
             const allDerivedTasks = [];
             let ruleApplications = 0;
-            
+
             for (const taskBatch of taskBatches) {
                 const batchResults = await this._processBatch(taskBatch, rules, termFactory);
                 allDerivedTasks.push(...batchResults);
-                
+
                 // Stop if max applications reached
                 ruleApplications += batchResults.length;
                 if (ruleApplications >= this.config.maxRuleApplications) {
@@ -98,7 +98,7 @@ export class NaiveExhaustiveStrategy extends StrategyInterface {
             throw error;
         } finally {
             const executionTime = performance.now() - startTime;
-            
+
             // Record metrics if enabled
             if (this.metrics) {
                 this.metrics.recordExecution(
@@ -158,7 +158,7 @@ export class NaiveExhaustiveStrategy extends StrategyInterface {
             case 2:
                 if (tasks.length < 2) break;
                 let combinationCount = 0;
-                
+
                 for (let i = 0; i < tasks.length && combinationCount < this.config.maxCombinations; i++) {
                     for (let j = i + 1; j < tasks.length && combinationCount < this.config.maxCombinations; j++) {
                         const task1 = tasks[i];
@@ -187,32 +187,32 @@ export class NaiveExhaustiveStrategy extends StrategyInterface {
 
     async _applyRuleToAllCombinations(rule, tasks, premisesCount, termFactory) {
         if (premisesCount <= 0 || tasks.length < premisesCount) return [];
-        
+
         const combinations = this._getCombinations(tasks, premisesCount);
         const results = [];
-        
+
         for (const combination of combinations) {
             const ruleResults = await rule._apply(combination, null, termFactory);
             results.push(...ruleResults);
         }
-        
+
         return results;
     }
 
     _getCombinations(array, length) {
         if (length === 1) return array.map(item => [item]);
-        
+
         const combinations = [];
-        
+
         for (let i = 0; i <= array.length - length; i++) {
             const head = array[i];
             const tailCombinations = this._getCombinations(array.slice(i + 1), length - 1);
-            
+
             for (const tail of tailCombinations) {
                 combinations.push([head, ...tail]);
             }
         }
-        
+
         return combinations;
     }
 

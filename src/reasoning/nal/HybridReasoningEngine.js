@@ -169,7 +169,7 @@ export class HybridReasoningEngine {
      * Fills a reasoning gap using the appropriate system
      */
     async _fillGap(task, gap, context) {
-        return gap.requiresLM 
+        return gap.requiresLM
             ? await this._applyLMForGap(task, gap, context)
             : await this._applyNALForGap(task, gap, context);
     }
@@ -291,7 +291,7 @@ export class HybridReasoningEngine {
         try {
             // Create a targeted prompt based on the gap
             const prompt = this._createGapFillingPrompt(gap, task);
-            
+
             // Generate response using LM
             const lmResponse = await this.lm.process(prompt, {
                 temperature: 0.7,

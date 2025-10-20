@@ -30,7 +30,7 @@ export class PatternMatcher {
     unifyMultiple(patternTermPairs, initialBindings = new Map()) {
         let currentBindings = new Map(initialBindings);
 
-        for (const { pattern, term } of patternTermPairs) {
+        for (const {pattern, term} of patternTermPairs) {
             const result = this.unify(pattern, term, currentBindings);
             if (!result) {
                 return null; // Unification failed for this pair

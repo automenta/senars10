@@ -1,22 +1,22 @@
-import { StrategyInterface } from './StrategyInterface.js';
-import { ReasoningStrategy } from './ReasoningStrategy.js';
-import { CoordinatedReasoningStrategy } from './CoordinatedReasoningStrategy.js';
-import { NaiveExhaustiveStrategy } from './NaiveExhaustiveStrategy.js';
-import { StrategySelector } from './StrategySelector.js';
-import { Reasoner } from './Reasoner.js';
-import { Rule } from './Rule.js';
-import { LMRule } from './LMRule.js';
-import { RuleEngine } from './RuleEngine.js';
-import { RuleSet } from './RuleSet.js';
-import { RuleComposer } from './RuleComposer.js';
-import { ReasoningContext } from './ReasoningContext.js';
-import { RuleProcessor } from './RuleProcessor.js';
-import { SequentialRuleProcessor } from './SequentialRuleProcessor.js';
-import { ParallelRuleProcessor } from './ParallelRuleProcessor.js';
-import { CooperationEngine } from './CooperationEngine.js';
-import { RuleCooperationManager } from './RuleCooperationManager.js';
-import { PerformanceOptimizer } from './PerformanceOptimizer.js';
-import { StrategyMetrics } from './StrategyMetrics.js';
+import {StrategyInterface} from './StrategyInterface.js';
+import {ReasoningStrategy} from './ReasoningStrategy.js';
+import {CoordinatedReasoningStrategy} from './CoordinatedReasoningStrategy.js';
+import {NaiveExhaustiveStrategy} from './NaiveExhaustiveStrategy.js';
+import {StrategySelector} from './StrategySelector.js';
+import {Reasoner} from './Reasoner.js';
+import {Rule} from './Rule.js';
+import {LMRule} from './LMRule.js';
+import {RuleEngine} from './RuleEngine.js';
+import {RuleSet} from './RuleSet.js';
+import {RuleComposer} from './RuleComposer.js';
+import {ReasoningContext} from './ReasoningContext.js';
+import {RuleProcessor} from './RuleProcessor.js';
+import {SequentialRuleProcessor} from './SequentialRuleProcessor.js';
+import {ParallelRuleProcessor} from './ParallelRuleProcessor.js';
+import {CooperationEngine} from './CooperationEngine.js';
+import {RuleCooperationManager} from './RuleCooperationManager.js';
+import {PerformanceOptimizer} from './PerformanceOptimizer.js';
+import {StrategyMetrics} from './StrategyMetrics.js';
 
 export {
     // Reasoner and core components
@@ -26,7 +26,7 @@ export {
     CoordinatedReasoningStrategy,
     NaiveExhaustiveStrategy,
     StrategySelector,
-    
+
     // Rule system
     Rule,
     LMRule,
@@ -38,7 +38,7 @@ export {
     ParallelRuleProcessor,
     CooperationEngine,
     RuleCooperationManager,
-    
+
     // Supporting components
     ReasoningContext,
     PerformanceOptimizer,

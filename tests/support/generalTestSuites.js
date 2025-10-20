@@ -3,17 +3,17 @@
  * @description General-purpose reusable test suites to reduce duplication across test files
  */
 
-import { 
-    initializationTests, 
-    equalityTests, 
-    stringRepresentationTests, 
-    errorHandlingTests,
+import {
     comprehensiveTestSuites,
+    equalityTests,
+    errorHandlingTests,
     flexibleAssertions,
-    truthAssertions,
-    taskAssertions,
+    initializationTests,
     memoryAssertions,
-    runPerformanceTest
+    runPerformanceTest,
+    stringRepresentationTests,
+    taskAssertions,
+    truthAssertions
 } from './baseTestUtils.js';
 
 /**
@@ -29,7 +29,7 @@ export const dataModelTestSuite = (modelName, Constructor, testData, testImmutab
         test('should create instance with provided data', () => {
             const instance = new Constructor(testData.validInput);
             expect(instance).toBeDefined();
-            
+
             // Check that properties match input data
             Object.entries(testData.expectedProperties || {}).forEach(([key, value]) => {
                 if (typeof value === 'number') {
@@ -39,20 +39,20 @@ export const dataModelTestSuite = (modelName, Constructor, testData, testImmutab
                 }
             });
         });
-        
+
         test('should have expected string representation', () => {
             const instance = new Constructor(testData.validInput);
             if (testData.expectedString) {
                 stringRepresentationTests.verifyToString(instance, testData.expectedString);
             }
         });
-        
+
         if (testImmutability) {
             test('should be immutable', () => {
                 const instance = new Constructor(testData.validInput);
                 // Check if the object has immutability markers
                 if (typeof instance._isImmutable === 'boolean' && instance._isImmutable) {
-                    const firstKey = Object.keys(instance).find(key => 
+                    const firstKey = Object.keys(instance).find(key =>
                         key.startsWith('_') || ['f', 'c', 'term'].includes(key)
                     );
                     if (firstKey && instance[firstKey] !== undefined) {
@@ -63,13 +63,13 @@ export const dataModelTestSuite = (modelName, Constructor, testData, testImmutab
                 }
             });
         }
-        
+
         if (testEquality) {
             test('should implement equality correctly', () => {
                 const instance1 = new Constructor(testData.validInput);
                 const instance2 = new Constructor(testData.validInput);
                 const instance3 = new Constructor(testData.differentInput || testData.validInput);
-                
+
                 expect(instance1.equals(instance2)).toBe(true);
                 if (testData.differentInput) {
                     expect(instance1.equals(instance3)).toBe(false);
@@ -183,21 +183,21 @@ export const taskTestSuite = (task, expectedData) => {
 export const lifecycleComponentTestSuite = (componentName, createComponent, config = {}) => {
     describe(`${componentName} Lifecycle Tests`, () => {
         let component;
-        
+
         beforeEach(() => {
             component = createComponent(config);
         });
-        
+
         afterEach(() => {
             if (component && typeof component.destroy === 'function') {
                 component.destroy();
             }
         });
-        
+
         test('initializes correctly', () => {
             expect(component).toBeDefined();
         });
-        
+
         test('has required lifecycle methods', () => {
             expect(typeof component.start).toBe('function');
             expect(typeof component.stop).toBe('function');

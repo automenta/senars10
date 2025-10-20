@@ -6,7 +6,6 @@ import {Metrics as MetricsUtil} from '../util/Metrics.js';
 import {SequentialRuleProcessor} from './SequentialRuleProcessor.js';
 import {ReasoningContext} from './ReasoningContext.js';
 import {PerformanceOptimizer} from './PerformanceOptimizer.js';
-import {sortByProperty} from '../util/collections.js';
 
 export class RuleEngine {
     constructor(config = {}, lm = null, termFactory = null, ruleProcessor = null) {
@@ -21,10 +20,10 @@ export class RuleEngine {
         this.logger = Logger;
         this._metrics = MetricsUtil.create();
         this._typeMetrics = {lmRuleApplications: 0, nalRuleApplications: 0};
-        
+
         // Use provided rule processor or default to SequentialRuleProcessor
         this._ruleProcessor = ruleProcessor || new SequentialRuleProcessor(config.ruleProcessor || {});
-        
+
         // Initialize performance optimizer
         this._performanceOptimizer = new PerformanceOptimizer(config.performance || {});
     }
@@ -49,11 +48,28 @@ export class RuleEngine {
         return this._termFactory;
     }
 
+    /**
+     * Factory method to create a rule engine with preconfigured components
+     */
+    static create(config = {}) {
+        const {lm, termFactory, ruleProcessor} = config;
+        return new RuleEngine(config, lm, termFactory, ruleProcessor);
+    }
+
+    /**
+     * Factory method to create a rule engine with specific rule types
+     */
+    static createWithRules(rules, config = {}) {
+        const engine = new RuleEngine(config);
+        engine.registerMany(rules);
+        return engine;
+    }
+
     setLM(lm) {
         this._lm = lm;
         this._refreshLMRuleInstances();
     }
-    
+
     setTermFactory(termFactory) {
         this._termFactory = termFactory;
         return this;
@@ -89,23 +105,6 @@ export class RuleEngine {
         return ruleSet;
     }
 
-    /**
-     * Factory method to create a rule engine with preconfigured components
-     */
-    static create(config = {}) {
-        const { lm, termFactory, ruleProcessor } = config;
-        return new RuleEngine(config, lm, termFactory, ruleProcessor);
-    }
-
-    /**
-     * Factory method to create a rule engine with specific rule types
-     */
-    static createWithRules(rules, config = {}) {
-        const engine = new RuleEngine(config);
-        engine.registerMany(rules);
-        return engine;
-    }
-
     unregister = (ruleId) => (this._rules.delete(ruleId), this);
     getRule = (ruleId) => this._rules.get(ruleId);
     getSet = (name) => this._ruleSets.get(name);
@@ -136,7 +135,7 @@ export class RuleEngine {
                 termFactory: this._termFactory,
                 ruleEngine: this
             });
-            
+
             const {results, rule: updatedRule} = rule.apply(task, context);
             this._rules.set(rule.id, updatedRule);
             success = true;
@@ -151,16 +150,16 @@ export class RuleEngine {
     }
 
     applyRules(task, ruleIds = null, ruleType = null, memory = null) {
-        const rulesToApply = ruleIds 
-            ? this._getValidRules(ruleIds) 
+        const rulesToApply = ruleIds
+            ? this._getValidRules(ruleIds)
             : this.getApplicableRules(task, ruleType);
-            
+
         return this._applyRulesWithLogging(rulesToApply, task, memory);
     }
 
     applyLMRules = (task, ruleIds = null, memory = null) => this.applyRules(task, ruleIds, 'lm', memory);
     applyNALRules = (task, ruleIds = null, memory = null) => this.applyRules(task, ruleIds, 'nal', memory);
-    
+
     /**
      * Applies both LM and NAL rules to a task and returns combined results
      */
@@ -169,7 +168,7 @@ export class RuleEngine {
         const nalResults = this.applyNALRules(task, nalRuleIds, memory);
         return [...lmResults, ...nalResults];
     }
-    
+
     /**
      * Performs coordinated reasoning between LM and NAL rules
      * Applies LM rules first, then NAL rules on the combined results
@@ -177,16 +176,16 @@ export class RuleEngine {
     async coordinateRules(task, memory = null) {
         // Apply LM rules to original task
         const lmResults = this.applyLMRules(task, null, memory);
-        
+
         // Combine original task results with LM results
         const allTasks = [task, ...lmResults];
-        
+
         // Apply NAL rules to all tasks
         const nalResults = allTasks.flatMap(t => this.applyNALRules(t, null, memory));
-        
+
         // Optionally, apply LM rules to NAL results as well
         const additionalLmResults = nalResults.flatMap(t => this.applyLMRules(t, null, memory));
-        
+
         return {
             initial: [task],
             lmResults,
@@ -207,7 +206,7 @@ export class RuleEngine {
             ruleEngine: this,
             ...this._config.context
         });
-        
+
         return await this._ruleProcessor.process(rules, tasks, context);
     }
 
@@ -229,19 +228,19 @@ export class RuleEngine {
             ruleEngine: this,
             ...this._config.context
         });
-        
+
         // Use the performance optimizer for batch processing if available
         if (this._performanceOptimizer && this._config.performance?.enableBatching) {
             return await this._performanceOptimizer.batchProcess(
-                rules, 
-                tasks, 
-                context, 
+                rules,
+                tasks,
+                context,
                 async (ruleBatch, taskBatch, ctx) => {
                     return await this._ruleProcessor.process(ruleBatch, taskBatch, ctx);
                 }
             );
         }
-        
+
         return await this._ruleProcessor.process(rules, tasks, context);
     }
 
@@ -261,9 +260,12 @@ export class RuleEngine {
                 termFactory: this._termFactory,
                 ruleEngine: this
             });
-            
+
             // Use performance optimizer for rule application
-            const {results, rule: updatedRule} = await this._performanceOptimizer.applyRuleWithOptimization(rule, task, context);
+            const {
+                results,
+                rule: updatedRule
+            } = await this._performanceOptimizer.applyRuleWithOptimization(rule, task, context);
             this._rules.set(rule.id, updatedRule);
             success = true;
             this._incrementTypeMetric(rule);
@@ -280,12 +282,12 @@ export class RuleEngine {
      * Apply rules with performance optimization - async version
      */
     async applyRulesOptimized(task, ruleIds = null, ruleType = null, memory = null) {
-        const rulesToApply = ruleIds 
-            ? this._getValidRules(ruleIds) 
+        const rulesToApply = ruleIds
+            ? this._getValidRules(ruleIds)
             : this.getApplicableRules(task, ruleType);
-            
+
         const results = [];
-        
+
         for (const rule of rulesToApply) {
             try {
                 const ruleResult = await this.applyRuleOptimized(rule, task, memory);
@@ -294,7 +296,7 @@ export class RuleEngine {
                 this.logger.warn(`Optimized rule ${rule.id} failed:`, error);
             }
         }
-        
+
         return results;
     }
 
@@ -359,7 +361,7 @@ export class RuleEngine {
     }
 
     _filterByType(rules, ruleType) {
-        return ruleType 
+        return ruleType
             ? rules.filter(r => (ruleType === 'lm' ? r instanceof LMRule : !(r instanceof LMRule)))
             : rules;
     }

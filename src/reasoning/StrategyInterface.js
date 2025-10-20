@@ -31,7 +31,7 @@ export class StrategyInterface {
     async executeWithMetrics(context, rules, taskOrTasks) {
         const startTime = performance.now();
         let success = true;
-        
+
         try {
             const result = await this.execute(context, rules, taskOrTasks);
             this.metrics.successes++;
@@ -52,7 +52,7 @@ export class StrategyInterface {
      * Get strategy metrics
      */
     getMetrics() {
-        return { ...this.metrics };
+        return {...this.metrics};
     }
 
     /**
@@ -78,14 +78,14 @@ export class StrategyInterface {
      * Get strategy configuration
      */
     getConfiguration() {
-        return { ...this.config };
+        return {...this.config};
     }
 
     /**
      * Update strategy configuration
      */
     updateConfiguration(newConfig) {
-        this.config = { ...this.config, ...newConfig };
+        this.config = {...this.config, ...newConfig};
         return this;
     }
 }

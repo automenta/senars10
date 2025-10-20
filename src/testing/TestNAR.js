@@ -28,8 +28,8 @@ export class TaskMatch {
     async matches(task) {
         // Check term match
         if (this.termFilter) {
-            const { NarseseParser } = await import('../parser/NarseseParser.js');
-            const { TermFactory } = await import('../term/TermFactory.js');
+            const {NarseseParser} = await import('../parser/NarseseParser.js');
+            const {TermFactory} = await import('../term/TermFactory.js');
             const termFactory = new TermFactory();
             const parser = new NarseseParser(termFactory);
             // Add punctuation to satisfy the parser
@@ -73,14 +73,14 @@ export class TestNAR {
         this.nar = null;
     }
 
-    getNAR() {
-        return this.nar;
-    }
-
     static _matchesTruth(taskTruth, criteriaTruth) {
         if (!taskTruth) return false;
         return (!criteriaTruth.minFreq || taskTruth.f >= criteriaTruth.minFreq) &&
             (!criteriaTruth.minConf || taskTruth.c >= criteriaTruth.minConf);
+    }
+
+    getNAR() {
+        return this.nar;
     }
 
     input(termStr, freq = 0.9, conf = 0.9) {
@@ -109,7 +109,7 @@ export class TestNAR {
         // Dynamically import NAR to avoid circular dependencies
         const {NAR} = await import('../nar/NAR.js');
         this.nar = new NAR();
-        
+
         // Allow for more cycles to ensure reasoning completion
         const maxCycles = 0; // Increase default cycles for reasoning
 
@@ -147,13 +147,13 @@ export class TestNAR {
 
         // Get all beliefs from NAR after processing
         const allBeliefs = this.nar.memory.getAllConcepts().flatMap(c => c.getAllTasks().filter(t => t.type === 'BELIEF'));
-        
+
         // Get all tasks (not just beliefs) to catch derived results
         const allTasks = this.nar.memory.getAllConcepts().flatMap(c => c.getAllTasks());
 
         // Validate expectations
         for (const exp of expectations) {
-            const { matcher, shouldExist } = exp;
+            const {matcher, shouldExist} = exp;
 
             let found = false;
             for (const task of allTasks) {

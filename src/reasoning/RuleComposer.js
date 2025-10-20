@@ -12,7 +12,7 @@ export class RuleComposer {
         if (rules.length === 0) {
             throw new Error('At least one rule must be provided for chaining');
         }
-        
+
         if (rules.length === 1) {
             return rules[0]; // Return the single rule
         }
@@ -29,7 +29,7 @@ export class RuleComposer {
         if (rules.length === 0) {
             throw new Error('At least one rule must be provided for combination');
         }
-        
+
         if (rules.length === 1) {
             return rules[0]; // Return the single rule
         }
@@ -85,7 +85,7 @@ class ChainedRule {
 
     async apply(task, context) {
         if (!this.canApply(task)) {
-            return { results: [], rule: this };
+            return {results: [], rule: this};
         }
 
         let currentTasks = [task];
@@ -93,7 +93,7 @@ class ChainedRule {
 
         for (const rule of this.rules) {
             const newTasks = [];
-            
+
             for (const currentTask of currentTasks) {
                 if (rule.canApply(currentTask)) {
                     try {
@@ -106,16 +106,16 @@ class ChainedRule {
                     }
                 }
             }
-            
+
             if (newTasks.length === 0) {
                 // If no results from this rule, stop the chain
                 break;
             }
-            
+
             currentTasks = newTasks;
         }
 
-        return { results: currentTasks, rule: currentRule };
+        return {results: currentTasks, rule: currentRule};
     }
 
     enable() {
@@ -147,7 +147,7 @@ class CombinedRule {
 
     async apply(task, context) {
         if (!this.canApply(task)) {
-            return { results: [], rule: this };
+            return {results: [], rule: this};
         }
 
         let allResults = [];
@@ -165,7 +165,7 @@ class CombinedRule {
             }
         }
 
-        return { results: allResults, rule: currentRule };
+        return {results: allResults, rule: currentRule};
     }
 
     enable() {
@@ -195,7 +195,7 @@ class ConditionalRule {
 
     canApply(task, context) {
         if (!this.enabled) return false;
-        
+
         const conditionResult = this.condition(task, context);
         const ruleToCheck = conditionResult ? this.ifRule : this.elseRule;
         return ruleToCheck.canApply(task, context);
@@ -203,7 +203,7 @@ class ConditionalRule {
 
     async apply(task, context) {
         if (!this.enabled) {
-            return { results: [], rule: this };
+            return {results: [], rule: this};
         }
 
         const conditionResult = this.condition(task, context);
@@ -211,10 +211,10 @@ class ConditionalRule {
 
         try {
             const result = await ruleToApply.apply(task, context);
-            return { results: result.results, rule: result.rule };
+            return {results: result.results, rule: result.rule};
         } catch (error) {
             console.warn(`Conditional rule ${this.id} failed:`, error);
-            return { results: [], rule: this };
+            return {results: [], rule: this};
         }
     }
 
@@ -243,8 +243,8 @@ class DispatcherRule {
 
     canApply(task, context) {
         if (!this.enabled) return false;
-        
-        for (const { condition, rule } of this.ruleConditions) {
+
+        for (const {condition, rule} of this.ruleConditions) {
             if (condition(task, context) && rule.canApply(task, context)) {
                 return true;
             }
@@ -254,14 +254,14 @@ class DispatcherRule {
 
     async apply(task, context) {
         if (!this.enabled) {
-            return { results: [], rule: this };
+            return {results: [], rule: this};
         }
 
-        for (const { condition, rule } of this.ruleConditions) {
+        for (const {condition, rule} of this.ruleConditions) {
             if (condition(task, context) && rule.canApply(task, context)) {
                 try {
                     const result = await rule.apply(task, context);
-                    return { results: result.results, rule: result.rule };
+                    return {results: result.results, rule: result.rule};
                 } catch (error) {
                     console.warn(`Dispatcher rule ${rule.id} failed:`, error);
                     // Continue to next condition
@@ -269,7 +269,7 @@ class DispatcherRule {
             }
         }
 
-        return { results: [], rule: this };
+        return {results: [], rule: this};
     }
 
     enable() {
@@ -297,13 +297,13 @@ class FallbackRule {
 
     canApply(task, context) {
         if (!this.enabled) return false;
-        
+
         return this.rules.some(rule => rule.canApply(task, context));
     }
 
     async apply(task, context) {
         if (!this.enabled) {
-            return { results: [], rule: this };
+            return {results: [], rule: this};
         }
 
         for (const rule of this.rules) {
@@ -311,7 +311,7 @@ class FallbackRule {
                 try {
                     const result = await rule.apply(task, context);
                     if (result.results.length > 0) {
-                        return { results: result.results, rule: result.rule };
+                        return {results: result.results, rule: result.rule};
                     }
                 } catch (error) {
                     console.warn(`Fallback rule ${rule.id} failed, trying next:`, error);
@@ -320,7 +320,7 @@ class FallbackRule {
             }
         }
 
-        return { results: [], rule: this };
+        return {results: [], rule: this};
     }
 
     enable() {

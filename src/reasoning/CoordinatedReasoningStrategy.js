@@ -1,7 +1,7 @@
-import { StrategyInterface } from './StrategyInterface.js';
-import { CooperationEngine } from './CooperationEngine.js';
+import {StrategyInterface} from './StrategyInterface.js';
+import {CooperationEngine} from './CooperationEngine.js';
 import {Logger} from '../util/Logger.js';
-import { StrategyMetrics } from './StrategyMetrics.js';
+import {StrategyMetrics} from './StrategyMetrics.js';
 
 /**
  * A reasoning strategy that coordinates between different rule types (LM and NAL)
@@ -9,7 +9,7 @@ import { StrategyMetrics } from './StrategyMetrics.js';
  */
 export class CoordinatedReasoningStrategy extends StrategyInterface {
     constructor(ruleEngine, config = {}) {
-        super({ id: 'coordinated-reasoning', ...config });
+        super({id: 'coordinated-reasoning', ...config});
         this.ruleEngine = ruleEngine;
         this.config = {
             maxIterations: config.maxIterations || 3,
@@ -21,11 +21,11 @@ export class CoordinatedReasoningStrategy extends StrategyInterface {
             ...config
         };
         this.logger = Logger;
-        
+
         if (this.config.enableCooperationEngine) {
             this.cooperationEngine = new CooperationEngine(this.config.cooperation || {});
         }
-        
+
         // Initialize metrics if enabled
         if (this.config.enableMetrics) {
             this.metrics = new StrategyMetrics({
@@ -60,12 +60,12 @@ export class CoordinatedReasoningStrategy extends StrategyInterface {
                 // New StrategyInterface approach: (context, rules, taskOrTasks)
                 memory = contextOrMemory.memory;
                 termFactory = contextOrMemory.termFactory;
-                
+
                 // If the context has ruleEngine and we don't have one, use it
                 if (contextOrMemory.ruleEngine && !this.ruleEngine) {
                     this.ruleEngine = contextOrMemory.ruleEngine;
                 }
-                
+
                 tasks = Array.isArray(termFactoryOrFocusTasks) ? termFactoryOrFocusTasks : [termFactoryOrFocusTasks].filter(t => t !== undefined);
             } else {
                 // Handle multiple backward compatibility patterns:
@@ -79,11 +79,11 @@ export class CoordinatedReasoningStrategy extends StrategyInterface {
                     tasks = optionalFocusTasks; // Use focus tasks from cycle
                 }
                 // Pattern 2: execute(memory, rules[], termFactory) - original from tests
-                else if (rulesOrTermFactory && typeof rulesOrTermFactory !== 'function' && 
-                    Array.isArray(rulesOrTermFactory) && 
-                    (termFactoryOrFocusTasks && typeof termFactoryOrFocusTasks === 'object' && 
-                     !Array.isArray(termFactoryOrFocusTasks) && 
-                     (!termFactoryOrFocusTasks.constructor || termFactoryOrFocusTasks.constructor.name !== 'Task'))) {
+                else if (rulesOrTermFactory && typeof rulesOrTermFactory !== 'function' &&
+                    Array.isArray(rulesOrTermFactory) &&
+                    (termFactoryOrFocusTasks && typeof termFactoryOrFocusTasks === 'object' &&
+                        !Array.isArray(termFactoryOrFocusTasks) &&
+                        (!termFactoryOrFocusTasks.constructor || termFactoryOrFocusTasks.constructor.name !== 'Task'))) {
                     // This is the old signature: execute(memory, rules, termFactory)
                     // where rulesOrTermFactory is the rules array and termFactoryOrFocusTasks is termFactory
                     memory = contextOrMemory;
@@ -94,7 +94,7 @@ export class CoordinatedReasoningStrategy extends StrategyInterface {
                     memory = contextOrMemory;
                     termFactory = rulesOrTermFactory;
                     tasks = Array.isArray(termFactoryOrFocusTasks) ? termFactoryOrFocusTasks : [termFactoryOrFocusTasks].filter(t => t !== undefined);
-                    
+
                     // For backward compatibility, if tasks is just undefined, try to get from memory
                     if (tasks.length === 1 && tasks[0] === undefined) {
                         tasks = this._getAllTasksFromMemory(memory) || [];
@@ -121,7 +121,7 @@ export class CoordinatedReasoningStrategy extends StrategyInterface {
             throw error;
         } finally {
             const executionTime = performance.now() - startTime;
-            
+
             // Record metrics if enabled
             if (this.metrics) {
                 this.metrics.recordExecution(
@@ -141,15 +141,15 @@ export class CoordinatedReasoningStrategy extends StrategyInterface {
      */
     async _executeWithCooperationEngine(tasks, memory, termFactory) {
         const allResults = [];
-        
+
         for (const task of tasks) {
             const cooperationResult = await this.cooperationEngine.performCooperativeReasoning(
-                task, 
-                this.ruleEngine, 
-                memory, 
+                task,
+                this.ruleEngine,
+                memory,
                 termFactory
             );
-            
+
             allResults.push(...cooperationResult.finalResults);
         }
 
@@ -172,13 +172,13 @@ export class CoordinatedReasoningStrategy extends StrategyInterface {
         // Perform coordinated reasoning iterations
         let allDerivedTasks = [];
         let currentTasks = [...tasks];
-        
+
         for (let iteration = 0; iteration < this.config.maxIterations; iteration++) {
             this.logger.debug(`Coordinated reasoning iteration ${iteration + 1}/${this.config.maxIterations}`);
-            
+
             const iterationResults = await this._performIteration(currentTasks, memory, termFactory);
             allDerivedTasks = [...allDerivedTasks, ...iterationResults.derivedTasks];
-            
+
             // Update current tasks with new derivations for next iteration if feedback loops enabled
             if (this.config.enableFeedbackLoops && iterationResults.derivedTasks.length > 0) {
                 currentTasks = [...tasks, ...iterationResults.derivedTasks];
@@ -258,7 +258,7 @@ export class CoordinatedReasoningStrategy extends StrategyInterface {
     _filterAndValidateResults(results) {
         // Filter out low-confidence tasks if threshold is set
         if (this.config.confidenceThreshold && this.config.confidenceThreshold > 0) {
-            return results.filter(task => 
+            return results.filter(task =>
                 task.truth?.c !== undefined ? task.truth.c >= this.config.confidenceThreshold : true
             );
         }

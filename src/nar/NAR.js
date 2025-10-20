@@ -10,8 +10,8 @@ import {SyllogisticRule} from '../reasoning/rules/syllogism.js';
 import {ModusPonensRule} from '../reasoning/rules/modusponens.js';
 import {PRIORITY} from '../config/constants.js';
 import {Logger} from '../util/Logger.js';
-import { NaiveExhaustiveStrategy } from '../reasoning/NaiveExhaustiveStrategy.js';
-import { CoordinatedReasoningStrategy } from '../reasoning/CoordinatedReasoningStrategy.js';
+import {NaiveExhaustiveStrategy} from '../reasoning/NaiveExhaustiveStrategy.js';
+import {CoordinatedReasoningStrategy} from '../reasoning/CoordinatedReasoningStrategy.js';
 import {Focus} from '../memory/Focus.js';
 import {LM} from '../lm/LM.js';
 import {Task} from '../task/Task.js';
@@ -48,8 +48,8 @@ export class NAR {
         this._setupDefaultRules();
 
         // Use coordinated reasoning strategy if LM is enabled, otherwise use naive strategy
-        const reasoningStrategy = desiredLmEnabled 
-            ? new CoordinatedReasoningStrategy(this._ruleEngine, this._config.reasoning || {}) 
+        const reasoningStrategy = desiredLmEnabled
+            ? new CoordinatedReasoningStrategy(this._ruleEngine, this._config.reasoning || {})
             : new NaiveExhaustiveStrategy(this._config.reasoning || {});
 
         this._cycle = new Cycle({

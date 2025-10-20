@@ -1,5 +1,5 @@
-import { NALRule } from '../NALRule.js';
-import { Truth } from '../../Truth.js';
+import {NALRule} from '../NALRule.js';
+import {Truth} from '../../Truth.js';
 
 /**
  * Implements the Modus Ponens inference rule.
@@ -25,7 +25,7 @@ export class ModusPonensRule extends NALRule {
         const Q = termFactory.create('?Q');
 
         const premises = [
-            termFactory.create({ operator: '==>', components: [P, Q] }), // P ==> Q
+            termFactory.create({operator: '==>', components: [P, Q]}), // P ==> Q
             P, // P
         ];
 

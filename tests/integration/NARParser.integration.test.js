@@ -1,7 +1,6 @@
-import {NAR} from '../../src/nar/NAR.js';
 import {Truth} from '../../src/Truth.js';
-import {createNARIntegrationTestSuite, narTestPatterns} from '../support/narTestSetup.js';
-import {runPerformanceTest, flexibleAssertions} from '../support/baseTestUtils.js';
+import {createNARIntegrationTestSuite} from '../support/narTestSetup.js';
+import {flexibleAssertions, runPerformanceTest} from '../support/baseTestUtils.js';
 
 describe('NAR Parser Integration', () => {
     // Using the new NAR test setup utilities
@@ -163,7 +162,7 @@ describe('NAR Parser Integration', () => {
                     await nar().input(input);
                 }
             }, 5000, 'Multiple rapid inputs test');
-            
+
             const beliefs = nar().getBeliefs();
             expect(beliefs.length).toBe(100);
         });

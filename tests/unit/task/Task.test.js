@@ -1,7 +1,7 @@
 import {Task} from '../../../src/task/Task.js';
 import {Stamp} from '../../../src/Stamp.js';
 import {createTask, createTerm, createTruth, TEST_CONSTANTS} from '../../support/factories.js';
-import {testImmutability, testEqualityMethod, taskAssertions, initializationTests, comprehensiveTestSuites} from '../../support/baseTestUtils.js';
+import {taskAssertions, testImmutability} from '../../support/baseTestUtils.js';
 
 describe('Task', () => {
     let term;
@@ -38,7 +38,7 @@ describe('Task', () => {
 
     test('enforces immutability', () => {
         const task = createTask({term});
-        testImmutability(task, { type: 'GOAL' });
+        testImmutability(task, {type: 'GOAL'});
     });
 
     test('clones with modifications', () => {
@@ -102,35 +102,35 @@ describe('Task', () => {
         const task = createTask({term, punctuation: '.', truth});
         expect(task.toString()).toBe('A. %0.90;0.80%');
     });
-    
+
     describe('Task Assertions', () => {
         test('task type assertions work correctly', () => {
             const belief = createTask({term, punctuation: '.'});
             const goal = createTask({term, punctuation: '!'});
             const question = createTask({term, punctuation: '?'});
-            
+
             taskAssertions.expectTaskType(belief, 'BELIEF');
             taskAssertions.expectTaskType(goal, 'GOAL');
             taskAssertions.expectTaskType(question, 'QUESTION');
         });
-        
+
         test('task punctuation assertions work correctly', () => {
             const belief = createTask({term, punctuation: '.'});
             const goal = createTask({term, punctuation: '!'});
             const question = createTask({term, punctuation: '?'});
-            
+
             taskAssertions.expectTaskPunctuation(belief, '.');
             taskAssertions.expectTaskPunctuation(goal, '!');
             taskAssertions.expectTaskPunctuation(question, '?');
         });
-        
+
         test('findTaskByTerm utility works correctly', () => {
             const tasks = [
                 createTask({term: createTerm('apple')}),
                 createTask({term: createTerm('banana')}),
                 createTask({term: createTerm('cherry')})
             ];
-            
+
             const foundTask = taskAssertions.findTaskByTerm(tasks, 'apple');
             expect(foundTask).toBeDefined();
             expect(foundTask.term.name).toBe('apple');

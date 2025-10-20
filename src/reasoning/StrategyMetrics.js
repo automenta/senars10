@@ -34,6 +34,18 @@ export class StrategyMetrics {
     }
 
     /**
+     * Create a metrics instance from a JSON representation
+     */
+    static fromJSON(json) {
+        const metrics = new StrategyMetrics({strategyId: json.strategyId});
+        metrics._metrics = {...json._metrics};
+        metrics._executionHistory = [...json.executionHistory];
+        metrics._resourceHistory = [...json.resourceHistory];
+        // Note: _ruleMetrics would need special handling for proper restoration
+        return metrics;
+    }
+
+    /**
      * Record a strategy execution
      */
     recordExecution(executionTime, taskCount, inferenceCount, success = true, error = null) {
@@ -166,7 +178,7 @@ export class StrategyMetrics {
      */
     getTopPerformingRules(limit = 10) {
         const rules = Array.from(this._ruleMetrics.entries())
-            .map(([id, metrics]) => ({ id, ...metrics }))
+            .map(([id, metrics]) => ({id, ...metrics}))
             .sort((a, b) => b.averageResults - a.averageResults);
 
         return rules.slice(0, limit);
@@ -235,18 +247,6 @@ export class StrategyMetrics {
     }
 
     /**
-     * Create a metrics instance from a JSON representation
-     */
-    static fromJSON(json) {
-        const metrics = new StrategyMetrics({ strategyId: json.strategyId });
-        metrics._metrics = { ...json._metrics };
-        metrics._executionHistory = [...json.executionHistory];
-        metrics._resourceHistory = [...json.resourceHistory];
-        // Note: _ruleMetrics would need special handling for proper restoration
-        return metrics;
-    }
-
-    /**
      * Generate a performance report
      */
     generateReport() {
@@ -302,7 +302,7 @@ export class StrategyMonitor {
      */
     getMetrics(strategyId, config = {}) {
         if (!this._strategyMetrics.has(strategyId)) {
-            const metricsConfig = { strategyId, ...this.config.metrics, ...config };
+            const metricsConfig = {strategyId, ...this.config.metrics, ...config};
             this._strategyMetrics.set(strategyId, new StrategyMetrics(metricsConfig));
         }
         return this._strategyMetrics.get(strategyId);
@@ -340,8 +340,8 @@ export class StrategyMonitor {
         for (const [strategyId, metrics] of this._strategyMetrics.entries()) {
             metrics.recordResourceUsage({
                 timestamp: Date.now(),
-                cpu: { usage: 0 }, // Placeholder
-                memory: { used: 0, total: 0 }, // Placeholder  
+                cpu: {usage: 0}, // Placeholder
+                memory: {used: 0, total: 0}, // Placeholder
                 executionQueue: 0
             });
         }

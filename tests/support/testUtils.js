@@ -1,7 +1,7 @@
 /**
  * @file testUtils.js
  * @description Common test utilities following AGENTS.md guidelines
- * 
+ *
  * NOTE: This file now uses the organized test utilities from testOrganizer.js
  * for better maintainability and reduced duplication
  */

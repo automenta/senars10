@@ -1,8 +1,7 @@
-import { Rule } from './Rule.js';
-import { Term } from '../term/Term.js';
-import { Task } from '../task/Task.js';
-import { Stamp } from '../Stamp.js';
-import { PatternMatcher } from './nal/PatternMatcher.js';
+import {Rule} from './Rule.js';
+import {Term} from '../term/Term.js';
+import {Task} from '../task/Task.js';
+import {Stamp} from '../Stamp.js';
 
 /**
  * NALRule is the base class for all logical inference rules in the system.
@@ -19,9 +18,17 @@ export class NALRule extends Rule {
         Object.freeze(this);
     }
 
-    get premises() { return this._premises; }
-    get conclusion() { return this._conclusion; }
-    get truthFunction() { return this._truthFunction; }
+    get premises() {
+        return this._premises;
+    }
+
+    get conclusion() {
+        return this._conclusion;
+    }
+
+    get truthFunction() {
+        return this._truthFunction;
+    }
 
     /**
      * Applies the rule to a given set of premise tasks.
@@ -74,7 +81,7 @@ export class NALRule extends Rule {
             truth: derivedTruth,
             stamp: newStamp,
             priority: newPriority,
-            budget: { ...baseBudget, priority: newPriority },
+            budget: {...baseBudget, priority: newPriority},
         });
 
         return [derivedTask];

@@ -1,7 +1,4 @@
-import { Reasoner } from './index.js';
-import { Rule } from './index.js';
-import { RuleEngine } from './index.js';
-import { StrategySelector } from './index.js';
+import {Reasoner, Rule, RuleEngine, StrategySelector} from './index.js';
 
 describe('Reasoner - Refactored Implementation', () => {
     let reasoner;
@@ -45,16 +42,16 @@ describe('Reasoner - Refactored Implementation', () => {
     });
 
     test('should set system context correctly', () => {
-        const mockSystemContext = { memory: {}, termFactory: {} };
+        const mockSystemContext = {memory: {}, termFactory: {}};
         const updatedReasoner = reasoner.setSystemContext(mockSystemContext);
-        
+
         expect(updatedReasoner).toBe(reasoner);
         expect(reasoner.systemContext).toBe(mockSystemContext);
     });
 
     test('should return performance statistics', () => {
         const stats = reasoner.getPerformanceStats();
-        
+
         expect(stats).toBeDefined();
         expect(stats.totalInferences).toBeDefined();
         expect(stats.symbolicInferences).toBeDefined();
@@ -67,14 +64,14 @@ describe('Reasoner - Refactored Implementation', () => {
         // Test symbolic reasoning mode
         reasoner.setReasoningMode('symbolic', false);
         expect(reasoner.config.enableSymbolicReasoning).toBe(false);
-        
+
         reasoner.setReasoningMode('symbolic', true);
         expect(reasoner.config.enableSymbolicReasoning).toBe(true);
-        
+
         // Test temporal reasoning mode
         reasoner.setReasoningMode('temporal', false);
         expect(reasoner.config.enableTemporalReasoning).toBe(false);
-        
+
         // Test modular reasoning mode
         reasoner.setReasoningMode('modular', true);
         expect(reasoner.config.enableModularReasoning).toBe(true);
@@ -88,7 +85,7 @@ describe('Reasoner - Refactored Implementation', () => {
 
     test('should return rule statistics', () => {
         const stats = reasoner.getRuleStatistics();
-        
+
         expect(stats).toBeDefined();
         expect(stats.totalRules).toBe(0); // Since no rules were added
         expect(stats.ruleNames).toEqual([]);
@@ -96,16 +93,16 @@ describe('Reasoner - Refactored Implementation', () => {
     });
 
     test('should process a single task', async () => {
-        const mockTask = { term: { toString: () => 'test' }, type: 'BELIEF' };
-        
+        const mockTask = {term: {toString: () => 'test'}, type: 'BELIEF'};
+
         // Mock the performInference method to return the task
         const originalPerformInference = reasoner.performInference;
         reasoner.performInference = async (focusSet) => focusSet;
-        
+
         const result = await reasoner.processTask(mockTask);
-        
+
         expect(result).toEqual([mockTask]);
-        
+
         // Restore original method
         reasoner.performInference = originalPerformInference;
     });
@@ -113,22 +110,22 @@ describe('Reasoner - Refactored Implementation', () => {
     test('should handle task processing with proper context', async () => {
         // Create a simple rule for testing
         const testRule = new Rule('test-rule', 'test', 1.0);
-        
+
         // Add the rule to the engine
         reasoner.ruleEngine.register(testRule);
-        
-        const mockTask = { 
-            term: { toString: () => 'test-term' }, 
+
+        const mockTask = {
+            term: {toString: () => 'test-term'},
             type: 'BELIEF',
-            truth: { frequency: 0.9, confidence: 0.8 }
+            truth: {frequency: 0.9, confidence: 0.8}
         };
-        
+
         // Test that inference can be performed without errors
-        const result = await reasoner.performInference([mockTask], { 
+        const result = await reasoner.performInference([mockTask], {
             enableTemporalReasoning: false,
             enableModularReasoning: false
         });
-        
+
         expect(Array.isArray(result)).toBe(true);
     });
 });
@@ -154,18 +151,18 @@ describe('Reasoner - Integration with RuleEngine', () => {
             type: 'test',
             priority: 1.0,
             canApply: () => true,
-            apply: async () => ({ results: [], rule: mockRule })
+            apply: async () => ({results: [], rule: mockRule})
         };
-        
+
         // Register the rule directly to the engine (bypassing validation for test)
         reasoner.ruleEngine['_rules'].set('test-rule', mockRule);
-        
-        const mockTask = { term: { toString: () => 'test' }, type: 'BELIEF' };
-        const result = await reasoner.performInference([mockTask], { 
+
+        const mockTask = {term: {toString: () => 'test'}, type: 'BELIEF'};
+        const result = await reasoner.performInference([mockTask], {
             enableTemporalReasoning: false,
             enableModularReasoning: false
         });
-        
+
         expect(Array.isArray(result)).toBe(true);
     });
 });

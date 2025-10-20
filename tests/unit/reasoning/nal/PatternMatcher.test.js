@@ -1,5 +1,5 @@
-import { PatternMatcher } from '../../../../src/reasoning/nal/PatternMatcher.js';
-import { Term, TermType } from '../../../../src/term/Term.js';
+import {PatternMatcher} from '../../../../src/reasoning/nal/PatternMatcher.js';
+import {Term, TermType} from '../../../../src/term/Term.js';
 
 describe('PatternMatcher', () => {
     let patternMatcher;
@@ -12,7 +12,7 @@ describe('PatternMatcher', () => {
         it('should unify identical atomic terms', () => {
             const term1 = new Term(TermType.ATOM, 'A');
             const term2 = new Term(TermType.ATOM, 'A');
-            
+
             const result = patternMatcher.unify(term1, term2);
             expect(result).not.toBeNull();
             expect(result.size).toBe(0); // No variables to bind
@@ -21,7 +21,7 @@ describe('PatternMatcher', () => {
         it('should fail to unify different atomic terms', () => {
             const pattern = new Term(TermType.ATOM, 'A');
             const term = new Term(TermType.ATOM, 'B');
-            
+
             const result = patternMatcher.unify(pattern, term);
             expect(result).toBeNull();
         });
@@ -29,7 +29,7 @@ describe('PatternMatcher', () => {
         it('should bind variables to terms', () => {
             const pattern = new Term(TermType.ATOM, '?X');  // Variable
             const term = new Term(TermType.ATOM, 'A');
-            
+
             const result = patternMatcher.unify(pattern, term);
             expect(result).not.toBeNull();
             expect(result.size).toBe(1);
@@ -39,11 +39,11 @@ describe('PatternMatcher', () => {
         it('should handle variable consistency', () => {
             const bindings = new Map();
             bindings.set('?X', new Term(TermType.ATOM, 'A'));
-            
+
             // Try to bind ?X to a different value
             const pattern = new Term(TermType.ATOM, '?X');
             const term = new Term(TermType.ATOM, 'B');
-            
+
             const result = patternMatcher.unify(pattern, term, bindings);
             expect(result).toBeNull(); // Should fail due to inconsistent binding
         });
@@ -55,12 +55,12 @@ describe('PatternMatcher', () => {
                 new Term(TermType.ATOM, 'A'),
                 new Term(TermType.ATOM, 'B')
             ], '&');
-            
+
             const term = new Term(TermType.COMPOUND, null, [
                 new Term(TermType.ATOM, 'A'),
                 new Term(TermType.ATOM, 'B')
             ], '&');
-            
+
             const result = patternMatcher.unify(pattern, term);
             expect(result).not.toBeNull();
             expect(result.size).toBe(0);
@@ -71,12 +71,12 @@ describe('PatternMatcher', () => {
                 new Term(TermType.ATOM, '?X'),
                 new Term(TermType.ATOM, 'B')
             ], '&');
-            
+
             const term = new Term(TermType.COMPOUND, null, [
                 new Term(TermType.ATOM, 'A'),
                 new Term(TermType.ATOM, 'B')
             ], '&');
-            
+
             const result = patternMatcher.unify(pattern, term);
             expect(result).not.toBeNull();
             expect(result.size).toBe(1);
@@ -96,7 +96,7 @@ describe('PatternMatcher', () => {
                     term: new Term(TermType.ATOM, 'B')
                 }
             ];
-            
+
             const result = patternMatcher.unifyMultiple(patternTermPairs);
             expect(result).not.toBeNull();
             expect(result.size).toBe(2);
@@ -115,7 +115,7 @@ describe('PatternMatcher', () => {
                     term: new Term(TermType.ATOM, 'C')     // Different from B
                 }
             ];
-            
+
             const result = patternMatcher.unifyMultiple(patternTermPairs);
             expect(result).toBeNull(); // Should fail due to inconsistent match
         });
@@ -125,10 +125,10 @@ describe('PatternMatcher', () => {
         it('should substitute variables in terms', () => {
             const bindings = new Map();
             bindings.set('?X', new Term(TermType.ATOM, 'A'));
-            
+
             const term = new Term(TermType.ATOM, '?X');
             const result = patternMatcher.substitute(term, bindings);
-            
+
             expect(result.name).toBe('A');
         });
 
@@ -136,14 +136,14 @@ describe('PatternMatcher', () => {
             const bindings = new Map();
             bindings.set('?X', new Term(TermType.ATOM, 'A'));
             bindings.set('?Y', new Term(TermType.ATOM, 'B'));
-            
+
             const term = new Term(TermType.COMPOUND, null, [
                 new Term(TermType.ATOM, '?X'),
                 new Term(TermType.ATOM, '?Y')
             ], '&');
-            
+
             const result = patternMatcher.substitute(term, bindings);
-            
+
             expect(result.isCompound).toBe(true);
             expect(result.components.length).toBe(2);
             expect(result.components[0].name).toBe('A');

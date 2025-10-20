@@ -1,4 +1,4 @@
-import { RuleProcessor } from './RuleProcessor.js';
+import {RuleProcessor} from './RuleProcessor.js';
 
 /**
  * SequentialRuleProcessor: Applies rules sequentially to tasks
@@ -26,9 +26,9 @@ export class SequentialRuleProcessor extends RuleProcessor {
             for (const task of tasks) {
                 if (rule.canApply && rule.canApply(task)) {
                     try {
-                        const { results: ruleResults } = await rule.apply(task, context);
+                        const {results: ruleResults} = await rule.apply(task, context);
                         results.push(...ruleResults);
-                        
+
                         // Update context metrics
                         context.incrementMetric('rulesApplied');
                         context.incrementMetric('inferencesMade', ruleResults.length);

@@ -13,9 +13,33 @@ describe('Term', () => {
 
     describe('Core Functionality', () => {
         test.each([
-            {name: 'atomic term', term: atomA, expected: {type: TermType.ATOM, name: 'A', components: ['A'], complexity: 1, string: 'A'}},
-            {name: 'compound term', term: inheritanceAB, expected: {type: TermType.COMPOUND, name: '(-->, A, B)', components: [atomA, atomB], complexity: 3, string: '(-->, A, B)'}},
-            {name: 'nested compound term', term: createCompoundTerm('<->', [inheritanceAB, atomC]), expected: {type: TermType.COMPOUND, name: '(<->, (-->, A, B), C)', components: [inheritanceAB, atomC], complexity: 5, string: '(<->, (-->, A, B), C)'}},
+            {
+                name: 'atomic term',
+                term: atomA,
+                expected: {type: TermType.ATOM, name: 'A', components: ['A'], complexity: 1, string: 'A'}
+            },
+            {
+                name: 'compound term',
+                term: inheritanceAB,
+                expected: {
+                    type: TermType.COMPOUND,
+                    name: '(-->, A, B)',
+                    components: [atomA, atomB],
+                    complexity: 3,
+                    string: '(-->, A, B)'
+                }
+            },
+            {
+                name: 'nested compound term',
+                term: createCompoundTerm('<->', [inheritanceAB, atomC]),
+                expected: {
+                    type: TermType.COMPOUND,
+                    name: '(<->, (-->, A, B), C)',
+                    components: [inheritanceAB, atomC],
+                    complexity: 5,
+                    string: '(<->, (-->, A, B), C)'
+                }
+            },
         ])('should create $name with correct properties', ({term, expected}) => {
             expect(term.type).toBe(expected.type);
             expect(term.name).toBe(expected.name);
@@ -26,8 +50,12 @@ describe('Term', () => {
         });
 
         test('should maintain strict immutability', () => {
-            expect(() => { atomA.name = 'B'; }).toThrow();
-            expect(() => { inheritanceAB.components.push(atomC); }).toThrow();
+            expect(() => {
+                atomA.name = 'B';
+            }).toThrow();
+            expect(() => {
+                inheritanceAB.components.push(atomC);
+            }).toThrow();
         });
     });
 
@@ -92,7 +120,10 @@ describe('Term', () => {
     });
 
     describe('Property-Based Tests', () => {
-        const atomicTermArb = fc.stringOf(fc.constantFrom('a', 'b', 'c', 'd'), {minLength: 1, maxLength: 1}).map(createTerm);
+        const atomicTermArb = fc.stringOf(fc.constantFrom('a', 'b', 'c', 'd'), {
+            minLength: 1,
+            maxLength: 1
+        }).map(createTerm);
         const compoundTermArb = fc.letrec(tie => ({
             term: fc.oneof(atomicTermArb, tie('compound')),
             compound: fc.record({

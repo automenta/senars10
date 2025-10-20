@@ -1,13 +1,14 @@
-import { TaskMatch, TestNAR } from '../../src/testing/TestNAR.js';
-import { Logger } from '../../src/util/Logger.js';
-import { jest } from '@jest/globals';
+import {TaskMatch, TestNAR} from '../../src/testing/TestNAR.js';
+import {Logger} from '../../src/util/Logger.js';
+import {jest} from '@jest/globals';
 
 describe('NAL Reasoning Cycle Validation', () => {
     let consoleInfoSpy;
 
     beforeEach(() => {
         Logger.setSilent(false);
-        consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
+        consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {
+        });
     });
 
     afterEach(() => {

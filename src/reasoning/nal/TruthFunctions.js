@@ -1,6 +1,6 @@
-import { TRUTH } from '../../config/constants.js';
-import { Truth } from '../../Truth.js';
-import { clamp } from '../../util/common.js';
+import {TRUTH} from '../../config/constants.js';
+import {Truth} from '../../Truth.js';
+import {clamp} from '../../util/common.js';
 
 /**
  * NAL Truth Value Functions for reasoning
@@ -20,9 +20,9 @@ export class TruthFunctions {
         // Convert to Truth instances if they're not already
         const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
         const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
-        
+
         const revised = Truth.revision(t1, t2);
-        return { frequency: revised.f, confidence: revised.c };
+        return {frequency: revised.f, confidence: revised.c};
     }
 
     /**
@@ -38,9 +38,9 @@ export class TruthFunctions {
         // Convert to Truth instances if they're not already
         const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
         const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
-        
+
         const result = Truth.deduction(t1, t2);
-        return result ? { frequency: result.f, confidence: result.c } : null;
+        return result ? {frequency: result.f, confidence: result.c} : null;
     }
 
     /**
@@ -56,9 +56,9 @@ export class TruthFunctions {
         // Convert to Truth instances if they're not already
         const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
         const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
-        
+
         const result = Truth.induction(t1, t2);
-        return result ? { frequency: result.f, confidence: result.c } : null;
+        return result ? {frequency: result.f, confidence: result.c} : null;
     }
 
     /**
@@ -74,9 +74,9 @@ export class TruthFunctions {
         // Convert to Truth instances if they're not already
         const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
         const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
-        
+
         const result = Truth.abduction(t1, t2);
-        return result ? { frequency: result.f, confidence: result.c } : null;
+        return result ? {frequency: result.f, confidence: result.c} : null;
     }
 
     /**
@@ -92,14 +92,14 @@ export class TruthFunctions {
         // Convert to Truth instances if they're not already
         const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
         const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
-        
+
         const result = Truth.op(t1, t2, (t, u) => {
             const f = t.f; // Similar to abduction
             const c = t.c * u.c * (TRUTH.EXEMPLIFICATION_CONFIDENCE_FACTOR || 0.1);
             return new Truth(f, c);
         });
-        
-        return result ? { frequency: result.f, confidence: result.c } : null;
+
+        return result ? {frequency: result.f, confidence: result.c} : null;
     }
 
     /**
@@ -115,9 +115,9 @@ export class TruthFunctions {
         // Convert to Truth instances if they're not already
         const t1 = v1 instanceof Truth ? v1 : new Truth(v1?.frequency || 0.5, v1?.confidence || 0.9);
         const t2 = v2 instanceof Truth ? v2 : new Truth(v2?.frequency || 0.5, v2?.confidence || 0.9);
-        
+
         const result = Truth.comparison(t1, t2);
-        return result ? { frequency: result.f, confidence: result.c } : null;
+        return result ? {frequency: result.f, confidence: result.c} : null;
     }
 
     /**
@@ -131,9 +131,9 @@ export class TruthFunctions {
 
         // Convert to Truth instance if it's not already
         const t = v instanceof Truth ? v : new Truth(v?.frequency || 0.5, v?.confidence || 0.9);
-        
+
         const result = Truth.conversion(t);
-        return result ? { frequency: result.f, confidence: result.c } : null;
+        return result ? {frequency: result.f, confidence: result.c} : null;
     }
 
     /**
@@ -147,9 +147,9 @@ export class TruthFunctions {
 
         // Convert to Truth instance if it's not already
         const t = v instanceof Truth ? v : new Truth(v?.frequency || 0.5, v?.confidence || 0.9);
-        
+
         const result = Truth.negation(t);
-        return result ? { frequency: result.f, confidence: result.c } : null;
+        return result ? {frequency: result.f, confidence: result.c} : null;
     }
 
     /**
@@ -163,7 +163,7 @@ export class TruthFunctions {
 
         // Convert to Truth instance if it's not already
         const t = v instanceof Truth ? v : new Truth(v?.frequency || 0.5, v?.confidence || 0.9);
-        
+
         return Truth.expectation(t);
     }
 
@@ -174,10 +174,10 @@ export class TruthFunctions {
      */
     static normalize(v) {
         if (!v) return {frequency: 0.5, confidence: 0.9};
-        
+
         // Convert to Truth instance if it's not already
         const t = v instanceof Truth ? v : new Truth(v?.frequency || 0.5, v?.confidence || 0.9);
-        
+
         return {
             frequency: clamp(t.f, 0, 1),
             confidence: clamp(t.c, 0, 1)

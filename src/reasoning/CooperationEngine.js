@@ -109,7 +109,7 @@ export class CooperationEngine {
 
         // Filter by confidence threshold if configured
         if (this.config.confidenceThreshold > 0) {
-            return allResults.filter(task => 
+            return allResults.filter(task =>
                 task.truth?.c !== undefined && task.truth.c >= this.config.confidenceThreshold
             );
         }
@@ -125,7 +125,7 @@ export class CooperationEngine {
         const enhancedResults = [];
 
         for (const lmResult of lmResults) {
-            const matchingNalResult = nalResults.find(nalResult => 
+            const matchingNalResult = nalResults.find(nalResult =>
                 this.termsMatch(lmResult.term, nalResult.term)
             );
 
@@ -133,7 +133,7 @@ export class CooperationEngine {
                 // Results match - boost confidence due to cross-validation
                 const enhancedTask = this.boostTaskConfidence(lmResult, matchingNalResult);
                 enhancedResults.push(enhancedTask);
-                
+
                 // Record feedback event
                 this.recordFeedbackEvent(lmResult, matchingNalResult, 'cross_validation');
             } else {
@@ -144,7 +144,7 @@ export class CooperationEngine {
 
         // Also enhance NAL results that were validated by LM
         for (const nalResult of nalResults) {
-            const matchingLmResult = lmResults.find(lmResult => 
+            const matchingLmResult = lmResults.find(lmResult =>
                 this.termsMatch(nalResult.term, lmResult.term)
             );
 

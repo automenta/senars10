@@ -1,5 +1,5 @@
-import { RuleEngine as BaseRuleEngine } from '../RuleEngine.js';
-import { RuleManager } from './RuleManager.js';
+import {RuleEngine as BaseRuleEngine} from '../RuleEngine.js';
+import {RuleManager} from './RuleManager.js';
 
 /**
  * Advanced NAL-focused Rule Engine that extends the base RuleEngine

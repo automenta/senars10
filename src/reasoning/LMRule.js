@@ -30,9 +30,17 @@ export class LMRule extends Rule {
         this._freeze();
     }
 
-    get promptTemplate() { return this._promptTemplate; }
-    get responseProcessor() { return this._responseProcessor; }
-    get lmConfig() { return {...this._lmConfig}; }
+    get promptTemplate() {
+        return this._promptTemplate;
+    }
+
+    get responseProcessor() {
+        return this._responseProcessor;
+    }
+
+    get lmConfig() {
+        return {...this._lmConfig};
+    }
 
     /**
      * Checks if this rule can be applied to the given task
@@ -108,7 +116,7 @@ export class LMRule extends Rule {
     _getContext(task, memory) {
         if (memory && memory.getRelevantTasks) {
             const relevantTasks = memory.getRelevantTasks(task.term, 5); // Get up to 5 relevant tasks
-            const relevantInfo = relevantTasks.length > 0 
+            const relevantInfo = relevantTasks.length > 0
                 ? `Relevant tasks: ${relevantTasks.map(t => t.term?.toString()).join(', ')}`
                 : 'No relevant tasks in memory';
             return `Task: ${task.term?.toString() || 'unknown'}, Type: ${task.type || 'unknown'}, ${relevantInfo}`;

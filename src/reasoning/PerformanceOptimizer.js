@@ -9,7 +9,7 @@ export class RuleCache {
             enabled: config.enabled !== false,
             ...config
         };
-        
+
         this._cache = new Map(); // Map of cacheKey -> { result, timestamp, ttl }
         this._stats = {
             hits: 0,
@@ -59,7 +59,7 @@ export class RuleCache {
         if (!this.config.enabled) return;
 
         const key = this._generateKey(ruleId, task, memoryState);
-        
+
         // Evict oldest entries if cache is full
         if (this._cache.size >= this.config.maxSize) {
             const firstKey = this._cache.keys().next().value;

@@ -2,10 +2,10 @@
  * Cycle class - Manages the reasoning cycle execution
  * Orchestrates task selection, rule application, and memory updates
  */
-import { Logger } from '../util/Logger.js';
+import {Logger} from '../util/Logger.js';
 
 export class Cycle {
-    constructor({ memory, focus, ruleEngine, taskManager, config, reasoningStrategy, termFactory }) {
+    constructor({memory, focus, ruleEngine, taskManager, config, reasoningStrategy, termFactory}) {
         this._memory = memory;
         this._focus = focus;
         this._ruleEngine = ruleEngine;
@@ -35,7 +35,7 @@ export class Cycle {
     }
 
     get stats() {
-        return { ...this._stats };
+        return {...this._stats};
     }
 
     async execute() {

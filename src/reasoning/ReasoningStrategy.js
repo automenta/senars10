@@ -1,9 +1,22 @@
-import { ReasoningContext } from './ReasoningContext.js';
-import { StrategyInterface } from './StrategyInterface.js';
+import {ReasoningContext} from './ReasoningContext.js';
+import {StrategyInterface} from './StrategyInterface.js';
 
 export class ReasoningStrategy extends StrategyInterface {
     constructor(config = {}) {
         super(config);
+    }
+
+    /**
+     * Factory method to create a strategy based on configuration
+     * Note: For async imports, use StrategyFactory.createAsync instead
+     */
+    static create(type, config = {}) {
+        switch (type) {
+            case 'sequential':
+            default:
+                // Return a basic sequential strategy
+                return new ReasoningStrategy(config);
+        }
     }
 
     async execute(context, rules, taskOrTasks) {
@@ -21,27 +34,14 @@ export class ReasoningStrategy extends StrategyInterface {
             ...additionalConfig
         });
     }
-    
-    /** 
-     * Factory method to create a strategy based on configuration
-     * Note: For async imports, use StrategyFactory.createAsync instead
-     */
-    static create(type, config = {}) {
-        switch (type) {
-            case 'sequential':
-            default:
-                // Return a basic sequential strategy
-                return new ReasoningStrategy(config);
-        }
-    }
-    
-    /** 
+
+    /**
      * Execute with error handling and metrics
      */
     async executeWithMetrics(context, rules, taskOrTasks) {
         const startTime = performance.now();
         let success = true;
-        
+
         try {
             const result = await this.execute(context, rules, taskOrTasks);
             this.metrics.executions++;

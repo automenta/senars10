@@ -1,6 +1,5 @@
 import {Memory} from '../../../src/memory/Memory.js';
 import {createMemoryConfig, createTask, createTerm, TEST_CONSTANTS} from '../../support/factories.js';
-import {comprehensiveTestSuites} from '../../support/baseTestUtils.js';
 
 describe('Memory', () => {
     let memory;
@@ -87,7 +86,7 @@ describe('Memory', () => {
             const task = createTask({term, budget});
 
             memory.addTask(task);
-            
+
             if (shouldFocus) {
                 expect(memory.focusConcepts.size).toBe(1);
             } else {

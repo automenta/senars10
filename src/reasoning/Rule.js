@@ -18,12 +18,29 @@ export class Rule {
         });
     }
 
-    get id() { return this._id; }
-    get type() { return this._type; }
-    get priority() { return this._priority; }
-    get enabled() { return this._enabled; }
-    get config() { return this._config; }
-    get metrics() { return this._metrics; }
+    get id() {
+        return this._id;
+    }
+
+    get type() {
+        return this._type;
+    }
+
+    get priority() {
+        return this._priority;
+    }
+
+    get enabled() {
+        return this._enabled;
+    }
+
+    get config() {
+        return this._config;
+    }
+
+    get metrics() {
+        return this._metrics;
+    }
 
     // Immutable state modifiers
     enable() {
@@ -57,7 +74,7 @@ export class Rule {
     async apply(task, memoryOrContext, termFactory) {
         // Check if second parameter is a context or memory
         let effectiveContext, effectiveMemory, effectiveTermFactory;
-        
+
         if (memoryOrContext && typeof memoryOrContext === 'object' && memoryOrContext.hasOwnProperty('config')) {
             // It's a ReasoningContext
             effectiveContext = memoryOrContext;
@@ -80,7 +97,7 @@ export class Rule {
             } else {
                 results = await this._apply(task, effectiveMemory, effectiveTermFactory);
             }
-            
+
             // Update context metrics if available
             if (effectiveContext) {
                 effectiveContext.incrementMetric('rulesApplied');
@@ -88,7 +105,7 @@ export class Rule {
                     effectiveContext.incrementMetric('inferencesMade', results.length);
                 }
             }
-            
+
             return {results, rule: this._updateMetrics(true, performance.now() - start)};
         } catch (error) {
             throw {error, rule: this._updateMetrics(false, performance.now() - start)};

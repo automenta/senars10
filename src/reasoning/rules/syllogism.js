@@ -1,5 +1,5 @@
-import { NALRule } from '../NALRule.js';
-import { Truth } from '../../Truth.js';
+import {NALRule} from '../NALRule.js';
+import {Truth} from '../../Truth.js';
 
 /**
  * Implements the syllogistic deduction rule.
@@ -30,12 +30,12 @@ export class SyllogisticRule extends NALRule {
 
         // Define the premise patterns using the variables.
         const premises = [
-            termFactory.create({ operator: '==>', components: [M, P] }), // M ==> P
-            termFactory.create({ operator: '==>', components: [S, M] }), // S ==> M
+            termFactory.create({operator: '==>', components: [M, P]}), // M ==> P
+            termFactory.create({operator: '==>', components: [S, M]}), // S ==> M
         ];
 
         // Define the conclusion pattern.
-        const conclusion = termFactory.create({ operator: '==>', components: [S, P] }); // S ==> P
+        const conclusion = termFactory.create({operator: '==>', components: [S, P]}); // S ==> P
 
         return new SyllogisticRule('syllogism/deduction', premises, conclusion);
     }

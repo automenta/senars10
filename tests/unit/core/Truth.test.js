@@ -1,17 +1,11 @@
 import {Truth} from '../../../src/Truth.js';
 import {TRUTH} from '../../../src/config/constants.js';
 import {createTruth, TEST_CONSTANTS} from '../../support/factories.js';
-import { 
-  truthAssertions, 
-  equalityTests, 
-  stringRepresentationTests, 
-  initializationTests, 
-  comprehensiveTestSuites, 
-  testImmutability, 
-  testEqualityMethod, 
-  testStringRepresentation, 
-  flexibleAssertions,
-  StandardTestSuites
+import {
+    equalityTests,
+    flexibleAssertions,
+    stringRepresentationTests,
+    truthAssertions
 } from '../../support/testOrganizer.js';
 import fc from 'fast-check';
 
@@ -62,7 +56,7 @@ describe('Truth', () => {
             const t1 = createTruth();
             const t2 = createTruth();
             const t3 = createTruth(0.5, 0.8);
-            
+
             equalityTests.runEqualityLaws(t1, t2, t3);
         });
     });
@@ -94,7 +88,7 @@ describe('Truth', () => {
             }
         });
     });
-    
+
     describe('Truth Assertions', () => {
         test('expectation calculation works correctly', () => {
             const truth = new Truth(0.8, 0.9);
