@@ -18,20 +18,26 @@ export class CommandExecutorTool extends BaseTool {
         this.name = 'CommandExecutorTool';
         
         // Configure safety settings
-        this.allowedCommands = config.allowedCommands || [
+        this.allowedCommands = new Set(config.allowedCommands || [
             'ls', 'dir', 'cat', 'head', 'tail', 'echo', 'date', 'whoami', 'pwd', 
-            'ps', 'top', 'free', 'df', 'du', 'grep', 'find', 'which', 'whereis',
+            'ps', 'netstat', 'ifconfig', 'df', 'du', 'grep', 'find', 'which', 'whereis',
             'node', 'npm', 'npx', 'git', 'curl', 'wget', 'ping', 'nslookup', 'dig'
-        ];
+        ]);
         
-        this.disallowedCommands = config.disallowedCommands || [
-            'rm', 'rmdir', 'rmtree', 'del', 'format', 'mkfs', 
-            'dd', 'chmod', 'chown', 'passwd', 'useradd', 'userdel', 'su', 'sudo'
-        ];
+        this.disallowedCommands = new Set(config.disallowedCommands || [
+            'rm', 'rmdir', 'rmtree', 'del', 'format', 'mkfs', 'dd',
+            'chmod', 'chown', 'passwd', 'useradd', 'userdel', 'su', 'sudo',
+            'mount', 'umount', 'kill', 'killall', 'reboot', 'shutdown'
+        ]);
         
         this.timeout = config.timeout || 10000; // 10 seconds default
         this.maxOutputSize = config.maxOutputSize || 1024 * 100; // 100KB
         this.workingDir = config.workingDir || os.tmpdir();
+        this.allowedWorkingDirs = new Set(config.allowedWorkingDirs || [
+            os.tmpdir(),
+            path.join(process.cwd(), 'temp'),
+            path.join(process.cwd(), 'work')
+        ]);
     }
 
     /**
@@ -41,29 +47,37 @@ export class CommandExecutorTool extends BaseTool {
      * @returns {Promise<any>} - Command execution result
      */
     async execute(params, context) {
-        const { command, args = [], options = {} } = params;
+        const { command, args = [], cwd, env = {} } = params;
         
         if (!command) {
             throw new Error('Command is required');
         }
 
         // Validate and sanitize the command
-        this._validateCommand(command, args);
+        this._validateCommand(command, args, cwd, env);
 
-        // Sanitize options
-        const sanitizedOptions = {
-            cwd: this.workingDir,
-            timeout: this.timeout,
-            maxBuffer: this.maxOutputSize,
-            ...options
-        };
+        // Use exec for safety since it prevents shell injection better than spawn
+        return await this._executeWithTimeout(command, args, cwd, env, this.timeout);
+    }
 
+    /**
+     * Execute command with timeout and safety
+     * @private
+     */
+    async _executeWithTimeout(command, args, cwd, env, timeout) {
         return new Promise((resolve, reject) => {
             const commandString = [command, ...args].join(' ');
             const startTime = Date.now();
             
-            // Use exec for safety since it prevents shell injection better than spawn
-            const child = exec(commandString, sanitizedOptions, (error, stdout, stderr) => {
+            const execOptions = {
+                cwd: cwd || this.workingDir,
+                timeout: timeout,
+                maxBuffer: this.maxOutputSize,
+                env: { ...process.env, ...env }, // Merge with system env
+                reject: false // Don't throw on non-zero exit code
+            };
+            
+            const child = exec(commandString, execOptions, (error, stdout, stderr) => {
                 const executionTime = Date.now() - startTime;
                 
                 if (error) {
@@ -78,18 +92,22 @@ export class CommandExecutorTool extends BaseTool {
                     resolve({
                         success: false,
                         command: commandString,
+                        exitCode: error.code === 'ETIMEDOUT' ? null : (typeof error.killed !== 'undefined' ? 1 : null),
                         error: safeError,
                         stdout: this._sanitizeOutput(stdout),
                         stderr: this._sanitizeOutput(stderr),
-                        executionTime
+                        executionTime,
+                        duration: executionTime
                     });
                 } else {
                     resolve({
                         success: true,
                         command: commandString,
+                        exitCode: 0, // exec sets this to 0 for successful commands
                         stdout: this._sanitizeOutput(stdout),
                         stderr: this._sanitizeOutput(stderr),
-                        executionTime
+                        executionTime,
+                        duration: executionTime
                     });
                 }
             });
@@ -101,11 +119,15 @@ export class CommandExecutorTool extends BaseTool {
                     resolve({
                         success: false,
                         command: commandString,
+                        exitCode: null,
                         error: {
                             message: `Command timed out after ${this.timeout}ms`,
-                            code: 'ETIMEOUT',
+                            code: 'ETIMEDOUT',
                             executionTime: Date.now() - startTime
-                        }
+                        },
+                        stdout: '',
+                        stderr: '',
+                        duration: Date.now() - startTime
                     });
                 }
             }, this.timeout);
@@ -116,7 +138,7 @@ export class CommandExecutorTool extends BaseTool {
      * Get tool description
      */
     getDescription() {
-        return 'Tool for executing system commands in a secure, sandboxed environment with safety restrictions. Only allows predefined safe commands.';
+        return 'Tool for executing system commands in a secure, sandboxed environment with safety restrictions. Only allows predefined safe commands in safe directories.';
     }
 
     /**
@@ -133,15 +155,17 @@ export class CommandExecutorTool extends BaseTool {
                 args: {
                     type: 'array',
                     items: { type: 'string' },
-                    description: 'Arguments for the command'
+                    description: 'Arguments for the command',
+                    default: []
                 },
-                options: {
+                cwd: {
+                    type: 'string',
+                    description: 'Working directory for command execution (must be in allowed list)'
+                },
+                env: {
                     type: 'object',
-                    properties: {
-                        cwd: { type: 'string', description: 'Working directory' },
-                        env: { type: 'object', description: 'Environment variables' }
-                    },
-                    description: 'Additional options for command execution'
+                    description: 'Environment variables to pass to the command',
+                    additionalProperties: { type: 'string' }
                 }
             },
             required: ['command']
@@ -152,13 +176,14 @@ export class CommandExecutorTool extends BaseTool {
      * Validate parameters
      */
     validate(params) {
-        const errors = [];
+        const validation = super.validate(params);
+        const errors = [...(validation.errors || [])];
 
         if (!params.command) {
             errors.push('Command is required');
         } else {
             try {
-                this._validateCommand(params.command, params.args || []);
+                this._validateCommand(params.command, params.args || [], params.cwd, params.env || {});
             } catch (error) {
                 errors.push(error.message);
             }
@@ -168,8 +193,17 @@ export class CommandExecutorTool extends BaseTool {
             errors.push('Args must be an array');
         }
 
+        // Validate working directory
+        if (params.cwd) {
+            try {
+                this._validateWorkingDir(params.cwd);
+            } catch (error) {
+                errors.push(error.message);
+            }
+        }
+
         return {
-            valid: errors.length === 0,
+            isValid: errors.length === 0,
             errors
         };
     }
@@ -178,7 +212,7 @@ export class CommandExecutorTool extends BaseTool {
      * Get tool capabilities
      */
     getCapabilities() {
-        return ['command-execution', 'system-utilities'];
+        return ['command-execution', 'system-utilities', 'process-control'];
     }
 
     /**
@@ -192,17 +226,22 @@ export class CommandExecutorTool extends BaseTool {
      * Validate command for safety
      * @private
      */
-    _validateCommand(command, args = []) {
+    _validateCommand(command, args = [], cwd, env = {}) {
         // Check for disallowed commands first (higher priority)
         const normalizedCommand = command.split(/\s+/)[0].toLowerCase();
         
-        if (this.disallowedCommands.includes(normalizedCommand)) {
+        if (this.disallowedCommands.has(normalizedCommand)) {
             throw new Error(`Command '${normalizedCommand}' is explicitly disallowed`);
         }
 
         // Check for allowed commands
-        if (!this.allowedCommands.includes(normalizedCommand)) {
+        if (!this.allowedCommands.has(normalizedCommand)) {
             throw new Error(`Command '${normalizedCommand}' is not in the allowed list`);
+        }
+
+        // Check working directory if provided
+        if (cwd) {
+            this._validateWorkingDir(cwd);
         }
 
         // Check for dangerous patterns in arguments
@@ -216,11 +255,19 @@ export class CommandExecutorTool extends BaseTool {
             />\s*[>&]/,  // Output redirection
             /<\s*[<]/,   // Input redirection
             /[\n\r]/,    // Newlines that might separate commands
+            /;/,         // Semicolon command separator
         ];
 
         for (const pattern of dangerousPatterns) {
             if (pattern.test(allArgs)) {
                 throw new Error(`Dangerous pattern detected in command: ${allArgs}`);
+            }
+        }
+
+        // Validate environment variables for dangerous patterns
+        for (const [key, value] of Object.entries(env)) {
+            if (typeof value === 'string' && dangerousPatterns.some(p => p.test(value))) {
+                throw new Error(`Dangerous pattern detected in environment variable ${key}`);
             }
         }
 
@@ -232,6 +279,34 @@ export class CommandExecutorTool extends BaseTool {
         if (normalizedCommand === 'chmod' || normalizedCommand === 'chown') {
             throw new Error(`File permission modification commands are not allowed`);
         }
+    }
+
+    /**
+     * Validate working directory for safety
+     * @private
+     */
+    _validateWorkingDir(dirPath) {
+        const resolvedPath = path.resolve(dirPath);
+        let isAllowed = false;
+
+        for (const allowedDir of this.allowedWorkingDirs) {
+            const resolvedAllowedDir = path.resolve(allowedDir);
+            if (resolvedPath === resolvedAllowedDir || resolvedPath.startsWith(resolvedAllowedDir + path.sep)) {
+                isAllowed = true;
+                break;
+            }
+        }
+
+        if (!isAllowed) {
+            throw new Error(`Working directory is not in allowed list: ${dirPath}`);
+        }
+
+        // Additional safety checks
+        if (dirPath.includes('..') || dirPath.includes('../') || dirPath.includes('..\\')) {
+            throw new Error(`Invalid directory path: ${dirPath}. Path traversal not allowed.`);
+        }
+
+        return true;
     }
 
     /**

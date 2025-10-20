@@ -328,12 +328,35 @@ export class NAR {
             throw new Error('Tool integration is not enabled');
         }
         
-        return await this._toolIntegration.executeTool(toolId, params, {
-            nar: this,
-            memory: this._memory,
-            timestamp: Date.now(),
-            ...context
-        });
+        // Track tool execution performance
+        const startTime = Date.now();
+        try {
+            const result = await this._toolIntegration.executeTool(toolId, params, {
+                nar: this,
+                memory: this._memory,
+                timestamp: Date.now(),
+                ...context
+            });
+            
+            // Log performance if it took longer than threshold
+            const duration = Date.now() - startTime;
+            if (duration > 1000) { // Log if > 1 second
+                this.logger.warn(`Slow tool execution: ${toolId} took ${duration}ms`, {
+                    toolId,
+                    duration,
+                    paramsSize: JSON.stringify(params).length
+                });
+            }
+            
+            return result;
+        } catch (error) {
+            this.logger.error(`Tool execution failed: ${toolId}`, {
+                toolId,
+                error: error.message,
+                duration: Date.now() - startTime
+            });
+            throw error;
+        }
     }
     
     async executeTools(toolCalls, context = {}) {

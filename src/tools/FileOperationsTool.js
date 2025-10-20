@@ -25,6 +25,8 @@ export class FileOperationsTool extends BaseTool {
         
         // Default file size limit (10MB)
         this.maxFileSize = config.maxFileSize || 10 * 1024 * 1024;
+        this.defaultEncoding = config.defaultEncoding || 'utf8';
+        this.backupEnabled = config.backupEnabled !== false; // Enable by default
     }
 
     /**
@@ -34,7 +36,7 @@ export class FileOperationsTool extends BaseTool {
      * @returns {Promise<any>} - Operation result
      */
     async execute(params, context) {
-        const { operation, filePath, content, encoding = 'utf8' } = params;
+        const { operation, filePath, content, encoding = this.defaultEncoding } = params;
         
         if (!operation || !filePath) {
             throw new Error('Operation and filePath are required parameters');
@@ -47,10 +49,10 @@ export class FileOperationsTool extends BaseTool {
             case 'read':
                 return await this._readFile(filePath, encoding);
             case 'write':
-                if (!content) throw new Error('Content is required for write operation');
+                if (content === undefined) throw new Error('Content is required for write operation');
                 return await this._writeFile(filePath, content, encoding);
             case 'append':
-                if (!content) throw new Error('Content is required for append operation');
+                if (content === undefined) throw new Error('Content is required for append operation');
                 return await this._appendFile(filePath, content, encoding);
             case 'delete':
                 return await this._deleteFile(filePath);
@@ -58,8 +60,11 @@ export class FileOperationsTool extends BaseTool {
                 return await this._listDirectory(path.dirname(filePath));
             case 'stat':
                 return await this._getFileInfo(filePath);
+            case 'edit':
+                if (!content) throw new Error('Content is required for edit operation');
+                return await this._editFile(filePath, content, encoding);
             default:
-                throw new Error(`Unsupported operation: ${operation}. Supported operations: read, write, append, delete, list, stat`);
+                throw new Error(`Unsupported operation: ${operation}. Supported operations: read, write, append, delete, list, stat, edit`);
         }
     }
 
@@ -93,11 +98,22 @@ export class FileOperationsTool extends BaseTool {
     }
 
     /**
-     * Write content to file
+     * Write content to file with backup option
      * @private
      */
     async _writeFile(filePath, content, encoding) {
         try {
+            // Create backup if enabled and file exists
+            if (this.backupEnabled) {
+                try {
+                    await fs.access(filePath);
+                    const backupPath = `${filePath}.backup.${Date.now()}`;
+                    await fs.copyFile(filePath, backupPath);
+                } catch (error) {
+                    // File doesn't exist, no backup needed
+                }
+            }
+
             // Ensure directory exists
             const dir = path.dirname(filePath);
             await fs.mkdir(dir, { recursive: true });
@@ -112,7 +128,8 @@ export class FileOperationsTool extends BaseTool {
                 operation: 'write',
                 filePath,
                 size: Buffer.byteLength(fileContent, encoding),
-                type: 'file'
+                type: 'file',
+                backupCreated: this.backupEnabled
             };
         } catch (error) {
             throw new Error(`Failed to write file: ${error.message}`);
@@ -226,10 +243,39 @@ export class FileOperationsTool extends BaseTool {
     }
 
     /**
+     * Edit file content (for now, just replace the entire file)
+     * @private
+     */
+    async _editFile(filePath, content, encoding) {
+        try {
+            // Create backup if enabled
+            if (this.backupEnabled) {
+                const backupPath = `${filePath}.backup.${Date.now()}`;
+                await fs.copyFile(filePath, backupPath);
+            }
+
+            // Convert content to string if not already
+            const fileContent = typeof content === 'string' ? content : JSON.stringify(content);
+            
+            await fs.writeFile(filePath, fileContent, encoding);
+            
+            return {
+                success: true,
+                operation: 'edit',
+                filePath,
+                type: 'file',
+                backupCreated: this.backupEnabled
+            };
+        } catch (error) {
+            throw new Error(`Failed to edit file: ${error.message}`);
+        }
+    }
+
+    /**
      * Get tool description
      */
     getDescription() {
-        return 'Tool for secure file operations including read, write, append, delete, list, and stat operations. Only operates within safe directories.';
+        return 'Tool for secure file operations including read, write, append, delete, list, stat, and edit operations. Only operates within safe directories.';
     }
 
     /**
@@ -241,7 +287,7 @@ export class FileOperationsTool extends BaseTool {
             properties: {
                 operation: {
                     type: 'string',
-                    enum: ['read', 'write', 'append', 'delete', 'list', 'stat'],
+                    enum: ['read', 'write', 'append', 'delete', 'list', 'stat', 'edit'],
                     description: 'The file operation to perform'
                 },
                 filePath: {
@@ -250,12 +296,12 @@ export class FileOperationsTool extends BaseTool {
                 },
                 content: {
                     type: 'string',
-                    description: 'Content to write or append (required for write/append operations)'
+                    description: 'Content to write, append, or edit (required for write/append/edit operations)'
                 },
                 encoding: {
                     type: 'string',
-                    default: 'utf8',
-                    description: 'File encoding (default: utf8)'
+                    default: this.defaultEncoding,
+                    description: `File encoding (default: ${this.defaultEncoding})`
                 }
             },
             required: ['operation', 'filePath']
@@ -266,12 +312,13 @@ export class FileOperationsTool extends BaseTool {
      * Validate parameters
      */
     validate(params) {
-        const errors = [];
+        const validation = super.validate(params);
+        const errors = [...(validation.errors || [])];
 
         if (!params.operation) {
             errors.push('Operation is required');
-        } else if (!['read', 'write', 'append', 'delete', 'list', 'stat'].includes(params.operation.toLowerCase())) {
-            errors.push('Invalid operation. Must be one of: read, write, append, delete, list, stat');
+        } else if (!['read', 'write', 'append', 'delete', 'list', 'stat', 'edit'].includes(params.operation.toLowerCase())) {
+            errors.push('Invalid operation. Must be one of: read, write, append, delete, list, stat, edit');
         }
 
         if (!params.filePath) {
@@ -284,14 +331,14 @@ export class FileOperationsTool extends BaseTool {
             }
         }
 
-        if (params.operation === 'write' || params.operation === 'append') {
+        if (['write', 'append', 'edit'].includes(params.operation?.toLowerCase())) {
             if (params.content === undefined) {
-                errors.push('Content is required for write/append operations');
+                errors.push('Content is required for write/append/edit operations');
             }
         }
 
         return {
-            valid: errors.length === 0,
+            isValid: errors.length === 0,
             errors
         };
     }
@@ -300,7 +347,7 @@ export class FileOperationsTool extends BaseTool {
      * Get tool capabilities
      */
     getCapabilities() {
-        return ['file-read', 'file-write', 'file-append', 'file-delete', 'file-list', 'file-stat'];
+        return ['file-read', 'file-write', 'file-append', 'file-delete', 'file-list', 'file-stat', 'file-edit'];
     }
 
     /**

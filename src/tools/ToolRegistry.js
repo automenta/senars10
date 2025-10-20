@@ -8,6 +8,7 @@ import {ToolEngine} from './ToolEngine.js';
 
 /**
  * Tool Registry that provides automatic tool discovery and registration
+ * Follows patterns from v8/coreagent/tools architecture
  */
 export class ToolRegistry {
     /**
@@ -22,30 +23,39 @@ export class ToolRegistry {
         this.logger = Logger;
         this.discoveredTools = new Map();
         this.registrationHistory = [];
+        this.discoveryPaths = ['src/tools/executors', 'plugins', 'node_modules'];
+        this.autoDiscoveryEnabled = false;
+        this.discoveryInterval = null;
     }
 
     /**
      * Discovers tools in a given directory or set of modules
      * @param {Array<Function|Object>} toolClasses - Array of tool classes or objects to discover
+     * @param {object} [options] - Discovery options
+     * @param {boolean} [options.cache] - Whether to cache discovered tools (default: true)
      * @returns {Array<object>} - Discovered tool metadata
      */
-    discoverTools(toolClasses) {
+    discoverTools(toolClasses, options = {}) {
         const discovered = [];
+        const shouldCache = options.cache !== false;
         
         for (const toolClass of toolClasses) {
             try {
                 const toolMetadata = this._analyzeTool(toolClass);
                 
                 if (toolMetadata) {
-                    this.discoveredTools.set(toolMetadata.id, {
-                        class: toolClass,
-                        metadata: toolMetadata
-                    });
+                    if (shouldCache) {
+                        this.discoveredTools.set(toolMetadata.id, {
+                            class: toolClass,
+                            metadata: toolMetadata
+                        });
+                    }
                     
                     discovered.push(toolMetadata);
                     
                     this.logger.info(`Discovered tool: ${toolMetadata.id}`, {
                         name: toolMetadata.name,
+                        category: toolMetadata.category || 'unknown',
                         description: toolMetadata.description
                     });
                 }
@@ -64,9 +74,10 @@ export class ToolRegistry {
      * Registers all discovered tools with the engine
      * @param {Array<string>} [includeOnly] - Optional list of tool IDs to register (if not provided, registers all)
      * @param {object} [defaultConfig] - Default configuration to apply to tools
+     * @param {object} [metadataOverrides] - Metadata overrides for registered tools
      * @returns {Array<string>} - IDs of successfully registered tools
      */
-    registerAll(includeOnly = null, defaultConfig = {}) {
+    registerAll(includeOnly = null, defaultConfig = {}, metadataOverrides = {}) {
         const toRegister = includeOnly || Array.from(this.discoveredTools.keys());
         const registered = [];
         
@@ -77,11 +88,17 @@ export class ToolRegistry {
                 try {
                     // Create an instance of the tool
                     const toolInstance = typeof ToolClass === 'function' 
-                        ? new ToolClass(defaultConfig) 
+                        ? new ToolClass({...defaultConfig, ...metadataOverrides}) 
                         : ToolClass;
                     
+                    // Merge metadata with overrides
+                    const mergedMetadata = {
+                        ...metadata,
+                        ...metadataOverrides
+                    };
+                    
                     // Register the tool with the engine
-                    this.engine.registerTool(toolId, toolInstance, metadata);
+                    this.engine.registerTool(toolId, toolInstance, mergedMetadata);
                     
                     registered.push(toolId);
                     
@@ -90,10 +107,10 @@ export class ToolRegistry {
                         toolId,
                         timestamp: Date.now(),
                         action: 'register',
-                        metadata
+                        metadata: mergedMetadata
                     });
                     
-                    this.logger.info(`Registered tool: ${toolId}`);
+                    this.logger.info(`Registered tool: ${toolId} (${mergedMetadata.category || 'unknown'})`);
                 } catch (error) {
                     this.logger.error(`Failed to register tool ${toolId}:`, {
                         error: error.message
@@ -123,7 +140,7 @@ export class ToolRegistry {
                 metadata: metadata
             });
             
-            this.logger.info(`Manually registered tool: ${id}`);
+            this.logger.info(`Manually registered tool: ${id} (${metadata.category || 'unknown'})`);
             return this;
         } catch (error) {
             this.logger.error(`Failed to manually register tool ${id}:`, {
@@ -140,10 +157,11 @@ export class ToolRegistry {
      * @param {Array<string>} [options.include] - Only register tools with these IDs
      * @param {Array<string>} [options.exclude] - Don't register tools with these IDs
      * @param {object} [options.config] - Default configuration for tools
+     * @param {object} [options.metadata] - Metadata overrides for all registered tools
      * @returns {Array<string>} - Registered tool IDs
      */
     autoRegisterFromModule(toolModule, options = {}) {
-        const { include, exclude, config = {} } = options;
+        const { include, exclude, config = {}, metadata = {} } = options;
         const toolClasses = [];
         
         // Extract classes/objects that look like tools
@@ -160,20 +178,24 @@ export class ToolRegistry {
                 }
                 
                 // Add to discovery list with default metadata
+                const toolMetadata = {
+                    id: toolId,
+                    name: value.name || key,
+                    description: value.getDescription?.() || `Auto-registered tool: ${key}`,
+                    category: value.getCategory?.() || 'general',
+                    ...metadata
+                };
+                
                 this.discoveredTools.set(toolId, {
                     class: value,
-                    metadata: {
-                        id: toolId,
-                        name: value.name || key,
-                        description: value.description || `Auto-registered tool: ${key}`
-                    }
+                    metadata: toolMetadata
                 });
                 
                 toolClasses.push(value);
             }
         }
         
-        return this.registerAll(include, config);
+        return this.registerAll(include, config, metadata);
     }
 
     /**
@@ -229,6 +251,9 @@ export class ToolRegistry {
                 id: toolId,
                 name: className,
                 description: toolInstance.getDescription(),
+                category: toolInstance.getCategory?.() || 'general',
+                parameters: toolInstance.getParameterSchema?.() || { type: 'object', properties: {} },
+                capabilities: toolInstance.getCapabilities?.() || [],
                 parameterSchema: toolInstance.getParameterSchema ? toolInstance.getParameterSchema() : null,
                 supportsStreaming: typeof toolInstance.stream === 'function',
                 supportsValidation: typeof toolInstance.validate === 'function'
@@ -316,5 +341,87 @@ export class ToolRegistry {
         }
         
         return matching;
+    }
+
+    /**
+     * Starts auto-discovery of tools
+     * @param {object} [options] - Discovery options
+     * @param {number} [options.interval] - Interval in milliseconds (default: 30000)
+     * @param {Array<string>} [options.paths] - Paths to search for tools
+     */
+    startAutoDiscovery(options = {}) {
+        if (this.discoveryInterval) {
+            this.logger.warn('Auto-discovery already running');
+            return;
+        }
+
+        const { interval = 30000, paths = this.discoveryPaths } = options;
+        this.discoveryPaths = paths;
+        this.autoDiscoveryEnabled = true;
+
+        this.discoveryInterval = setInterval(() => {
+            this.performAutoDiscovery();
+        }, interval);
+
+        this.logger.info('Auto-discovery started with interval:', interval);
+    }
+
+    /**
+     * Stops auto-discovery of tools
+     */
+    stopAutoDiscovery() {
+        if (this.discoveryInterval) {
+            clearInterval(this.discoveryInterval);
+            this.discoveryInterval = null;
+            this.autoDiscoveryEnabled = false;
+            this.logger.info('Auto-discovery stopped');
+        }
+    }
+
+    /**
+     * Performs one-time auto-discovery in configured paths
+     */
+    async performAutoDiscovery() {
+        for (const path of this.discoveryPaths) {
+            try {
+                await this.discoverToolsInPath(path);
+            } catch (error) {
+                this.logger.debug(`Failed to discover tools in path ${path}:`, error.message);
+            }
+        }
+    }
+
+    /**
+     * Discovers tools in a specific path (placeholder implementation)
+     * @private
+     */
+    async discoverToolsInPath(path) {
+        // This would typically scan directories for tool files
+        // For now, we'll implement a basic version that looks for known patterns
+        const discoveryKey = `path_${path}_${Date.now()}`;
+        
+        if (this.discoveredTools.has(discoveryKey)) return;
+        this.discoveredTools.set(discoveryKey, {path, timestamp: Date.now()});
+        
+        // Clean old discovery records (keep for 5 minutes)
+        for (const [key, record] of this.discoveredTools.entries()) {
+            if (typeof record.timestamp === 'number' && Date.now() - record.timestamp > 300000) {
+                this.discoveredTools.delete(key);
+            }
+        }
+    }
+
+    /**
+     * Gets statistics about the registry
+     * @returns {object} - Registry statistics
+     */
+    getStats() {
+        return {
+            totalDiscoveredTools: this.discoveredTools.size,
+            registrationHistoryCount: this.registrationHistory.length,
+            autoDiscoveryEnabled: this.autoDiscoveryEnabled,
+            discoveryPaths: this.discoveryPaths,
+            lastDiscovery: Math.max(...Array.from(this.discoveredTools.values()).map(d => d.timestamp || 0)) || 0
+        };
     }
 }

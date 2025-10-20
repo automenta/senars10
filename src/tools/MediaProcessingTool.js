@@ -18,11 +18,12 @@ export class MediaProcessingTool extends BaseTool {
         
         // Configure safety settings
         this.maxFileSize = config.maxFileSize || 50 * 1024 * 1024; // 50MB
-        this.allowedFileTypes = config.allowedFileTypes || [
+        this.allowedFileTypes = new Set(config.allowedFileTypes || [
             '.pdf', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.txt', '.md', '.doc', '.docx'
-        ];
+        ]);
         this.timeout = config.timeout || 30000; // 30 seconds default
         this.workingDir = config.workingDir || path.join(process.cwd(), 'temp');
+        this.maxTextLength = config.maxTextLength || 1024 * 1024; // 1MB for text extraction
     }
 
     /**
@@ -59,8 +60,11 @@ export class MediaProcessingTool extends BaseTool {
             case 'convert':
                 if (!filePath) throw new Error('filePath is required for convert operation');
                 return await this._convertFile(filePath, options);
+            case 'image-analyze':
+                if (!filePath) throw new Error('filePath is required for image-analyze operation');
+                return await this._analyzeImage(filePath, options);
             default:
-                throw new Error(`Unsupported operation: ${operation}. Supported operations: pdf-extract, image-ocr, text-extract, metadata, convert`);
+                throw new Error(`Unsupported operation: ${operation}. Supported operations: pdf-extract, image-ocr, text-extract, metadata, convert, image-analyze`);
         }
     }
 
@@ -108,7 +112,7 @@ export class MediaProcessingTool extends BaseTool {
                     type: 'pdf',
                     extracted: true
                 },
-                pages: 0, // Would be real number in actual implementation
+                pages: 1, // Would be real number in actual implementation
                 textLength: 0 // Would be real count in actual implementation
             };
         } catch (error) {
@@ -157,6 +161,53 @@ export class MediaProcessingTool extends BaseTool {
     }
 
     /**
+     * Analyze image content (placeholder implementation)
+     * @private
+     */
+    async _analyzeImage(filePath, options = {}) {
+        // Check if file exists and is accessible
+        await fs.access(filePath);
+        
+        // Get file stats to check size
+        const stats = await fs.stat(filePath);
+        if (stats.size > this.maxFileSize) {
+            throw new Error(`Image file exceeds maximum size limit (${this.maxFileSize} bytes)`);
+        }
+        
+        // Verify it's an image file
+        const ext = path.extname(filePath).toLowerCase();
+        if (!['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff'].includes(ext)) {
+            throw new Error(`File is not a supported image type: ${ext}`);
+        }
+        
+        try {
+            // In a real implementation, you'd use image analysis libraries
+            // For now, return a mock result
+            return {
+                success: true,
+                operation: 'image-analyze',
+                filePath,
+                analysis: {
+                    format: ext.substring(1).toUpperCase(),
+                    width: 1920, // Would be real in actual implementation
+                    height: 1080, // Would be real in actual implementation
+                    size: stats.size,
+                    colorDepth: 24,
+                    hasText: false // Would be detected in real implementation
+                },
+                metadata: {
+                    fileName: path.basename(filePath),
+                    size: stats.size,
+                    type: 'image',
+                    extension: ext
+                }
+            };
+        } catch (error) {
+            throw new Error(`Failed to analyze image: ${error.message}`);
+        }
+    }
+
+    /**
      * Extract text from various file types
      * @private
      */
@@ -176,6 +227,10 @@ export class MediaProcessingTool extends BaseTool {
         if (['.txt', '.md', '.csv', '.json', '.xml', '.html', '.htm'].includes(ext)) {
             // Direct text file
             const content = await fs.readFile(filePath, 'utf8');
+            
+            if (content.length > this.maxTextLength) {
+                throw new Error(`Text content exceeds maximum length limit (${this.maxTextLength} characters)`);
+            }
             
             return {
                 success: true,
@@ -273,7 +328,7 @@ export class MediaProcessingTool extends BaseTool {
      * Get tool description
      */
     getDescription() {
-        return 'Tool for processing media files including PDFs, images, text extraction, and format conversion. Implements safety checks on file types and sizes.';
+        return 'Tool for processing media files including PDFs, images, text extraction, format conversion, and image analysis. Implements safety checks on file types and sizes.';
     }
 
     /**
@@ -285,7 +340,7 @@ export class MediaProcessingTool extends BaseTool {
             properties: {
                 operation: {
                     type: 'string',
-                    enum: ['pdf-extract', 'image-ocr', 'text-extract', 'metadata', 'convert'],
+                    enum: ['pdf-extract', 'image-ocr', 'text-extract', 'metadata', 'convert', 'image-analyze'],
                     description: 'The media operation to perform'
                 },
                 filePath: {
@@ -310,12 +365,13 @@ export class MediaProcessingTool extends BaseTool {
      * Validate parameters
      */
     validate(params) {
-        const errors = [];
+        const validation = super.validate(params);
+        const errors = [...(validation.errors || [])];
 
         if (!params.operation) {
             errors.push('Operation is required');
-        } else if (!['pdf-extract', 'image-ocr', 'text-extract', 'metadata', 'convert'].includes(params.operation.toLowerCase())) {
-            errors.push('Invalid operation. Must be one of: pdf-extract, image-ocr, text-extract, metadata, convert');
+        } else if (!['pdf-extract', 'image-ocr', 'text-extract', 'metadata', 'convert', 'image-analyze'].includes(params.operation.toLowerCase())) {
+            errors.push('Invalid operation. Must be one of: pdf-extract, image-ocr, text-extract, metadata, convert, image-analyze');
         }
 
         if (params.operation !== 'convert' && !params.filePath) {
@@ -335,7 +391,7 @@ export class MediaProcessingTool extends BaseTool {
         }
 
         return {
-            valid: errors.length === 0,
+            isValid: errors.length === 0,
             errors
         };
     }
@@ -344,7 +400,7 @@ export class MediaProcessingTool extends BaseTool {
      * Get tool capabilities
      */
     getCapabilities() {
-        return ['pdf-extraction', 'image-ocr', 'text-extraction', 'metadata-extraction', 'file-conversion'];
+        return ['pdf-extraction', 'image-ocr', 'text-extraction', 'metadata-extraction', 'file-conversion', 'image-analysis'];
     }
 
     /**
@@ -367,8 +423,8 @@ export class MediaProcessingTool extends BaseTool {
         }
 
         const ext = path.extname(filePath).toLowerCase();
-        if (!this.allowedFileTypes.includes(ext)) {
-            throw new Error(`File type not allowed: ${ext}. Allowed types: ${this.allowedFileTypes.join(', ')}`);
+        if (!this.allowedFileTypes.has(ext)) {
+            throw new Error(`File type not allowed: ${ext}. Allowed types: ${Array.from(this.allowedFileTypes).join(', ')}`);
         }
 
         return true;
@@ -404,8 +460,8 @@ export class MediaProcessingTool extends BaseTool {
         if (!content) return content;
         
         // Truncate if too large
-        if (content.length > this.maxFileSize) {
-            return content.substring(0, this.maxFileSize) + '\n[CONTENT TRUNCATED]';
+        if (content.length > this.maxTextLength) {
+            return content.substring(0, this.maxTextLength) + '\n[CONTENT TRUNCATED]';
         }
         
         // Additional sanitization could be added here

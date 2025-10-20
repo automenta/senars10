@@ -4,10 +4,10 @@
  */
 
 import {Logger} from '../util/Logger.js';
-import {Metrics} from '../util/Metrics.js';
 
 /**
  * Core Tool Engine that manages safe tool execution with comprehensive safety features
+ * Inspired by v8/coreagent/tools architecture
  */
 export class ToolEngine {
     /**
@@ -16,6 +16,7 @@ export class ToolEngine {
      * @param {object} config.safetyLimits - Safety limits configuration
      * @param {number} config.safetyLimits.maxOutputSize - Maximum output size in characters (default: 10000)
      * @param {number} config.safetyLimits.maxCommandLength - Maximum command length in characters (default: 1000)
+     * @param {number} config.maxHistorySize - Maximum number of execution records to retain (default: 1000)
      */
     constructor(config = {}) {
         this.config = {
@@ -24,23 +25,30 @@ export class ToolEngine {
                 maxOutputSize: 10000,
                 maxCommandLength: 1000
             },
+            maxHistorySize: 1000,
+            enableSandboxing: true,
             ...config
         };
         
         this.tools = new Map();
-        this.metrics = new Metrics();
         this.logger = Logger;
         
         // Track active executions for safety
-        this.activeExecutions = new Set();
+        this.activeExecutions = new Map();
+        this.executionHistory = [];
         
         // Statistics for monitoring
-        this.stats = {
+        this.performanceTracker = {
             totalExecutions: 0,
             successfulExecutions: 0,
             failedExecutions: 0,
-            avgExecutionTime: 0,
-            totalErrors: 0
+            averageExecutionTime: 0,
+            totalErrors: 0,
+            toolUsageStats: new Map(),
+            categoryPerformance: new Map(),
+            performanceHistory: [],
+            peakUsageTimes: new Map(),
+            errorPatterns: new Map()
         };
     }
 
@@ -65,18 +73,26 @@ export class ToolEngine {
             throw new Error(`Tool "${id}" must have a getDescription method`);
         }
         
-        this.tools.set(id, {
+        const toolData = {
+            id,
             instance: tool,
-            metadata: {
-                id,
-                name: tool.constructor.name,
-                ...metadata
-            }
-        });
+            name: tool.constructor.name,
+            description: tool.getDescription(),
+            parameters: tool.getParameterSchema?.() || { type: 'object', properties: {} },
+            category: tool.getCategory?.() || 'general',
+            capabilities: tool.getCapabilities?.() || [],
+            createdAt: Date.now(),
+            usageCount: 0,
+            lastUsed: null,
+            ...metadata
+        };
         
-        this.logger.info(`Tool registered: ${id}`, {
-            toolName: tool.constructor.name,
-            metadata: metadata
+        this.tools.set(id, toolData);
+        
+        this.logger.info(`Registered tool: ${id} (${toolData.category})`, {
+            name: tool.constructor.name,
+            description: toolData.description,
+            capabilities: toolData.capabilities
         });
         
         return this;
@@ -92,49 +108,52 @@ export class ToolEngine {
             return false;
         }
         
+        const tool = this.tools.get(id);
         this.tools.delete(id);
-        this.logger.info(`Tool unregistered: ${id}`);
+        this.logger.info(`Unregistered tool: ${id} (${tool.category})`);
         return true;
     }
 
     /**
-     * Executes a tool with safety validation
+     * Executes a tool with safety validation and enhanced tracking
      * @param {string} toolId - ID of the tool to execute
      * @param {object} params - Parameters for the tool execution
-     * @param {object} [options] - Execution options
-     * @param {number} [options.timeout] - Custom timeout for this execution
-     * @returns {Promise<object>} - Execution result
+     * @param {object} [context] - Execution context with additional info
+     * @param {number} [context.timeout] - Custom timeout for this execution
+     * @param {string} [context.user] - User executing the tool
+     * @param {string} [context.session] - Session ID
+     * @returns {Promise<object>} - Execution result with enhanced metadata
      */
-    async executeTool(toolId, params = {}, options = {}) {
+    async executeTool(toolId, params = {}, context = {}) {
         const startTime = Date.now();
-        const executionId = `${toolId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const executionId = this._generateExecutionId();
         
-        this.activeExecutions.add(executionId);
+        // Validate tool exists (fast-fail check)
+        const tool = this.tools.get(toolId);
+        if (!tool) {
+            throw new Error(`Tool "${toolId}" not found`);
+        }
+        
+        const executionContext = this._createExecutionContext(executionId, toolId, params, context, startTime);
+        this.activeExecutions.set(executionId, executionContext);
         
         try {
-            // Validate tool exists
-            if (!this.tools.has(toolId)) {
-                throw new Error(`Tool "${toolId}" not found`);
-            }
-            
-            const { instance: tool } = this.tools.get(toolId);
+            // Apply safety checks to parameters first for early fail
+            this._validateSafety(params);
             
             // Validate parameters using the tool's validate method if available
-            if (tool.validate && typeof tool.validate === 'function') {
-                const validationResult = tool.validate(params);
-                if (!validationResult.valid) {
+            if (tool.instance.validate && typeof tool.instance.validate === 'function') {
+                const validationResult = tool.instance.validate(params);
+                if (!validationResult.isValid) {  // Use isValid instead of valid for consistency
                     throw new Error(`Tool parameters validation failed: ${validationResult.errors?.join(', ') || 'Unknown error'}`);
                 }
             }
             
-            // Apply safety checks to parameters
-            this._validateSafety(params);
-            
             // Execute with timeout
-            const timeout = options.timeout || this.config.defaultTimeout;
+            const timeout = context.timeout || this.config.defaultTimeout;
             
             const result = await this._executeWithTimeout(
-                tool.execute(params, { engine: this, executionId }),
+                tool.instance.execute(params, { engine: this, executionId, context }),
                 timeout,
                 `Tool "${toolId}" execution timed out after ${timeout}ms`
             );
@@ -142,73 +161,129 @@ export class ToolEngine {
             // Validate result safety
             const safeResult = this._sanitizeResult(result);
             
-            // Update statistics
-            this.stats.totalExecutions++;
-            this.stats.successfulExecutions++;
-            const executionTime = Date.now() - startTime;
-            this.stats.avgExecutionTime = 
-                (this.stats.avgExecutionTime * (this.stats.successfulExecutions - 1) + executionTime) / this.stats.successfulExecutions;
-            
-            this.logger.info(`Tool execution completed: ${toolId}`, {
-                executionId,
-                executionTime,
-                resultSize: typeof safeResult === 'string' ? safeResult.length : JSON.stringify(safeResult).length
-            });
-            
-            return {
-                success: true,
-                result: safeResult,
-                executionTime,
-                toolId,
-                executionId
-            };
+            return this._handleExecutionSuccess(executionContext, safeResult, startTime, tool);
             
         } catch (error) {
-            this.stats.totalExecutions++;
-            this.stats.failedExecutions++;
-            this.stats.totalErrors++;
-            
-            this.logger.error(`Tool execution failed: ${toolId}`, {
-                executionId,
-                error: error.message,
-                stack: error.stack
-            });
-            
-            return {
-                success: false,
-                error: error.message,
-                executionTime: Date.now() - startTime,
-                toolId,
-                executionId
-            };
+            return this._handleExecutionError(executionContext, error, startTime, tool);
         } finally {
             this.activeExecutions.delete(executionId);
         }
     }
 
     /**
+     * Creates execution context for tracking
+     * @private
+     */
+    _createExecutionContext(executionId, toolId, params, context, startTime) {
+        return {
+            executionId,
+            toolId,
+            parameters: params,
+            context: {
+                user: context.user || 'system',
+                session: context.session || null,
+                timestamp: Date.now(),
+                ...context
+            },
+            startTime,
+            status: 'executing'
+        };
+    }
+
+    /**
+     * Handles successful execution
+     * @private
+     */
+    _handleExecutionSuccess(executionContext, result, startTime, tool) {
+        const {executionId, toolId} = executionContext;
+        executionContext.endTime = Date.now();
+        executionContext.duration = executionContext.endTime - startTime;
+        executionContext.result = result;
+        executionContext.status = 'completed';
+
+        // Update tool statistics
+        tool.usageCount++;
+        tool.lastUsed = Date.now();
+
+        // Track performance metrics
+        this._trackExecutionSuccess(executionId, toolId, startTime, result);
+
+        // Add to history
+        this._addToHistory(executionContext);
+
+        this.logger.info(`Tool execution completed: ${toolId} (${executionId}) in ${executionContext.duration}ms`);
+
+        return {
+            success: true,
+            executionId,
+            result,
+            duration: executionContext.duration,
+            toolId
+        };
+    }
+
+    /**
+     * Handles execution error
+     * @private
+     */
+    _handleExecutionError(executionContext, error, startTime, tool) {
+        const {executionId, toolId, parameters} = executionContext;
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+
+        const errorContext = {
+            executionId,
+            toolId,
+            parameters,
+            error: error.message,
+            stack: error.stack,
+            duration,
+            status: 'failed',
+            context: executionContext.context
+        };
+
+        // Track error metrics
+        this._trackExecutionFailure(executionId, toolId, startTime, error);
+
+        // Add to history
+        this._addToHistory(errorContext);
+
+        this.logger.error(`Tool execution failed: ${toolId} (${executionId})`, error);
+
+        return {
+            success: false,
+            executionId,
+            error: error.message,
+            duration,
+            toolId
+        };
+    }
+
+    /**
      * Executes multiple tools in sequence or parallel
      * @param {Array<object>} toolCalls - Array of tool call specifications
-     * @param {object} [options] - Options for batch execution
-     * @param {boolean} [options.concurrent] - Whether to execute tools concurrently
+     * @param {object} [context] - Context for all executions
+     * @param {boolean} [context.concurrent] - Whether to execute tools concurrently
      * @returns {Promise<Array<object>>} - Array of execution results
      */
-    async executeTools(toolCalls, options = {}) {
+    async executeTools(toolCalls, context = {}) {
         if (!Array.isArray(toolCalls)) {
             throw new Error('ToolCalls must be an array');
         }
-        
-        if (options.concurrent) {
-            const promises = toolCalls.map(call => this.executeTool(call.toolId, call.params, call.options));
+
+        if (context.concurrent) {
+            const promises = toolCalls.map(call => 
+                this.executeTool(call.toolId, call.params, {...context, ...call.context})
+            );
             return Promise.all(promises);
         } else {
             const results = [];
             for (const call of toolCalls) {
-                const result = await this.executeTool(call.toolId, call.params, call.options);
+                const result = await this.executeTool(call.toolId, call.params, {...context, ...call.context});
                 results.push(result);
-                
+
                 // If any tool fails and not continuing on errors, we might want to handle that
-                if (!result.success && options.continueOnError !== true) {
+                if (!result.success && context.continueOnError !== true) {
                     break;
                 }
             }
@@ -221,21 +296,97 @@ export class ToolEngine {
      * @returns {Array<object>} - Array of tool descriptions
      */
     getAvailableTools() {
-        return Array.from(this.tools.values()).map(({ instance, metadata }) => ({
-            id: metadata.id,
-            name: metadata.name || instance.constructor.name,
-            description: instance.getDescription(),
-            parameters: instance.getParameterSchema ? instance.getParameterSchema() : null,
-            ...metadata
+        return Array.from(this.tools.values()).map(tool => ({
+            id: tool.id,
+            name: tool.name,
+            description: tool.description,
+            category: tool.category,
+            parameters: tool.parameters,
+            capabilities: tool.capabilities,
+            createdAt: tool.createdAt,
+            usageCount: tool.usageCount,
+            lastUsed: tool.lastUsed
         }));
     }
 
     /**
-     * Gets statistics about tool execution
+     * Gets a specific tool by ID
+     * @param {string} toolId - ID of the tool to retrieve
+     * @returns {object|null} - Tool data or null if not found
+     */
+    getTool(toolId) {
+        return this.tools.get(toolId) || null;
+    }
+
+    /**
+     * Gets tools filtered by category
+     * @param {string} category - Category to filter by
+     * @returns {Array<object>} - Array of tools in the specified category
+     */
+    getToolsByCategory(category) {
+        return Array.from(this.tools.values()).filter(tool => tool.category === category);
+    }
+
+    /**
+     * Gets execution history with optional filtering
+     * @param {object} [options] - Filtering options
+     * @param {string} [options.toolName] - Filter by specific tool name
+     * @param {string} [options.category] - Filter by category
+     * @param {number} [options.limit] - Limit number of results
+     * @returns {Array<object>} - Execution history
+     */
+    getExecutionHistory(options = {}) {
+        let history = [...this.executionHistory];
+
+        if (options.toolName) {
+            history = history.filter(exec => exec.toolId === options.toolName);
+        }
+        if (options.category) {
+            history = history.filter(exec => {
+                const tool = this.tools.get(exec.toolId);
+                return tool?.category === options.category;
+            });
+        }
+        if (options.limit) {
+            history = history.slice(-options.limit);
+        }
+
+        return history;
+    }
+
+    /**
+     * Gets comprehensive statistics about tool execution
      * @returns {object} - Execution statistics
      */
     getStats() {
-        return { ...this.stats };
+        const stats = {
+            totalTools: this.tools.size,
+            toolsByCategory: {},
+            totalExecutions: this.executionHistory.length,
+            successfulExecutions: this.performanceTracker.successfulExecutions,
+            failedExecutions: this.performanceTracker.failedExecutions,
+            averageExecutionTime: this.performanceTracker.averageExecutionTime,
+            mostUsedTools: []
+        };
+
+        // Categorize tools
+        for (const tool of this.tools.values()) {
+            const category = tool.category;
+            stats.toolsByCategory[category] = (stats.toolsByCategory[category] || 0) + 1;
+        }
+
+        // Find most used tools
+        const toolUsage = new Map();
+        for (const tool of this.tools.values()) {
+            toolUsage.set(tool.id, tool.usageCount);
+        }
+
+        stats.mostUsedTools = Array.from(toolUsage.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([toolName, count]) => ({toolName, count}));
+
+        return stats;
     }
 
     /**
@@ -260,6 +411,13 @@ export class ToolEngine {
                     />/,                       // Output redirection
                     /</,                       // Input redirection
                     /;/,                       // Command separators
+                    /chmod/,                    // Permission changes
+                    /chown/,                    // Ownership changes
+                    /passwd/,                   // Password changes
+                    /useradd/,                  // User creation
+                    /userdel/,                  // User deletion
+                    /su/,                       // Switch user
+                    /sudo/,                     // Superuser
                 ];
                 
                 for (const pattern of dangerousPatterns) {
@@ -294,7 +452,6 @@ export class ToolEngine {
         }
         
         // Additional sanitization can be added here
-        
         return result;
     }
 
@@ -303,25 +460,130 @@ export class ToolEngine {
      * @private
      */
     _executeWithTimeout(promise, timeout, timeoutMessage) {
-        return Promise.race([
-            promise,
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error(timeoutMessage)), timeout)
-            )
-        ]);
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error(timeoutMessage));
+            }, timeout);
+
+            Promise.resolve(promise)
+                .then(resolve)
+                .catch(reject)
+                .finally(() => clearTimeout(timer));
+        });
+    }
+
+    /**
+     * Generates unique execution ID
+     * @private
+     */
+    _generateExecutionId() {
+        return `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    /**
+     * Adds execution to history with size limiting
+     * @private
+     */
+    _addToHistory(execution) {
+        this.executionHistory.push({
+            ...execution,
+            timestamp: Date.now()
+        });
+
+        // Maintain history size limit
+        if (this.executionHistory.length > this.config.maxHistorySize) {
+            this.executionHistory = this.executionHistory.slice(-this.config.maxHistorySize);
+        }
+    }
+
+    /**
+     * Tracks successful execution for performance metrics
+     * @private
+     */
+    _trackExecutionSuccess(executionId, toolName, startTime, result) {
+        const duration = Date.now() - startTime;
+        
+        this.performanceTracker.totalExecutions++;
+        this.performanceTracker.successfulExecutions++;
+        
+        const {successfulExecutions} = this.performanceTracker;
+        this.performanceTracker.averageExecutionTime =
+            (this.performanceTracker.averageExecutionTime * (successfulExecutions - 1) + duration) / successfulExecutions;
+
+        // Track tool-specific metrics
+        if (!this.performanceTracker.toolUsageStats.has(toolName)) {
+            this.performanceTracker.toolUsageStats.set(toolName, {
+                executions: 0,
+                successes: 0,
+                failures: 0,
+                totalTime: 0,
+                averageTime: 0
+            });
+        }
+
+        const toolStats = this.performanceTracker.toolUsageStats.get(toolName);
+        toolStats.executions++;
+        toolStats.successes++;
+        toolStats.totalTime += duration;
+        toolStats.averageTime = toolStats.totalTime / toolStats.executions;
+    }
+
+    /**
+     * Tracks failed execution for error metrics
+     * @private
+     */
+    _trackExecutionFailure(executionId, toolName, startTime, error) {
+        const duration = Date.now() - startTime;
+        
+        this.performanceTracker.totalExecutions++;
+        this.performanceTracker.failedExecutions++;
+        
+        // Track tool-specific failure metrics
+        if (!this.performanceTracker.toolUsageStats.has(toolName)) {
+            this.performanceTracker.toolUsageStats.set(toolName, {
+                executions: 0,
+                successes: 0,
+                failures: 0,
+                totalTime: 0,
+                averageTime: 0
+            });
+        }
+
+        const toolStats = this.performanceTracker.toolUsageStats.get(toolName);
+        toolStats.executions++;
+        toolStats.failures++;
+        toolStats.totalTime += duration;
+        toolStats.averageTime = toolStats.totalTime / toolStats.executions;
+
+        // Track error patterns
+        const errorKey = error.constructor.name;
+        const count = this.performanceTracker.errorPatterns.get(errorKey) || 0;
+        this.performanceTracker.errorPatterns.set(errorKey, count + 1);
     }
 
     /**
      * Cancels all active executions (emergency stop)
      */
     cancelAllExecutions() {
-        // In a real implementation, we might store cancellation tokens
-        // For now, we just clear the active executions set
         const count = this.activeExecutions.size;
         this.activeExecutions.clear();
         
         this.logger.warn(`Canceled ${count} active tool executions`);
-        
         return count;
+    }
+
+    /**
+     * Shuts down the tool engine and cleans up resources
+     */
+    async shutdown() {
+        this.logger.info('Shutting down ToolEngine...');
+        
+        // Cancel active executions
+        for (const [executionId, execution] of this.activeExecutions) {
+            this.logger.warn(`Canceling active execution: ${executionId} (tool: ${execution.toolId})`);
+        }
+        this.activeExecutions.clear();
+
+        this.logger.info('ToolEngine shutdown complete');
     }
 }
