@@ -30,22 +30,20 @@ export class NaiveExhaustiveStrategy extends ReasoningStrategy {
                 if (existingTasks.length < 2) continue;
 
                 for (let i = 0; i < existingTasks.length; i++) {
-                    for (let j = 0; j < existingTasks.length; j++) {
-                        if (i === j) continue;
-
+                    for (let j = i + 1; j < existingTasks.length; j++) {
                         const task1 = existingTasks[i];
                         const task2 = existingTasks[j];
 
-                        // Permutation 1
-                        let derived1 = await rule._apply([task1, task2], termFactory);
+                        // The order of premises matters, so we must test both permutations.
+                        const derived1 = await rule._apply([task1, task2], termFactory);
                         derived1.forEach(t => allDerivedTasks.add(t));
 
-                        // Permutation 2
-                        let derived2 = await rule._apply([task2, task1], termFactory);
+                        const derived2 = await rule._apply([task2, task1], termFactory);
                         derived2.forEach(t => allDerivedTasks.add(t));
                     }
                 }
             }
+            // Future-proofing: If rules with more premises are added, they can be handled here.
         }
 
         return Array.from(allDerivedTasks);

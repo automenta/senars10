@@ -7,6 +7,7 @@ import {NarseseParser} from '../parser/NarseseParser.js';
 import {EventBus} from '../util/EventBus.js';
 import {RuleEngine} from '../reasoning/RuleEngine.js';
 import {SyllogisticRule} from '../reasoning/rules/syllogism.js';
+import {ModusPonensRule} from '../reasoning/rules/modusponens.js';
 import {PRIORITY} from '../config/constants.js';
 import {Logger} from '../util/Logger.js';
 import { NaiveExhaustiveStrategy } from '../reasoning/NaiveExhaustiveStrategy.js';
@@ -84,6 +85,7 @@ export class NAR {
     _setupDefaultRules() {
         try {
             this._ruleEngine.register(SyllogisticRule.create(this._termFactory));
+            this._ruleEngine.register(ModusPonensRule.create(this._termFactory));
         } catch (error) {
             this.logger.warn('Error setting up default rules:', error);
         }
