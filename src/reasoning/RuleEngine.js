@@ -23,11 +23,25 @@ export class RuleEngine {
         });
     }
 
-    get rules() { return [...this._rules.values()]; }
-    get ruleSets() { return [...this._ruleSets.values()]; }
-    get metrics() { return {...this._metrics, ...this._typeMetrics}; }
-    get lm() { return this._lm; }
-    get termFactory() { return this._termFactory; }
+    get rules() {
+        return [...this._rules.values()];
+    }
+
+    get ruleSets() {
+        return [...this._ruleSets.values()];
+    }
+
+    get metrics() {
+        return {...this._metrics, ...this._typeMetrics};
+    }
+
+    get lm() {
+        return this._lm;
+    }
+
+    get termFactory() {
+        return this._termFactory;
+    }
 
     static create(config = {}) {
         const {lm, termFactory, ruleProcessor} = config;
@@ -200,7 +214,10 @@ export class RuleEngine {
                 ruleEngine: this
             });
 
-            const {results, rule: updatedRule} = await this._performanceOptimizer.applyRuleWithOptimization(rule, task, context);
+            const {
+                results,
+                rule: updatedRule
+            } = await this._performanceOptimizer.applyRuleWithOptimization(rule, task, context);
             this._rules.set(rule.id, updatedRule);
             success = true;
             this._incrementTypeMetric(rule);

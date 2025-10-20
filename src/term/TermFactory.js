@@ -1,4 +1,4 @@
-import {Term, TermType, ATOM, COMPOUND} from './Term.js';
+import {Term, TermType} from './Term.js';
 
 export {Term};
 

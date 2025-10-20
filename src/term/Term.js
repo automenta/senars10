@@ -28,15 +28,41 @@ export class Term {
         return freeze(this);
     }
 
-    get type() { return this._type; }
-    get name() { return this._name; }
-    get operator() { return this._operator; }
-    get components() { return this._components; }
-    get complexity() { return this._complexity; }
-    get hash() { return this._hash; }
-    get id() { return this._id; }
-    get isAtomic() { return this._type === TermType.ATOM; }
-    get isCompound() { return this._type === TermType.COMPOUND; }
+    get type() {
+        return this._type;
+    }
+
+    get name() {
+        return this._name;
+    }
+
+    get operator() {
+        return this._operator;
+    }
+
+    get components() {
+        return this._components;
+    }
+
+    get complexity() {
+        return this._complexity;
+    }
+
+    get hash() {
+        return this._hash;
+    }
+
+    get id() {
+        return this._id;
+    }
+
+    get isAtomic() {
+        return this._type === TermType.ATOM;
+    }
+
+    get isCompound() {
+        return this._type === TermType.COMPOUND;
+    }
 
     static hash(str) {
         return crypto.createHash('sha256').update(str).digest('hex');
