@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+   sodipodi:docname="system.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="2.932688"
+     inkscape:cx="280.80041"
+     inkscape:cy="192.82651"
+     inkscape:window-width="1920"
+     inkscape:window-height="1056"
+     inkscape:window-x="1920"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#aed549;fill-opacity:0.904125;stroke-width:0.199086"
+       id="rect3"
+       width="95.722054"
+       height="46.372417"
+       x="25.802551"
+       y="28.960207" />
+    <rect
+       style="fill:#d4924a;fill-opacity:0.904125;stroke-width:0.143733"
+       id="rect1"
+       width="39.042088"
+       height="17.897299"
+       x="31.641953"
+       y="37.255848" />
+    <rect
+       style="fill:#6b50ce;fill-opacity:0.904125;stroke-width:0.138704"
+       id="rect2"
+       width="38.021378"
+       height="16.873934"
+       x="78.594528"
+       y="38.021378" />
+    <rect
+       style="fill:#6b50ce;fill-opacity:0.904125;stroke-width:0.102811"
+       id="rect2-3"
+       width="38.292034"
+       height="9.2053432"
+       x="55.264061"
+       y="57.045052" />
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:0.90412498;stroke-width:0.217769"
+       x="69.648849"
+       y="33.561359"
+       id="text3"><tspan
+         sodipodi:role="line"
+         id="tspan3"
+         style="stroke-width:0.217769;fill:#000000;fill-opacity:0.90412498"
+         x="69.648849"
+         y="33.561359">SNARS</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:0.90412498;stroke-width:0.217769"
+       x="43.936516"
+       y="41.139732"
+       id="text4"><tspan
+         sodipodi:role="line"
+         style="stroke-width:0.217769;fill:#000000;fill-opacity:0.90412498"
+         x="43.936516"
+         y="41.139732"
+         id="tspan5">NAL rules</tspan><tspan
+         sodipodi:role="line"
+         style="stroke-width:0.217769;fill:#000000;fill-opacity:0.90412498"
+         x="43.936516"
+         y="45.108482"
+         id="tspan7">(~=NARS)</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:0.904125;stroke-width:0.217769"
+       x="91.211113"
+       y="41.951698"
+       id="text6"><tspan
+         sodipodi:role="line"
+         id="tspan6"
+         style="fill:#000000;fill-opacity:0.904125;stroke-width:0.217769"
+         x="91.211113"
+         y="41.951698">LM rules</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:0.904125;stroke-width:0.217769"
+       x="58.010632"
+       y="60.807411"
+       id="text8"><tspan
+         sodipodi:role="line"
+         id="tspan8"
+         style="stroke-width:0.217769"
+         x="58.010632"
+         y="60.807411">Term Embedding </tspan><tspan
+         sodipodi:role="line"
+         style="stroke-width:0.217769"
+         x="58.010632"
+         y="64.776161"
+         id="tspan9">Associative Memory</tspan></text>
+    <ellipse
+       style="fill:#949494;fill-opacity:0.904125;stroke-width:0.217769"
+       id="path9"
+       cx="101.81181"
+       cy="61.348724"
+       rx="11.23223"
+       ry="10.46537" />
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#949494;fill-opacity:0.904125;stroke-width:0.217769"
+       x="93.19593"
+       y="61.709599"
+       id="text10"><tspan
+         sodipodi:role="line"
+         id="tspan10"
+         style="fill:#000000;fill-opacity:0.904125;stroke-width:0.217769"
+         x="93.19593"
+         y="61.709599">Your favorite</tspan><tspan
+         sodipodi:role="line"
+         style="fill:#000000;fill-opacity:0.904125;stroke-width:0.217769"
+         x="93.19593"
+         y="65.678345"
+         id="tspan11">LMs</tspan></text>
+  </g>
+</svg>
