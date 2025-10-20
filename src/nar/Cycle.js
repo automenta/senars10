@@ -51,10 +51,13 @@ export class Cycle {
 
             // The reasoning strategy is now responsible for selecting tasks and applying rules.
             // We pass it the full context it needs to do its job.
+            // For backward compatibility and proper reasoning, we need to pass focus tasks too
+            const focusTasks = this._focus.getTasks(this._config.focusTaskLimit || 10);
             const newInferences = await this._reasoningStrategy.execute(
                 this._memory,
                 this._ruleEngine.rules,
-                this._termFactory
+                this._termFactory,
+                focusTasks  // Pass focus tasks as additional parameter if supported
             );
 
             // Update memory with new inferences

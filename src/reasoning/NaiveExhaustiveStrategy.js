@@ -1,13 +1,13 @@
-import { ReasoningStrategy } from './ReasoningStrategy.js';
+import { StrategyInterface } from './StrategyInterface.js';
 import { StrategyMetrics } from './StrategyMetrics.js';
 
 /**
  * A naive, exhaustive reasoning strategy that iterates through all task combinations.
  * Computationally expensive, but useful for ensuring correctness.
  */
-export class NaiveExhaustiveStrategy extends ReasoningStrategy {
+export class NaiveExhaustiveStrategy extends StrategyInterface {
     constructor(config = {}) {
-        super();
+        super({ id: 'naive-exhaustive', ...config });
         this.config = {
             maxCombinations: config.maxCombinations || 100,
             maxTasksPerBatch: config.maxTasksPerBatch || 50,
@@ -27,32 +27,54 @@ export class NaiveExhaustiveStrategy extends ReasoningStrategy {
         }
     }
 
-    async execute(memoryOrContext, rules = [], termFactory = null) {
+    async execute(context, rules = [], taskOrTasks, optionalFocusTasks) {
         const startTime = performance.now();
         let success = true;
         let result = [];
-        let taskCount = 0; // Declare outside try block
+        let taskCount = 0;
 
         try {
-            let memory, context;
+            let memory, termFactory, tasks;
             
-            // Check if the first parameter is a ReasoningContext
-            if (memoryOrContext && typeof memoryOrContext === 'object' && memoryOrContext.hasOwnProperty('config')) {
+            // Handle context appropriately
+            if (context && typeof context === 'object' && context.hasOwnProperty('memory')) {
                 // It's a ReasoningContext
-                context = memoryOrContext;
                 memory = context.memory;
                 termFactory = context.termFactory;
             } else {
-                // It's the old style parameters
-                memory = memoryOrContext;
-                // rules parameter is already passed as the second parameter
-                // termFactory is already passed as the third parameter
+                // Handle multiple backward compatibility patterns:
+                // Pattern 1: execute(memory, rules[], termFactory, focusTasks[]) - from updated Cycle
+                if (Array.isArray(optionalFocusTasks) && optionalFocusTasks.length > 0) {
+                    memory = context;
+                    // rules is the rules array
+                    // taskOrTasks is termFactory
+                    // optionalFocusTasks is the focus tasks array
+                    termFactory = taskOrTasks;
+                    tasks = optionalFocusTasks; // Use focus tasks from cycle
+                } else {
+                    // Pattern 2: execute(memory, termFactory, tasks) or execute(memory, rules[], termFactory)
+                    memory = context;
+                    termFactory = rules;
+                    tasks = Array.isArray(taskOrTasks) ? taskOrTasks : [taskOrTasks].filter(t => t !== undefined);
+                    
+                    // For backward compatibility, if tasks is just undefined, try to get from memory
+                    if (tasks.length === 1 && tasks[0] === undefined) {
+                        // Get tasks from memory if needed for backward compatibility
+                        if (this._getAllTasksFromMemory) {
+                            tasks = this._getAllTasksFromMemory(memory) || [];
+                        }
+                    }
+                }
             }
 
-            const tasks = this._getAllTasksFromMemory(memory);
-            taskCount = tasks ? tasks.length : 0;
-            
-            // Split tasks into smaller batches if needed
+            // If tasks still not defined or empty, use default
+            if (!tasks || tasks.length === 0) {
+                tasks = []; // Default to empty array
+            }
+
+            taskCount = tasks.length;
+
+            // Use the tasks provided rather than getting from memory since we now have tasks parameter
             const taskBatches = this._createBatches(tasks, this.config.maxTasksPerBatch);
             
             const allDerivedTasks = [];
@@ -192,6 +214,17 @@ export class NaiveExhaustiveStrategy extends ReasoningStrategy {
         }
         
         return combinations;
+    }
+
+    _getAllTasksFromMemory(memory) {
+        if (memory && typeof memory === 'object') {
+            if (memory.getAllConcepts) {
+                return memory.getAllConcepts().flatMap(c => c.getAllTasks ? c.getAllTasks() : []);
+            } else if (memory.getAllTasks) {
+                return memory.getAllTasks();
+            }
+        }
+        return [];
     }
 
     _removeDuplicates(tasks) {

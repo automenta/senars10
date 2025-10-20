@@ -1,4 +1,4 @@
-import { ReasoningStrategy } from './ReasoningStrategy.js';
+import { StrategyInterface } from './StrategyInterface.js';
 import { CooperationEngine } from './CooperationEngine.js';
 import {Logger} from '../util/Logger.js';
 import { StrategyMetrics } from './StrategyMetrics.js';
@@ -7,9 +7,9 @@ import { StrategyMetrics } from './StrategyMetrics.js';
  * A reasoning strategy that coordinates between different rule types (LM and NAL)
  * to provide more sophisticated reasoning capabilities.
  */
-export class CoordinatedReasoningStrategy extends ReasoningStrategy {
+export class CoordinatedReasoningStrategy extends StrategyInterface {
     constructor(ruleEngine, config = {}) {
-        super();
+        super({ id: 'coordinated-reasoning', ...config });
         this.ruleEngine = ruleEngine;
         this.config = {
             maxIterations: config.maxIterations || 3,
@@ -39,44 +39,75 @@ export class CoordinatedReasoningStrategy extends ReasoningStrategy {
 
     /**
      * Execute coordinated reasoning between LM and NAL rules
-     * @param {Object} memory - The memory system containing tasks and concepts
-     * @param {Array} rules - The rules to apply (typically ignored since we use ruleEngine)
-     * @param {Object} termFactory - The term factory for creating new terms
+     * This method supports multiple signatures for backward compatibility
+     * @param {Object} contextOrMemory - The reasoning context or memory object
+     * @param {Array} rulesOrTermFactory - Rules array or termFactory (depending on context)
+     * @param {Object} termFactoryOrFocusTasks - termFactory or focus tasks
+     * @param {Array} optionalFocusTasks - Optional focus tasks when called from cycle
      * @returns {Array} - Array of derived tasks from coordinated reasoning
      */
-    async execute(memoryOrContext, rules = [], termFactory = null) {
+    async execute(contextOrMemory, rulesOrTermFactory = [], termFactoryOrFocusTasks, optionalFocusTasks) {
         const startTime = performance.now();
         let success = true;
         let result = [];
-        let taskCount = 0; // Declare outside try block
+        let taskCount = 0;
 
         try {
-            let memory, context;
-            
-            // Check if the first parameter is a ReasoningContext
-            if (memoryOrContext && typeof memoryOrContext === 'object' && memoryOrContext.hasOwnProperty('config')) {
-                // It's a ReasoningContext
-                context = memoryOrContext;
-                memory = context.memory;
-                termFactory = context.termFactory;
-            } else {
-                // It's the old style parameters
-                memory = memoryOrContext;
-                // rules parameter is already passed as the second parameter
-                // termFactory is already passed as the third parameter
+            let memory, termFactory, tasks;
+
+            // Check if the first parameter is a ReasoningContext (new interface)
+            if (contextOrMemory && typeof contextOrMemory === 'object' && contextOrMemory.hasOwnProperty('memory')) {
+                // New StrategyInterface approach: (context, rules, taskOrTasks)
+                memory = contextOrMemory.memory;
+                termFactory = contextOrMemory.termFactory;
                 
-                // Create context from the parameters
-                context = this.createContext(memory, rules, termFactory);
+                // If the context has ruleEngine and we don't have one, use it
+                if (contextOrMemory.ruleEngine && !this.ruleEngine) {
+                    this.ruleEngine = contextOrMemory.ruleEngine;
+                }
+                
+                tasks = Array.isArray(termFactoryOrFocusTasks) ? termFactoryOrFocusTasks : [termFactoryOrFocusTasks].filter(t => t !== undefined);
+            } else {
+                // Handle multiple backward compatibility patterns:
+                // Pattern 1: execute(memory, rules[], termFactory, focusTasks[]) - from updated Cycle
+                if (Array.isArray(optionalFocusTasks) && optionalFocusTasks.length > 0) {
+                    memory = contextOrMemory;
+                    // rulesOrTermFactory is the rules array
+                    // termFactoryOrFocusTasks is termFactory
+                    // optionalFocusTasks is the focus tasks array
+                    termFactory = termFactoryOrFocusTasks;
+                    tasks = optionalFocusTasks; // Use focus tasks from cycle
+                }
+                // Pattern 2: execute(memory, rules[], termFactory) - original from tests
+                else if (rulesOrTermFactory && typeof rulesOrTermFactory !== 'function' && 
+                    Array.isArray(rulesOrTermFactory) && 
+                    (termFactoryOrFocusTasks && typeof termFactoryOrFocusTasks === 'object' && 
+                     !Array.isArray(termFactoryOrFocusTasks) && 
+                     (!termFactoryOrFocusTasks.constructor || termFactoryOrFocusTasks.constructor.name !== 'Task'))) {
+                    // This is the old signature: execute(memory, rules, termFactory)
+                    // where rulesOrTermFactory is the rules array and termFactoryOrFocusTasks is termFactory
+                    memory = contextOrMemory;
+                    termFactory = termFactoryOrFocusTasks;
+                    tasks = this._getAllTasksFromMemory(memory) || []; // Get tasks from memory for backward compatibility
+                } else {
+                    // Pattern 3: execute(memory, termFactory, focusTasks[] or undefined) - possible alternative
+                    memory = contextOrMemory;
+                    termFactory = rulesOrTermFactory;
+                    tasks = Array.isArray(termFactoryOrFocusTasks) ? termFactoryOrFocusTasks : [termFactoryOrFocusTasks].filter(t => t !== undefined);
+                    
+                    // For backward compatibility, if tasks is just undefined, try to get from memory
+                    if (tasks.length === 1 && tasks[0] === undefined) {
+                        tasks = this._getAllTasksFromMemory(memory) || [];
+                    }
+                }
             }
+
+            taskCount = tasks.length;
 
             // Set the termFactory in the ruleEngine if not already set
-            if (!this.ruleEngine._termFactory && termFactory) {
+            if (this.ruleEngine && !this.ruleEngine._termFactory && termFactory) {
                 this.ruleEngine._termFactory = termFactory;
             }
-
-            // Get all tasks from memory concepts
-            const tasks = this._getAllTasksFromMemory(memory);
-            taskCount = tasks ? tasks.length : 0;
 
             if (this.cooperationEngine && this.config.enableCooperationEngine) {
                 // Use cooperation engine for advanced coordination

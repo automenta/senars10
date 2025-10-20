@@ -1,28 +1,69 @@
-// Main export file for reasoning components
-// Provides a clean import interface for the reasoning system
+import { StrategyInterface } from './StrategyInterface.js';
+import { ReasoningStrategy } from './ReasoningStrategy.js';
+import { CoordinatedReasoningStrategy } from './CoordinatedReasoningStrategy.js';
+import { NaiveExhaustiveStrategy } from './NaiveExhaustiveStrategy.js';
+import { StrategySelector } from './StrategySelector.js';
+import { Reasoner } from './Reasoner.js';
+import { Rule } from './Rule.js';
+import { LMRule } from './LMRule.js';
+import { RuleEngine } from './RuleEngine.js';
+import { RuleSet } from './RuleSet.js';
+import { RuleComposer } from './RuleComposer.js';
+import { ReasoningContext } from './ReasoningContext.js';
+import { RuleProcessor } from './RuleProcessor.js';
+import { SequentialRuleProcessor } from './SequentialRuleProcessor.js';
+import { ParallelRuleProcessor } from './ParallelRuleProcessor.js';
+import { CooperationEngine } from './CooperationEngine.js';
+import { RuleCooperationManager } from './RuleCooperationManager.js';
+import { PerformanceOptimizer } from './PerformanceOptimizer.js';
+import { StrategyMetrics } from './StrategyMetrics.js';
 
-export { ReasoningStrategy } from './ReasoningStrategy.js';
-export { CoordinatedReasoningStrategy } from './CoordinatedReasoningStrategy.js';
-export { NaiveExhaustiveStrategy } from './NaiveExhaustiveStrategy.js';
-export { StrategySelector } from './StrategySelector.js';
+export {
+    // Reasoner and core components
+    Reasoner,
+    StrategyInterface,
+    ReasoningStrategy,
+    CoordinatedReasoningStrategy,
+    NaiveExhaustiveStrategy,
+    StrategySelector,
+    
+    // Rule system
+    Rule,
+    LMRule,
+    RuleEngine,
+    RuleSet,
+    RuleComposer,
+    RuleProcessor,
+    SequentialRuleProcessor,
+    ParallelRuleProcessor,
+    CooperationEngine,
+    RuleCooperationManager,
+    
+    // Supporting components
+    ReasoningContext,
+    PerformanceOptimizer,
+    StrategyMetrics
+};
 
-export { Rule } from './Rule.js';
-export { LMRule } from './LMRule.js';
-export { NALRule } from './NALRule.js';
-
-export { RuleEngine } from './RuleEngine.js';
-export { RuleSet } from './RuleSet.js';
-export { RuleProcessor } from './RuleProcessor.js';
-export { SequentialRuleProcessor } from './SequentialRuleProcessor.js';
-export { ParallelRuleProcessor } from './ParallelRuleProcessor.js';
-
-export { ReasoningContext } from './ReasoningContext.js';
-export { RuleComposer } from './RuleComposer.js';
-export { PerformanceOptimizer, RuleCache } from './PerformanceOptimizer.js';
-export { StrategyMetrics, StrategyMonitor } from './StrategyMetrics.js';
-
-export { RuleCooperationManager } from './RuleCooperationManager.js';
-export { CooperationEngine } from './CooperationEngine.js';
-
-// Export all NAL-specific components as well
-export * from './nal/index.js';
+// Default export for backwards compatibility
+export default {
+    Reasoner,
+    StrategyInterface,
+    ReasoningStrategy,
+    CoordinatedReasoningStrategy,
+    NaiveExhaustiveStrategy,
+    StrategySelector,
+    Rule,
+    LMRule,
+    RuleEngine,
+    RuleSet,
+    RuleComposer,
+    ReasoningContext,
+    RuleProcessor,
+    SequentialRuleProcessor,
+    ParallelRuleProcessor,
+    CooperationEngine,
+    RuleCooperationManager,
+    PerformanceOptimizer,
+    StrategyMetrics
+};

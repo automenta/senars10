@@ -12,11 +12,26 @@ export class StrategySelector {
             defaultStrategy: config.defaultStrategy || 'coordinated', // coordinated or naive
             performanceThreshold: config.performanceThreshold || 100, // ms
             taskComplexityThreshold: config.taskComplexityThreshold || 5, // number of premises
+            naive: config.naive || config.naive || {}, // Accept both spellings, fix typo
+            coordinated: config.coordinated || {},
             ...config
         };
         
         this.performanceStats = new Map(); // Track strategy performance
+        this.availableStrategies = new Map(); // Registry for custom strategies
         this.logger = Logger;
+        
+        // Register default strategies
+        this.registerStrategy('coordinated', CoordinatedReasoningStrategy);
+        this.registerStrategy('naive', NaiveExhaustiveStrategy);
+    }
+
+    /**
+     * Register a custom strategy type
+     */
+    registerStrategy(name, StrategyClass) {
+        this.availableStrategies.set(name, StrategyClass);
+        return this;
     }
 
     /**
@@ -32,9 +47,9 @@ export class StrategySelector {
         
         // Choose strategy based on analysis
         if (this._shouldUseCoordinatedStrategy(taskAnalysis, context)) {
-            return new CoordinatedReasoningStrategy(context.ruleEngine, this.config.coordinated || {});
+            return this._createStrategy('coordinated', context);
         } else {
-            return new NaiveExhaustiveStrategy(this.config.naive || {});
+            return this._createStrategy('naive', context);
         }
     }
 
@@ -42,10 +57,27 @@ export class StrategySelector {
      * Get the default strategy
      */
     getDefaultStrategy(context) {
-        if (this.config.defaultStrategy === 'naive') {
-            return new NaiveExhaustiveStrategy(this.config.naive || {});
+        const strategyType = this.config.defaultStrategy || 'coordinated';
+        return this._createStrategy(strategyType, context);
+    }
+
+    /**
+     * Create an instance of a registered strategy
+     */
+    _createStrategy(strategyType, context) {
+        const StrategyClass = this.availableStrategies.get(strategyType);
+        if (!StrategyClass) {
+            throw new Error(`Unknown strategy type: ${strategyType}`);
+        }
+
+        // Pass appropriate config based on strategy type
+        const strategyConfig = this.config[strategyType] || {};
+        
+        // For CoordinatedReasoningStrategy, pass ruleEngine as first parameter
+        if (strategyType === 'coordinated' && context && context.ruleEngine) {
+            return new StrategyClass(context.ruleEngine, strategyConfig);
         } else {
-            return new CoordinatedReasoningStrategy(context.ruleEngine, this.config.coordinated || {});
+            return new StrategyClass(strategyConfig);
         }
     }
 

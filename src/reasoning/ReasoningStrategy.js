@@ -1,12 +1,12 @@
 import { ReasoningContext } from './ReasoningContext.js';
+import { StrategyInterface } from './StrategyInterface.js';
 
-export class ReasoningStrategy {
+export class ReasoningStrategy extends StrategyInterface {
     constructor(config = {}) {
-        this.config = config;
-        this.metrics = { executions: 0, failures: 0, totalTime: 0 };
+        super(config);
     }
 
-    async execute(memory, rules, termFactory) {
+    async execute(context, rules, taskOrTasks) {
         throw new Error('ReasoningStrategy.execute must be implemented by subclasses');
     }
 
@@ -22,7 +22,7 @@ export class ReasoningStrategy {
         });
     }
     
-    /**
+    /** 
      * Factory method to create a strategy based on configuration
      * Note: For async imports, use StrategyFactory.createAsync instead
      */
@@ -35,15 +35,15 @@ export class ReasoningStrategy {
         }
     }
     
-    /**
+    /** 
      * Execute with error handling and metrics
      */
-    async executeWithMetrics(memory, rules, termFactory) {
+    async executeWithMetrics(context, rules, taskOrTasks) {
         const startTime = performance.now();
         let success = true;
         
         try {
-            const result = await this.execute(memory, rules, termFactory);
+            const result = await this.execute(context, rules, taskOrTasks);
             this.metrics.executions++;
             return result;
         } catch (error) {
