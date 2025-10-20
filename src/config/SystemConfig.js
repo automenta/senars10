@@ -1,4 +1,4 @@
-import {SYSTEM, MEMORY, CYCLE, PERFORMANCE} from './constants.js';
+import {CYCLE, MEMORY, PERFORMANCE, SYSTEM} from './constants.js';
 
 const DEFAULT_CONFIG = {
     system: {
@@ -40,12 +40,29 @@ const DEFAULT_CONFIG = {
 };
 
 const CONFIG_SCHEMA = {
-    system: {port: 'number', host: 'string', maxErrorRate: 'number', recoveryAttempts: 'number', gracefulDegradationThreshold: 'number'},
-    memory: {capacity: 'number', focusSetSize: 'number', forgettingThreshold: 'number', consolidationInterval: 'number', activationDecay: 'number'},
+    system: {
+        port: 'number',
+        host: 'string',
+        maxErrorRate: 'number',
+        recoveryAttempts: 'number',
+        gracefulDegradationThreshold: 'number'
+    },
+    memory: {
+        capacity: 'number',
+        focusSetSize: 'number',
+        forgettingThreshold: 'number',
+        consolidationInterval: 'number',
+        activationDecay: 'number'
+    },
     cycle: {delay: 'number', maxTasksPerCycle: 'number', ruleApplicationLimit: 'number'},
     performance: {enableProfiling: 'boolean', maxExecutionTime: 'number', cacheSize: 'number', batchSize: 'number'},
     logging: {level: 'string', enableConsole: 'boolean', enableFile: 'boolean'},
-    errorHandling: {enableGracefulDegradation: 'boolean', maxErrorRate: 'number', enableRecovery: 'boolean', recoveryAttempts: 'number'}
+    errorHandling: {
+        enableGracefulDegradation: 'boolean',
+        maxErrorRate: 'number',
+        enableRecovery: 'boolean',
+        recoveryAttempts: 'number'
+    }
 };
 
 export class SystemConfig {

@@ -21,38 +21,40 @@ export class LangChainProvider {
      * @param {number} [config.maxTokens=1000] - The maximum number of tokens to generate.
      */
     constructor(config = {}) {
-        this.providerType = config.provider || 'ollama';
-        this.modelName = config.modelName || 'llama2';
-        this.apiKey = config.apiKey;
-        this.baseURL = config.baseURL || 'http://localhost:11434';
-        this.temperature = config.temperature ?? 0.7;
-        this.maxTokens = config.maxTokens ?? 1000;
-        this.config = config;
+        Object.assign(this, {
+            providerType: config.provider || 'ollama',
+            modelName: config.modelName || 'llama2',
+            apiKey: config.apiKey,
+            baseURL: config.baseURL || 'http://localhost:11434',
+            temperature: config.temperature ?? 0.7,
+            maxTokens: config.maxTokens ?? 1000,
+            config
+        });
 
-        // Automatically format URL if needed
         if (this.baseURL.includes(':11434') && !this.baseURL.startsWith('http')) {
             this.baseURL = `http://${this.baseURL}`;
         }
 
-        // Initialize the appropriate LangChain model based on provider type
+        this._initChatModel();
+    }
+
+    _initChatModel() {
         if (this.providerType === 'ollama') {
             this.chatModel = new ChatOllama({
                 model: this.modelName,
                 baseUrl: this.baseURL,
                 temperature: this.temperature,
                 num_predict: this.maxTokens,
-                ...config.ollamaOptions
+                ...this.config.ollamaOptions
             });
         } else if (this.providerType === 'openai') {
-            if (!this.apiKey) {
-                throw new Error('API key is required for OpenAI provider');
-            }
+            if (!this.apiKey) throw new Error('API key is required for OpenAI provider');
             this.chatModel = new ChatOpenAI({
                 modelName: this.modelName,
                 openAIApiKey: this.apiKey,
                 temperature: this.temperature,
                 maxTokens: this.maxTokens,
-                ...config.openaiOptions
+                ...this.config.openaiOptions
             });
         } else {
             throw new Error(`Unsupported provider type: ${this.providerType}. Use 'ollama' or 'openai'.`);
@@ -109,15 +111,10 @@ export class LangChainProvider {
      * @returns {Promise<string>} The generated hypothesis.
      */
     async generateHypothesis(observations, options = {}) {
-        const observationsText = observations.join('\n');
-        const prompt = `Based on these observations:\n${observationsText}\n\nGenerate a hypothesis about what might be happening:`;
+        const prompt = `Based on these observations:\n${observations.join('\n')}\n\nGenerate a hypothesis about what might be happening:`;
         return this.generateText(prompt, options);
     }
 
-    /**
-     * Gets the model name of this provider
-     * @returns {string} The model name
-     */
     getModelName() {
         return this.modelName;
     }

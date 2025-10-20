@@ -1,7 +1,14 @@
 import {Logger} from './util/Logger.js';
 import {SystemConfig} from './nar/SystemConfig.js';
 
-const ERROR_TYPES = {LOGIC: 'logic', NETWORK: 'network', RESOURCE: 'resource', SYNTAX: 'syntax', VALIDATION: 'validation', UNKNOWN: 'unknown'};
+const ERROR_TYPES = {
+    LOGIC: 'logic',
+    NETWORK: 'network',
+    RESOURCE: 'resource',
+    SYNTAX: 'syntax',
+    VALIDATION: 'validation',
+    UNKNOWN: 'unknown'
+};
 const SEVERITY_LEVELS = {HIGH: 'high', MEDIUM: 'medium', LOW: 'low'};
 
 class ErrorClassifier {
@@ -99,7 +106,10 @@ class ErrorRecovery {
     _recoverNetwork = async () => ({success: false, needsRetry: true});
     _recoverResource = async () => ({success: false, degraded: true});
     _recoverValidation = async (errorInfo, options) =>
-        options.defaultValue !== undefined ? {success: true, value: options.defaultValue} : {success: false, skip: true};
+        options.defaultValue !== undefined ? {success: true, value: options.defaultValue} : {
+            success: false,
+            skip: true
+        };
     _recoverGeneric = async () => ({success: false, degraded: true});
 
     _delay = ms => new Promise(resolve => setTimeout(resolve, ms));

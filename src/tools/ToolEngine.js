@@ -19,37 +19,34 @@ export class ToolEngine {
      * @param {number} config.maxHistorySize - Maximum number of execution records to retain (default: 1000)
      */
     constructor(config = {}) {
-        this.config = {
-            defaultTimeout: 5000,
-            safetyLimits: {
-                maxOutputSize: 10000,
-                maxCommandLength: 1000
+        Object.assign(this, {
+            config: {
+                defaultTimeout: 5000,
+                safetyLimits: {
+                    maxOutputSize: 10000,
+                    maxCommandLength: 1000
+                },
+                maxHistorySize: 1000,
+                enableSandboxing: true,
+                ...config
             },
-            maxHistorySize: 1000,
-            enableSandboxing: true,
-            ...config
-        };
-
-        this.tools = new Map();
-        this.logger = Logger;
-
-        // Track active executions for safety
-        this.activeExecutions = new Map();
-        this.executionHistory = [];
-
-        // Statistics for monitoring
-        this.performanceTracker = {
-            totalExecutions: 0,
-            successfulExecutions: 0,
-            failedExecutions: 0,
-            averageExecutionTime: 0,
-            totalErrors: 0,
-            toolUsageStats: new Map(),
-            categoryPerformance: new Map(),
-            performanceHistory: [],
-            peakUsageTimes: new Map(),
-            errorPatterns: new Map()
-        };
+            tools: new Map(),
+            logger: Logger,
+            activeExecutions: new Map(),
+            executionHistory: [],
+            performanceTracker: {
+                totalExecutions: 0,
+                successfulExecutions: 0,
+                failedExecutions: 0,
+                averageExecutionTime: 0,
+                totalErrors: 0,
+                toolUsageStats: new Map(),
+                categoryPerformance: new Map(),
+                performanceHistory: [],
+                peakUsageTimes: new Map(),
+                errorPatterns: new Map()
+            }
+        });
     }
 
     /**
@@ -60,11 +57,8 @@ export class ToolEngine {
      * @returns {ToolEngine} - Returns this instance for chaining
      */
     registerTool(id, tool, metadata = {}) {
-        if (this.tools.has(id)) {
-            throw new Error(`Tool with ID "${id}" already exists`);
-        }
+        if (this.tools.has(id)) throw new Error(`Tool with ID "${id}" already exists`);
 
-        // Validate that the tool has required methods
         if (!tool.execute || typeof tool.execute !== 'function') {
             throw new Error(`Tool "${id}" must have an execute method`);
         }
@@ -104,9 +98,7 @@ export class ToolEngine {
      * @returns {boolean} - True if unregistered, false if not found
      */
     unregisterTool(id) {
-        if (!this.tools.has(id)) {
-            return false;
-        }
+        if (!this.tools.has(id)) return false;
 
         const tool = this.tools.get(id);
         this.tools.delete(id);
@@ -128,39 +120,30 @@ export class ToolEngine {
         const startTime = Date.now();
         const executionId = this._generateExecutionId();
 
-        // Validate tool exists (fast-fail check)
         const tool = this.tools.get(toolId);
-        if (!tool) {
-            throw new Error(`Tool "${toolId}" not found`);
-        }
+        if (!tool) throw new Error(`Tool "${toolId}" not found`);
 
         const executionContext = this._createExecutionContext(executionId, toolId, params, context, startTime);
         this.activeExecutions.set(executionId, executionContext);
 
         try {
-            // Apply safety checks to parameters first for early fail
             this._validateSafety(params);
 
-            // Validate parameters using the tool's validate method if available
             if (tool.instance.validate && typeof tool.instance.validate === 'function') {
                 const validationResult = tool.instance.validate(params);
-                if (!validationResult.isValid) {  // Use isValid instead of valid for consistency
+                if (!validationResult.isValid) {
                     throw new Error(`Tool parameters validation failed: ${validationResult.errors?.join(', ') || 'Unknown error'}`);
                 }
             }
 
-            // Execute with timeout
             const timeout = context.timeout || this.config.defaultTimeout;
-
             const result = await this._executeWithTimeout(
                 tool.instance.execute(params, {engine: this, executionId, context}),
                 timeout,
                 `Tool "${toolId}" execution timed out after ${timeout}ms`
             );
 
-            // Validate result safety
             const safeResult = this._sanitizeResult(result);
-
             return this._handleExecutionSuccess(executionContext, safeResult, startTime, tool);
 
         } catch (error) {
@@ -201,14 +184,10 @@ export class ToolEngine {
         executionContext.result = result;
         executionContext.status = 'completed';
 
-        // Update tool statistics
         tool.usageCount++;
         tool.lastUsed = Date.now();
 
-        // Track performance metrics
         this._trackExecutionSuccess(executionId, toolId, startTime, result);
-
-        // Add to history
         this._addToHistory(executionContext);
 
         this.logger.info(`Tool execution completed: ${toolId} (${executionId}) in ${executionContext.duration}ms`);
@@ -242,10 +221,7 @@ export class ToolEngine {
             context: executionContext.context
         };
 
-        // Track error metrics
         this._trackExecutionFailure(executionId, toolId, startTime, error);
-
-        // Add to history
         this._addToHistory(errorContext);
 
         this.logger.error(`Tool execution failed: ${toolId} (${executionId})`, error);
@@ -267,9 +243,7 @@ export class ToolEngine {
      * @returns {Promise<Array<object>>} - Array of execution results
      */
     async executeTools(toolCalls, context = {}) {
-        if (!Array.isArray(toolCalls)) {
-            throw new Error('ToolCalls must be an array');
-        }
+        if (!Array.isArray(toolCalls)) throw new Error('ToolCalls must be an array');
 
         if (context.concurrent) {
             const promises = toolCalls.map(call =>
@@ -282,10 +256,7 @@ export class ToolEngine {
                 const result = await this.executeTool(call.toolId, call.params, {...context, ...call.context});
                 results.push(result);
 
-                // If any tool fails and not continuing on errors, we might want to handle that
-                if (!result.success && context.continueOnError !== true) {
-                    break;
-                }
+                if (!result.success && context.continueOnError !== true) break;
             }
             return results;
         }
@@ -309,20 +280,10 @@ export class ToolEngine {
         }));
     }
 
-    /**
-     * Gets a specific tool by ID
-     * @param {string} toolId - ID of the tool to retrieve
-     * @returns {object|null} - Tool data or null if not found
-     */
     getTool(toolId) {
         return this.tools.get(toolId) || null;
     }
 
-    /**
-     * Gets tools filtered by category
-     * @param {string} category - Category to filter by
-     * @returns {Array<object>} - Array of tools in the specified category
-     */
     getToolsByCategory(category) {
         return Array.from(this.tools.values()).filter(tool => tool.category === category);
     }
@@ -369,13 +330,11 @@ export class ToolEngine {
             mostUsedTools: []
         };
 
-        // Categorize tools
         for (const tool of this.tools.values()) {
             const category = tool.category;
             stats.toolsByCategory[category] = (stats.toolsByCategory[category] || 0) + 1;
         }
 
-        // Find most used tools
         const toolUsage = new Map();
         for (const tool of this.tools.values()) {
             toolUsage.set(tool.id, tool.usageCount);
@@ -461,36 +420,17 @@ export class ToolEngine {
      */
     _executeWithTimeout(promise, timeout, timeoutMessage) {
         return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-                reject(new Error(timeoutMessage));
-            }, timeout);
-
-            Promise.resolve(promise)
-                .then(resolve)
-                .catch(reject)
-                .finally(() => clearTimeout(timer));
+            const timer = setTimeout(() => reject(new Error(timeoutMessage)), timeout);
+            Promise.resolve(promise).then(resolve).catch(reject).finally(() => clearTimeout(timer));
         });
     }
 
-    /**
-     * Generates unique execution ID
-     * @private
-     */
     _generateExecutionId() {
         return `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
 
-    /**
-     * Adds execution to history with size limiting
-     * @private
-     */
     _addToHistory(execution) {
-        this.executionHistory.push({
-            ...execution,
-            timestamp: Date.now()
-        });
-
-        // Maintain history size limit
+        this.executionHistory.push({...execution, timestamp: Date.now()});
         if (this.executionHistory.length > this.config.maxHistorySize) {
             this.executionHistory = this.executionHistory.slice(-this.config.maxHistorySize);
         }
@@ -510,7 +450,6 @@ export class ToolEngine {
         this.performanceTracker.averageExecutionTime =
             (this.performanceTracker.averageExecutionTime * (successfulExecutions - 1) + duration) / successfulExecutions;
 
-        // Track tool-specific metrics
         if (!this.performanceTracker.toolUsageStats.has(toolName)) {
             this.performanceTracker.toolUsageStats.set(toolName, {
                 executions: 0,
@@ -538,7 +477,6 @@ export class ToolEngine {
         this.performanceTracker.totalExecutions++;
         this.performanceTracker.failedExecutions++;
 
-        // Track tool-specific failure metrics
         if (!this.performanceTracker.toolUsageStats.has(toolName)) {
             this.performanceTracker.toolUsageStats.set(toolName, {
                 executions: 0,
@@ -555,7 +493,6 @@ export class ToolEngine {
         toolStats.totalTime += duration;
         toolStats.averageTime = toolStats.totalTime / toolStats.executions;
 
-        // Track error patterns
         const errorKey = error.constructor.name;
         const count = this.performanceTracker.errorPatterns.get(errorKey) || 0;
         this.performanceTracker.errorPatterns.set(errorKey, count + 1);
@@ -567,18 +504,13 @@ export class ToolEngine {
     cancelAllExecutions() {
         const count = this.activeExecutions.size;
         this.activeExecutions.clear();
-
         this.logger.warn(`Canceled ${count} active tool executions`);
         return count;
     }
 
-    /**
-     * Shuts down the tool engine and cleans up resources
-     */
     async shutdown() {
         this.logger.info('Shutting down ToolEngine...');
 
-        // Cancel active executions
         for (const [executionId, execution] of this.activeExecutions) {
             this.logger.warn(`Canceling active execution: ${executionId} (tool: ${execution.toolId})`);
         }

@@ -1,4 +1,4 @@
-import {Term, TermType} from './Term.js';
+import {Term, TermType, ATOM, COMPOUND} from './Term.js';
 
 export {Term};
 
@@ -10,23 +10,16 @@ export class TermFactory {
         this._cache = new Map();
     }
 
-    create(termData) {
-        if (!termData) {
-            throw new Error('TermFactory.create: termData is required');
+    create(data) {
+        if (!data) throw new Error('TermFactory.create: data is required');
+
+        if (typeof data === 'string') return this._getOrCreateAtomic(data);
+
+        if (data.name && !data.components && data.operator === undefined) {
+            return this._getOrCreateAtomic(data.name);
         }
 
-        // Handle string input
-        if (typeof termData === 'string') {
-            return this._getOrCreateAtomic(termData);
-        }
-
-        // Handle simple object with name
-        if (!termData.components && termData.operator === undefined && termData.name) {
-            return this._getOrCreateAtomic(termData.name);
-        }
-
-        // Handle compound terms
-        const {operator, components} = this._normalizeTermData(termData);
+        const {operator, components} = this._normalizeTermData(data);
         const name = this._buildCanonicalName(operator, components);
         return this._cache.get(name) || this._createAndCache(operator, components, name);
     }
@@ -51,26 +44,22 @@ export class TermFactory {
 
     _normalizeTermData({operator, components}) {
         if (!Array.isArray(components)) {
-            throw new Error('TermFactory.normalize: components must be an array');
+            throw new Error('TermFactory._normalizeTermData: components must be an array');
         }
 
-        // Normalize components: convert strings to Terms recursively
         let normalizedComponents = components.map(comp =>
             (typeof comp === 'string' || comp instanceof Term) ?
                 (typeof comp === 'string' ? this.create(comp) : comp) :
                 this.create(comp)
         );
 
-        // Process operators if present
         if (operator) {
             this._validateOperator(operator);
 
-            // Flatten associative operators
             if (ASSOCIATIVE_OPERATORS.has(operator)) {
                 normalizedComponents = this._flatten(operator, normalizedComponents);
             }
 
-            // Sort and remove redundancy for commutative operators
             if (COMMUTATIVE_OPERATORS.has(operator)) {
                 normalizedComponents = this._normalizeCommutative(normalizedComponents);
             }
@@ -79,70 +68,51 @@ export class TermFactory {
         return {operator, components: normalizedComponents};
     }
 
-    _validateOperator(operator) {
-        if (typeof operator !== 'string') {
-            throw new Error('TermFactory._validateOperator: operator must be a string');
-        }
+    _validateOperator(op) {
+        if (typeof op !== 'string') throw new Error('TermFactory._validateOperator: operator must be a string');
     }
 
-    _flatten(operator, components) {
-        if (!Array.isArray(components)) {
-            throw new Error('TermFactory._flatten: components must be an array');
-        }
-
-        return components.flatMap(comp =>
-            comp?.operator === operator ? comp.components : [comp]
-        );
+    _flatten(op, comps) {
+        if (!Array.isArray(comps)) throw new Error('TermFactory._flatten: components must be an array');
+        return comps.flatMap(c => c?.operator === op ? c.components : [c]);
     }
 
-    _normalizeCommutative(components) {
-        // Sort components by name for commutative operators and remove duplicates
-        return this._removeRedundancy(
-            components.sort((a, b) => a.name.localeCompare(b.name))
-        );
+    _normalizeCommutative(comps) {
+        return this._removeRedundancy(comps.sort((a, b) => a.name.localeCompare(b.name)));
     }
 
-    _removeRedundancy(components) {
-        if (!Array.isArray(components)) {
-            throw new Error('TermFactory._removeRedundancy: components must be an array');
-        }
-
+    _removeRedundancy(comps) {
+        if (!Array.isArray(comps)) throw new Error('TermFactory._removeRedundancy: components must be an array');
         const seen = new Set();
-        return components.filter(comp => {
-            if (!comp || typeof comp.name !== 'string') {
+        return comps.filter(c => {
+            if (!c || typeof c.name !== 'string') {
                 throw new Error('TermFactory._removeRedundancy: component must have a name property');
             }
-
-            if (seen.has(comp.name)) return false;
-            seen.add(comp.name);
-            return true;
+            return seen.has(c.name) ? false : !!(seen.add(c.name));
         });
     }
 
-    _buildCanonicalName(operator, components) {
-        if (!operator) {
-            return components[0].toString();
-        }
+    _buildCanonicalName(op, comps) {
+        if (!op) return comps[0].toString();
 
-        const componentNames = components.map(c => c.name);
-
-        const namePatterns = {
-            '--': `(--, ${componentNames[0]})`,
-            '&': `(&, ${componentNames.join(', ')})`,
-            '|': `(|, ${componentNames.join(', ')})`,
-            '&/': `(&/, ${componentNames.slice(0, 2).join(', ')})`,
-            '-->': `(-->, ${componentNames[0]}, ${componentNames[1]})`,
-            '<->': `(<->, ${componentNames[0]}, ${componentNames[1]})`,
-            '==>': `(==>, ${componentNames[0]}, ${componentNames[1]})`,
-            '<=>': `(<=>, ${componentNames[0]}, ${componentNames[1]})`,
-            '^': `(^, ${componentNames[0]}, ${componentNames[1]})`,
-            '{{--': `({{--, ${componentNames[0]}, ${componentNames[1]})`,
-            '--}}': `(--}}, ${componentNames[0]}, ${componentNames[1]})`,
-            '{}': `{${componentNames.join(', ')}}`,
-            '[]': `[${componentNames.join(', ')}]`,
-            ',': `(${componentNames.join(', ')})`
+        const names = comps.map(c => c.name);
+        const patterns = {
+            '--': `(--, ${names[0]})`,
+            '&': `(&, ${names.join(', ')})`,
+            '|': `(|, ${names.join(', ')})`,
+            '&/': `(&/, ${names.slice(0, 2).join(', ')})`,
+            '-->': `(-->, ${names[0]}, ${names[1]})`,
+            '<->': `(<->, ${names[0]}, ${names[1]})`,
+            '==>': `(==>, ${names[0]}, ${names[1]})`,
+            '<=>': `(<=>, ${names[0]}, ${names[1]})`,
+            '^': `(^, ${names[0]}, ${names[1]})`,
+            '{{--': `({{--, ${names[0]}, ${names[1]})`,
+            '--}}': `(--}}, ${names[0]}, ${names[1]})`,
+            '{}': `{${names.join(', ')}}`,
+            '[]': `[${names.join(', ')}]`,
+            ',': `(${names.join(', ')})`
         };
 
-        return namePatterns[operator] || `(${operator}, ${componentNames.join(', ')})`;
+        return patterns[op] || `(${op}, ${names.join(', ')})`;
     }
 }
