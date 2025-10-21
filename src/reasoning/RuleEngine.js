@@ -6,21 +6,20 @@ import {Metrics as MetricsUtil} from '../util/Metrics.js';
 import {SequentialRuleProcessor} from './SequentialRuleProcessor.js';
 import {ReasoningContext} from './ReasoningContext.js';
 import {PerformanceOptimizer} from './PerformanceOptimizer.js';
+import {BaseComponent} from '../util/BaseComponent.js';
 
-export class RuleEngine {
+export class RuleEngine extends BaseComponent {
     constructor(config = {}, lm = null, termFactory = null, ruleProcessor = null) {
-        Object.assign(this, {
-            _config: {autoRegisterLM: true, ...config},
-            _rules: new Map(),
-            _ruleSets: new Map(),
-            _lm: lm,
-            _termFactory: termFactory,
-            logger: Logger,
-            _metrics: MetricsUtil.create(),
-            _typeMetrics: {lmRuleApplications: 0, nalRuleApplications: 0},
-            _ruleProcessor: ruleProcessor || new SequentialRuleProcessor(config.ruleProcessor || {}),
-            _performanceOptimizer: new PerformanceOptimizer(config.performance || {})
-        });
+        super(config, 'RuleEngine');
+        this._config = {autoRegisterLM: true, ...this.config, ...config}; // Use BaseComponent config
+        this._rules = new Map();
+        this._ruleSets = new Map();
+        this._lm = lm;
+        this._termFactory = termFactory;
+        this._metrics = MetricsUtil.create();
+        this._typeMetrics = {lmRuleApplications: 0, nalRuleApplications: 0};
+        this._ruleProcessor = ruleProcessor || new SequentialRuleProcessor(config.ruleProcessor || {});
+        this._performanceOptimizer = new PerformanceOptimizer(config.performance || {});
     }
 
     get rules() {

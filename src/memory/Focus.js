@@ -4,9 +4,11 @@
  */
 import {clamp} from '../util/common.js';
 import {sortByProperty} from '../util/collections.js';
+import {BaseComponent} from '../util/BaseComponent.js';
 
-export class Focus {
+export class Focus extends BaseComponent {
     constructor(config = {}) {
+        super(config, 'Focus');
         this._config = {
             maxFocusSets: 5,
             defaultFocusSetSize: 100,

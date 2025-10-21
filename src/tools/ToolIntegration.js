@@ -6,24 +6,26 @@
 import {ToolEngine} from './ToolEngine.js';
 import {ToolRegistry} from './ToolRegistry.js';
 import {Logger} from '../util/Logger.js';
+import {BaseComponent} from '../util/BaseComponent.js';
 
 /**
  * Integration layer that connects tools to the reasoning core
  */
-export class ToolIntegration {
+export class ToolIntegration extends BaseComponent {
     /**
      * @param {object} config - Configuration for tool integration
      */
     constructor(config = {}) {
-        this.config = {
+        super(config, 'ToolIntegration');
+        this._config = {
             enableRegistry: true,
             enableDiscovery: true,
+            ...this.config,  // Use BaseComponent's config
             ...config
         };
 
-        this.engine = new ToolEngine(this.config.engine || {});
-        this.registry = this.config.enableRegistry ? new ToolRegistry(this.engine) : null;
-        this.logger = Logger;
+        this.engine = new ToolEngine(this._config.engine || {});
+        this.registry = this._config.enableRegistry ? new ToolRegistry(this.engine) : null;
         this.reasoningCore = null;
 
         // Track tool usage for the reasoning system

@@ -1,7 +1,9 @@
 import {Logger} from '../util/Logger.js';
+import {BaseComponent} from '../util/BaseComponent.js';
 
-export class Cycle {
+export class Cycle extends BaseComponent {
     constructor({memory, focus, ruleEngine, taskManager, config, reasoningStrategy, termFactory}) {
+        super(config, 'Cycle');
         this._memory = memory;
         this._focus = focus;
         this._ruleEngine = ruleEngine;
@@ -9,7 +11,6 @@ export class Cycle {
         this._config = config;
         this._reasoningStrategy = reasoningStrategy;
         this._termFactory = termFactory;
-        this.logger = Logger;
 
         this._cycleCount = 0;
         this._isRunning = false;

@@ -4,11 +4,12 @@
  */
 
 import {Logger} from '../util/Logger.js';
+import {BaseComponent} from '../util/BaseComponent.js';
 
 /**
  * Service that uses Language Models to explain tool execution results
  */
-export class ExplanationService {
+export class ExplanationService extends BaseComponent {
     /**
      * @param {object} config - Configuration for the explanation service
      * @param {object} config.lm - Language Model instance
@@ -16,13 +17,13 @@ export class ExplanationService {
      * @param {number} config.maxTokens - Maximum tokens for explanations
      */
     constructor(config = {}) {
-        this.lm = config.lm;
-        this.defaultTemperature = config.defaultTemperature || 0.3; // Low temperature for factual explanations
-        this.maxTokens = config.maxTokens || 500;
-        this.logger = Logger;
+        super(config, 'ExplanationService');
+        this.lm = this.config.lm;
+        this.defaultTemperature = this.config.defaultTemperature || 0.3; // Low temperature for factual explanations
+        this.maxTokens = this.config.maxTokens || 500;
 
         if (!this.lm) {
-            this.logger.warn('Explanation service initialized without LM - explanations will be simulated');
+            this.logWarn('Explanation service initialized without LM - explanations will be simulated');
         }
     }
 

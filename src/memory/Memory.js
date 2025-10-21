@@ -1,10 +1,10 @@
 import {Concept} from './Concept.js';
 import {MemoryIndex} from './MemoryIndex.js';
 import {MemoryConsolidation} from './MemoryConsolidation.js';
-import {ConfigurableComponent} from '../util/ConfigurableComponent.js';
+import {BaseComponent} from '../util/BaseComponent.js';
 import {clamp} from '../util/common.js';
 
-export class Memory extends ConfigurableComponent {
+export class Memory extends BaseComponent {
     static SCORING_WEIGHTS = Object.freeze({activation: 0.5, useCount: 0.3, taskCount: 0.2});
     static NORMALIZATION_LIMITS = Object.freeze({useCount: 100, taskCount: 50});
     static CONSOLIDATION_THRESHOLDS = Object.freeze({
@@ -21,9 +21,8 @@ export class Memory extends ConfigurableComponent {
             consolidationInterval: 10
         });
 
-        super(defaultConfig);
-        this.configure(config);
-
+        super({...defaultConfig, ...config}, 'Memory');
+        this._config = {...this.config, ...config};  // Use BaseComponent's config property
         this._concepts = new Map();
         this._focusConcepts = new Set();
         this._index = new MemoryIndex();
@@ -42,6 +41,10 @@ export class Memory extends ConfigurableComponent {
     get concepts() { return new Map(this._concepts); }
     get focusConcepts() { return new Set(this._focusConcepts); }
     get stats() { return {...this._stats}; }
+    
+    getConfigValue(key, defaultVal) {
+        return this._config[key] !== undefined ? this._config[key] : defaultVal;
+    }
 
     addTask(task, currentTime = Date.now()) {
         if (!task?.term) return false;
@@ -52,7 +55,7 @@ export class Memory extends ConfigurableComponent {
         const added = concept.addTask(task);
         if (added) {
             this._stats.totalTasks++;
-            if (task.budget.priority >= this.getConfigValue('priorityThreshold')) {
+            if (task.budget.priority >= this._config.priorityThreshold) {
                 this._focusConcepts.add(concept);
                 this._updateFocusConceptsCount();
             }
@@ -316,7 +319,7 @@ export class Memory extends ConfigurableComponent {
     }
 
     consolidate(currentTime = Date.now()) {
-        if (this._cyclesSinceConsolidation++ < this.getConfigValue('consolidationInterval')) return;
+        if (this._cyclesSinceConsolidation++ < this._config.consolidationInterval) return;
 
         this._cyclesSinceConsolidation = 0;
         this._stats.lastConsolidation = currentTime;

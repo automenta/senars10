@@ -1,8 +1,10 @@
 import {Task} from './Task.js';
 import {collectTasksFromAllConcepts} from '../util/memory.js';
+import {BaseComponent} from '../util/BaseComponent.js';
 
-export class TaskManager {
+export class TaskManager extends BaseComponent {
     constructor(memory, focus, config) {
+        super(config, 'TaskManager');
         this._memory = memory;
         this._focus = focus;
         this._config = config;

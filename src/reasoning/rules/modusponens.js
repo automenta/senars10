@@ -10,7 +10,16 @@ import {Truth} from '../../Truth.js';
  */
 export class ModusPonensRule extends NALRule {
     constructor(id, premises, conclusion) {
-        super(id, premises, conclusion, (t1, t2) => Truth.deduction(t1, t2));
+        super(id, premises, conclusion, (implicationTruth, antecedentTruth) => {
+            // For Modus Ponens: (P ==> Q) and P, derive Q
+            // Truth value of implication is used with truth value of antecedent
+            // Frequency: f_imp * f_ant
+            // Confidence: c_imp * c_ant * f_imp (NAL formula)
+            return new Truth(
+                implicationTruth.f * antecedentTruth.f,     // f_imp * f_ant
+                implicationTruth.c * antecedentTruth.c * implicationTruth.f  // c_imp * c_ant * f_imp
+            );
+        });
     }
 
     /**

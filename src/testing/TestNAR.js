@@ -109,9 +109,10 @@ export class TestNAR {
         // Dynamically import NAR to avoid circular dependencies
         const {NAR} = await import('../nar/NAR.js');
         this.nar = new NAR();
+        await this.nar.initialize(); // Initialize the NAR to ensure components are set up
 
         // Allow for more cycles to ensure reasoning completion
-        const maxCycles = 0; // Increase default cycles for reasoning
+        const maxCycles = 5; // Increase default cycles for reasoning
 
         // Process operations
         const expectations = [];
