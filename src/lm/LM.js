@@ -1,20 +1,24 @@
-import {Logger} from '../util/Logger.js';
-import {Metrics} from '../util/Metrics.js';
-import {ProviderRegistry} from './ProviderRegistry.js';
-import {ModelSelector} from './ModelSelector.js';
-import {NarseseTranslator} from './NarseseTranslator.js';
+import { BaseComponent } from '../util/BaseComponent.js';
+import { Metrics } from '../util/Metrics.js';
+import { ProviderRegistry } from './ProviderRegistry.js';
+import { ModelSelector } from './ModelSelector.js';
+import { NarseseTranslator } from './NarseseTranslator.js';
 
 /**
  * Main Language Model component that manages LM providers and operations.
  * Implements the comprehensive LM infrastructure specified in DESIGN.md
  */
-export class LM {
-    constructor(config = {}) {
-        this._config = {...config};
+export class LM extends BaseComponent {
+    constructor(config = {}, eventBus = null) {
+        super(config, 'LM', eventBus);
+        
+        // Initialize LM-specific properties
         this.providers = new ProviderRegistry();
         this.modelSelector = new ModelSelector(this.providers);
         this.narseseTranslator = new NarseseTranslator();
-        this.metrics = new Metrics();
+        
+        // Use metrics from BaseComponent instead of creating a new one
+        this.lmMetrics = new Metrics();
         this.activeWorkflows = new Set();
 
         // Track LM usage metrics
@@ -32,27 +36,26 @@ export class LM {
         return {...this._config};
     }
 
-    async initialize(config = {}) {
-        // Create a new instance with updated config to maintain immutability
-        const newLM = new LM({...this._config, ...config});
-
+    async _initialize() {
         // Initialize metrics tracker with config
-        if (newLM.metrics.initialize) {
-            await newLM.metrics.initialize(config.metrics || {});
+        if (this.lmMetrics.initialize) {
+            await this.lmMetrics.initialize(this.config.metrics || {});
         }
 
-        Logger.info('LM component initialized', {
-            config: Object.keys(config),
-            providerCount: newLM.providers.size
+        this.logInfo('LM component initialized', {
+            config: Object.keys(this.config),
+            providerCount: this.providers.size
         });
+    }
 
-        return newLM;
+    get metrics() {
+        return this.lmMetrics;
     }
 
     registerProvider(id, provider) {
         this.providers.register(id, provider);
 
-        Logger.info('Provider registered', {
+        this.logInfo('Provider registered', {
             providerId: id,
             default: id === this.providers.defaultProviderId
         });
@@ -90,9 +93,13 @@ export class LM {
             usage.tokens += this._countTokens(result);
             this.lmStats.providerUsage.set(providerId, usage);
 
+            this.updateMetric('totalCalls', this.lmStats.totalCalls);
+            this.updateMetric('totalTokens', this.lmStats.totalTokens);
+            this.updateMetric('avgResponseTime', this.lmStats.avgResponseTime);
+
             return result;
         } catch (error) {
-            Logger.error(`LM generateText failed for provider ${providerId}:`, error);
+            this.logError(`LM generateText failed for provider ${providerId}:`, error);
             throw error;
         }
     }

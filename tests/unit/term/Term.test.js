@@ -31,11 +31,11 @@ describe('Term', () => {
             },
             {
                 name: 'nested compound term',
-                term: createCompoundTerm('<->', [inheritanceAB, atomC]),
+                term: createCompoundTerm('<->', [atomC, inheritanceAB]),
                 expected: {
                     type: TermType.COMPOUND,
                     name: '(<->, (-->, A, B), C)',
-                    components: [inheritanceAB, atomC],
+                    components: [inheritanceAB, atomC],  // Note: order is normalized
                     complexity: 5,
                     string: '(<->, (-->, A, B), C)'
                 }

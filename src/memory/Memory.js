@@ -93,15 +93,19 @@ export class Memory extends ConfigurableComponent {
         });
     }
 
-    getMostActiveConcepts(limit = 10) {
-        const {activation: a, useCount: u, taskCount: t} = Memory.SCORING_WEIGHTS;
-        const {useCount: useLimit, taskCount: taskLimit} = Memory.NORMALIZATION_LIMITS;
+    getMostActiveConcepts(limit = 10, scoringType = 'standard') {
+        if (scoringType === 'composite') {
+            return this._getMostActiveConceptsByCompositeScoring(limit);
+        } else {
+            const {activation: a, useCount: u, taskCount: t} = Memory.SCORING_WEIGHTS;
+            const {useCount: useLimit, taskCount: taskLimit} = Memory.NORMALIZATION_LIMITS;
 
-        return this.getAllConcepts()
-            .map(concept => this._calculateConceptScore(concept, a, u, t, useLimit, taskLimit))
-            .sort((a, b) => b.score - a.score)
-            .slice(0, limit)
-            .map(({concept}) => concept);
+            return this.getAllConcepts()
+                .map(concept => this._calculateConceptScore(concept, a, u, t, useLimit, taskLimit))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, limit)
+                .map(({concept}) => concept);
+        }
     }
 
     _calculateConceptScore(concept, activationWeight, useCountWeight, taskCountWeight, useLimit, taskLimit) {
@@ -112,6 +116,190 @@ export class Memory extends ConfigurableComponent {
             normalizedTaskCount * taskCountWeight;
 
         return {concept, score};
+    }
+
+    /**
+     * Get most active concepts using composite scoring algorithm
+     * @param {number} limit - Number of concepts to return
+     * @param {Object} options - Scoring options
+     * @returns {Array<Concept>} - Concepts sorted by composite score
+     */
+    _getMostActiveConceptsByCompositeScoring(limit = 10, options = {}) {
+        const {
+            activationWeight = 0.3,
+            useCountWeight = 0.2,
+            taskCountWeight = 0.2,
+            qualityWeight = 0.15,
+            complexityWeight = 0.15,
+            diversityWeight = 0.1,
+            cognitiveDiversity = null
+        } = options;
+
+        const concepts = this.getAllConcepts();
+        const scoredConcepts = concepts.map(concept => {
+            // Calculate normalized scores for each factor
+            const normalizedUseCount = clamp(concept.useCount / 100, 0, 1); // Based on standard use limit
+            const normalizedTaskCount = clamp(concept.totalTasks / 50, 0, 1); // Based on standard task limit
+            const activationScore = concept.activation;
+            const qualityScore = concept.quality || 0;
+            
+            // Calculate complexity score
+            const complexityScore = this._calculateConceptComplexityScore(concept);
+            
+            // Calculate diversity score if cognitive diversity is provided
+            const diversityScore = cognitiveDiversity 
+                ? this._calculateConceptDiversityScore(concept, cognitiveDiversity) 
+                : 0;
+
+            // Calculate composite score
+            const compositeScore = 
+                (activationScore * activationWeight) +
+                (normalizedUseCount * useCountWeight) +
+                (normalizedTaskCount * taskCountWeight) +
+                (qualityScore * qualityWeight) +
+                (complexityScore * complexityWeight) +
+                (diversityScore * diversityWeight);
+
+            return {
+                concept,
+                score: compositeScore,
+                breakdown: {
+                    activation: activationScore * activationWeight,
+                    useCount: normalizedUseCount * useCountWeight,
+                    taskCount: normalizedTaskCount * taskCountWeight,
+                    quality: qualityScore * qualityWeight,
+                    complexity: complexityScore * complexityWeight,
+                    diversity: diversityScore * diversityWeight
+                }
+            };
+        });
+
+        // Sort by composite score (descending)
+        scoredConcepts.sort((a, b) => b.score - a.score);
+
+        return scoredConcepts.slice(0, limit).map(sc => sc.concept);
+    }
+
+    /**
+     * Calculate complexity score for a concept based on its term
+     */
+    _calculateConceptComplexityScore(concept) {
+        // If we have access to TermFactory, use its complexity calculation
+        // Otherwise, calculate based on the term structure
+        if (concept.term && concept.term.components) {
+            // Base complexity on number of components
+            const baseComplexity = Math.min(1, concept.term.components.length * 0.3);
+            
+            // Add additional complexity for nested structures
+            let nestedComplexity = 0;
+            if (concept.term.components && Array.isArray(concept.term.components)) {
+                for (const comp of concept.term.components) {
+                    if (comp.components && comp.components.length > 0) {
+                        nestedComplexity += 0.2; // Additional complexity for nested components
+                    }
+                }
+            }
+            
+            return Math.min(1, baseComplexity + nestedComplexity);
+        }
+        return 0.1; // Base complexity for simple terms
+    }
+
+    /**
+     * Calculate diversity score for a concept using cognitive diversity metrics
+     */
+    _calculateConceptDiversityScore(concept, cognitiveDiversity) {
+        // This would use the cognitive diversity module to calculate how diverse
+        // this concept is relative to the overall system
+        if (cognitiveDiversity) {
+            // Calculate how much this concept contributes to the overall diversity
+            const systemDiversity = cognitiveDiversity.getMetrics();
+            return systemDiversity.diversityScore || 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Get concepts by composite scoring with configurable weights
+     */
+    getConceptsByCompositeScoring(criteria = {}) {
+        const {
+            limit = 10,
+            minScore = 0,
+            scoringOptions = {},
+            sortBy = 'composite' // 'composite', 'activation', 'complexity', 'diversity'
+        } = criteria;
+
+        const concepts = this.getAllConcepts();
+        const scoredConcepts = concepts.map(concept => {
+            const score = this._calculateDetailedConceptScore(concept, scoringOptions);
+            return { concept, score };
+        }).filter(item => item.score >= minScore);
+
+        // Sort based on specified criteria
+        scoredConcepts.sort((a, b) => {
+            if (sortBy === 'activation') return b.concept.activation - a.concept.activation;
+            if (sortBy === 'complexity') return b.score.complexityScore - a.score.complexityScore;
+            if (sortBy === 'diversity') return b.score.diversityScore - a.score.diversityScore;
+            // Default: sort by composite score
+            return b.score.compositeScore - a.score.compositeScore;
+        });
+
+        return scoredConcepts.slice(0, limit).map(item => item.concept);
+    }
+
+    /**
+     * Calculate detailed concept score with multiple factors
+     */
+    _calculateDetailedConceptScore(concept, options = {}) {
+        const {
+            activationWeight = 0.3,
+            useCountWeight = 0.2,
+            taskCountWeight = 0.2,
+            qualityWeight = 0.15,
+            complexityWeight = 0.15,
+            diversityWeight = 0.1,
+            termFactory = null
+        } = options;
+
+        // Calculate normalized activation score
+        const activationScore = concept.activation;
+
+        // Calculate normalized use count score
+        const normalizedUseCount = clamp(concept.useCount / 100, 0, 1);
+
+        // Calculate normalized task count score
+        const normalizedTaskCount = clamp(concept.totalTasks / 50, 0, 1);
+
+        // Calculate quality score
+        const qualityScore = concept.quality || 0;
+
+        // Calculate complexity score using the term factory if available
+        let complexityScore = 0.1;
+        if (termFactory) {
+            complexityScore = termFactory.getComplexity(concept.term) / 10; // Normalize to 0-1 range
+        } else {
+            // Fallback to simple calculation
+            complexityScore = this._calculateConceptComplexityScore(concept);
+        }
+
+        // Calculate composite score
+        const compositeScore = 
+            (activationScore * activationWeight) +
+            (normalizedUseCount * useCountWeight) +
+            (normalizedTaskCount * taskCountWeight) +
+            (qualityScore * qualityWeight) +
+            (complexityScore * complexityWeight);
+
+        return {
+            compositeScore,
+            activationScore,
+            useCountScore: normalizedUseCount,
+            taskCountScore: normalizedTaskCount,
+            qualityScore,
+            complexityScore,
+            diversityScore: 0 // Placeholder - would need cognitive diversity context
+        };
     }
 
     removeConcept(term) {

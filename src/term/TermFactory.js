@@ -8,6 +8,7 @@ const ASSOCIATIVE_OPERATORS = new Set(['&', '|']);
 export class TermFactory {
     constructor() {
         this._cache = new Map();
+        this._complexityCache = new Map(); // Cache for computational complexity metrics
     }
 
     create(data) {
@@ -21,11 +22,27 @@ export class TermFactory {
 
         const {operator, components} = this._normalizeTermData(data);
         const name = this._buildCanonicalName(operator, components);
-        return this._cache.get(name) || this._createAndCache(operator, components, name);
+        
+        // Check if term is already cached
+        let term = this._cache.get(name);
+        if (!term) {
+            term = this._createAndCache(operator, components, name);
+        }
+        
+        // Calculate and cache complexity metrics
+        this._calculateComplexityMetrics(term, components);
+        
+        return term;
     }
 
     _getOrCreateAtomic(name) {
-        return this._cache.get(name) || this._createAndCache(null, [], name);
+        let term = this._cache.get(name);
+        if (!term) {
+            term = this._createAndCache(null, [], name);
+            // Atomic terms have complexity of 1
+            this._complexityCache.set(name, 1);
+        }
+        return term;
     }
 
     _createAndCache(operator, components, name) {
@@ -63,6 +80,9 @@ export class TermFactory {
             if (COMMUTATIVE_OPERATORS.has(operator)) {
                 normalizedComponents = this._normalizeCommutative(normalizedComponents);
             }
+            
+            // Handle nested operators with same precedence
+            normalizedComponents = this._handleNestedOperators(operator, normalizedComponents);
         }
 
         return {operator, components: normalizedComponents};
@@ -78,7 +98,32 @@ export class TermFactory {
     }
 
     _normalizeCommutative(comps) {
-        return this._removeRedundancy(comps.sort((a, b) => a.name.localeCompare(b.name)));
+        // For commutative operators, sort to maintain canonical form
+        // Prioritize compound terms over atomic terms, then by name within same type
+        return this._removeRedundancy(comps.sort((a, b) => {
+            // If one is compound and other is atomic, compound comes first
+            const aIsAtomic = !a.operator;
+            const bIsAtomic = !b.operator;
+            
+            if (aIsAtomic && !bIsAtomic) return 1;  // atomic a comes after compound b
+            if (!aIsAtomic && bIsAtomic) return -1; // compound a comes before atomic b
+            
+            // If both are same type, sort by name
+            return a.name.localeCompare(b.name);
+        }));
+    }
+
+    _compareTermsByComplexity(termA, termB) {
+        // Compare by complexity first
+        const complexityA = this.getComplexity(termA);
+        const complexityB = this.getComplexity(termB);
+        
+        if (complexityA !== complexityB) {
+            return complexityA - complexityB;
+        }
+        
+        // If complexity is the same, compare by name
+        return termA.name.localeCompare(termB.name);
     }
 
     _removeRedundancy(comps) {
@@ -88,6 +133,7 @@ export class TermFactory {
             if (!c || typeof c.name !== 'string') {
                 throw new Error('TermFactory._removeRedundancy: component must have a name property');
             }
+            // Use the full term name for uniqueness check
             return seen.has(c.name) ? false : !!(seen.add(c.name));
         });
     }
@@ -114,5 +160,143 @@ export class TermFactory {
         };
 
         return patterns[op] || `(${op}, ${names.join(', ')})`;
+    }
+
+    /**
+     * Enhanced canonicalization that handles nested operators properly
+     */
+    _handleNestedOperators(operator, components) {
+        // For nested operators with same precedence, ensure they are properly normalized
+        if (ASSOCIATIVE_OPERATORS.has(operator)) {
+            // Already handled by _flatten
+            return components;
+        }
+        
+        // For commutative operators, order is handled in _normalizeCommutative
+        // Don't re-sort here to avoid conflicts with canonical ordering
+        if (COMMUTATIVE_OPERATORS.has(operator)) {
+            return components;
+        }
+        
+        // For non-commutative operators, preserve original order
+        return components;
+    }
+
+    /**
+     * Calculate and cache complexity metrics for a term
+     */
+    _calculateComplexityMetrics(term, components) {
+        if (!term) return 0;
+        
+        let complexity = 1; // Base complexity for the term itself
+        
+        if (components && components.length > 0) {
+            // Add complexity based on number of components
+            complexity += components.length;
+            
+            // Add complexity based on nested terms
+            for (const comp of components) {
+                complexity += this.getComplexity(comp) || 0;
+            }
+        }
+        
+        this._complexityCache.set(term.name, complexity);
+        return complexity;
+    }
+
+    /**
+     * Get the computational complexity of a term
+     */
+    getComplexity(term) {
+        if (typeof term === 'string') {
+            return this._complexityCache.get(term) || 1;
+        }
+        if (term && term.name) {
+            return this._complexityCache.get(term.name) || 1;
+        }
+        return 1;
+    }
+
+    /**
+     * Get the size of the term cache
+     */
+    getCacheSize() {
+        return this._cache.size;
+    }
+
+    /**
+     * Clear the term cache
+     */
+    clearCache() {
+        this._cache.clear();
+        this._complexityCache.clear();
+    }
+
+    /**
+     * Get statistics about the factory
+     */
+    getStats() {
+        return {
+            cacheSize: this._cache.size,
+            complexityCacheSize: this._complexityCache.size,
+            efficiency: this._calculateEfficiency()
+        };
+    }
+
+    /**
+     * Calculate caching efficiency
+     */
+    _calculateEfficiency() {
+        // This is a simple efficiency calculation
+        // In a real implementation, you'd track hits/misses
+        return this._cache.size > 0 ? 1 : 0;
+    }
+
+    /**
+     * Create a new term with cognitive diversity considerations
+     */
+    createWithDiversity(data, diversityFactor = 0.1) {
+        const term = this.create(data);
+        
+        // Calculate cognitive diversity impact
+        const complexity = this.getComplexity(term);
+        // Adjust based on diversity factor to promote variety in term types
+        const diversityScore = complexity * (1 + diversityFactor);
+        
+        return { term, diversityScore, complexity };
+    }
+
+    /**
+     * Get most complex terms in cache (for cognitive diversity analysis)
+     */
+    getMostComplexTerms(limit = 10) {
+        const entries = Array.from(this._complexityCache.entries());
+        return entries
+            .sort((a, b) => b[1] - a[1])  // Sort by complexity descending
+            .slice(0, limit)
+            .map(([name, complexity]) => ({ name, complexity }));
+    }
+
+    /**
+     * Get least complex terms in cache (for simplicity analysis)
+     */
+    getSimplestTerms(limit = 10) {
+        const entries = Array.from(this._complexityCache.entries());
+        return entries
+            .sort((a, b) => a[1] - b[1])  // Sort by complexity ascending
+            .slice(0, limit)
+            .map(([name, complexity]) => ({ name, complexity }));
+    }
+
+    /**
+     * Calculate average complexity of terms in cache
+     */
+    getAverageComplexity() {
+        if (this._complexityCache.size === 0) return 0;
+        
+        const totalComplexity = Array.from(this._complexityCache.values())
+            .reduce((sum, complexity) => sum + complexity, 0);
+        
+        return totalComplexity / this._complexityCache.size;
     }
 }

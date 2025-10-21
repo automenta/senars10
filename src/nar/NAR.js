@@ -9,7 +9,8 @@ import {RuleEngine} from '../reasoning/RuleEngine.js';
 import {SyllogisticRule} from '../reasoning/rules/syllogism.js';
 import {ModusPonensRule} from '../reasoning/rules/modusponens.js';
 import {PRIORITY} from '../config/constants.js';
-import {Logger} from '../util/Logger.js';
+import {BaseComponent} from '../util/BaseComponent.js';
+import {ComponentManager} from '../util/ComponentManager.js';
 import {NaiveExhaustiveStrategy} from '../reasoning/NaiveExhaustiveStrategy.js';
 import {CoordinatedReasoningStrategy} from '../reasoning/CoordinatedReasoningStrategy.js';
 import {Focus} from '../memory/Focus.js';
@@ -19,25 +20,25 @@ import {Truth} from '../Truth.js';
 import {ToolIntegration} from '../tools/ToolIntegration.js';
 import {ExplanationService} from '../tools/ExplanationService.js';
 
-export class NAR {
+export class NAR extends BaseComponent {
     constructor(config = {}) {
+        super(config, 'NAR');
+        
         const desiredLmEnabled = config.lm?.enabled === true;
 
         this._config = SystemConfig.from(config);
-        this.logger = Logger;
+        this._componentManager = new ComponentManager({}, this._eventBus);
 
+        // Initialize components
         this._termFactory = new TermFactory();
         this._memory = new Memory(this._config.memory);
         this._parser = new NarseseParser(this._termFactory);
-        this._eventBus = new EventBus();
         this._focus = new Focus(this._config.focus);
         this._taskManager = new TaskManager(this._memory, this._focus, this._config.taskManager);
 
         // Initialize LM if enabled
         this._lm = desiredLmEnabled ? new LM() : null;
         this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm);
-
-        this._setupDefaultRules();
 
         // Use coordinated reasoning strategy if LM is enabled, otherwise naive strategy
         const reasoningStrategy = desiredLmEnabled
@@ -69,6 +70,40 @@ export class NAR {
 
         this._isRunning = false;
         this._cycleInterval = null;
+        
+        // Register all components with the component manager
+        this._registerComponents();
+    }
+
+    _registerComponents() {
+        // Register core components with dependencies
+        this._componentManager.registerComponent('termFactory', {
+            initialize: () => Promise.resolve(true),
+            start: () => Promise.resolve(true),
+            stop: () => Promise.resolve(true),
+            dispose: () => Promise.resolve(true),
+            isInitialized: true,
+            isStarted: true,
+            isDisposed: false
+        });
+        
+        this._componentManager.registerComponent('memory', this._memory);
+        this._componentManager.registerComponent('focus', this._focus, ['memory']);
+        this._componentManager.registerComponent('taskManager', this._taskManager, ['memory', 'focus']);
+        this._componentManager.registerComponent('ruleEngine', this._ruleEngine);
+        
+        if (this._lm) {
+            this._componentManager.registerComponent('lm', this._lm);
+        }
+        
+        if (this._toolIntegration) {
+            this._componentManager.registerComponent('toolIntegration', this._toolIntegration);
+            if (this._explanationService) {
+                this._componentManager.registerComponent('explanationService', this._explanationService, ['toolIntegration']);
+            }
+        }
+        
+        this._componentManager.registerComponent('cycle', this._cycle, ['memory', 'focus', 'taskManager', 'ruleEngine']);
     }
 
     get config() { return this._config; }
@@ -78,13 +113,14 @@ export class NAR {
     get lm() { return this._lm; }
     get tools() { return this._toolIntegration; }
     get explanationService() { return this._explanationService; }
+    get componentManager() { return this._componentManager; }
 
     _setupDefaultRules() {
         try {
             this._ruleEngine.register(SyllogisticRule.create(this._termFactory));
             this._ruleEngine.register(ModusPonensRule.create(this._termFactory));
         } catch (error) {
-            this.logger.warn('Error setting up default rules:', error);
+            this.logWarn('Error setting up default rules:', error);
         }
     }
 
@@ -119,9 +155,25 @@ export class NAR {
         });
     }
 
-    start() {
-        if (this._isRunning) return false;
+    async initialize() {
+        // Initialize all registered components
+        const success = await this._componentManager.initializeAll();
+        if (success) {
+            // Set up default rules after initialization
+            this._setupDefaultRules();
+        }
+        return success;
+    }
 
+    start() {
+        if (this._isRunning) {
+            this.logWarn('NAR already running');
+            return false;
+        }
+
+        // Start all registered components asynchronously but return immediately
+        this._startComponentsAsync();
+        
         this._isRunning = true;
         this._processPendingTasks();
 
@@ -130,23 +182,53 @@ export class NAR {
                 const result = await this._cycle.execute();
                 this._eventBus.emit('cycle.completed', result);
             } catch (error) {
-                this.logger.error('Error in reasoning cycle:', error);
+                this.logError('Error in reasoning cycle:', error);
                 this._eventBus.emit('cycle.error', {error: error.message});
             }
         }, this._config.get('cycle.delay'));
 
         this._eventBus.emit('system.started', {timestamp: Date.now()});
+        this.logInfo('NAR started successfully');
         return true;
+    }
+    
+    async _startComponentsAsync() {
+        try {
+            const success = await this._componentManager.startAll();
+            if (!success) {
+                this.logError('Failed to start all components');
+            }
+        } catch (error) {
+            this.logError('Error during component start:', error);
+        }
     }
 
     stop() {
-        if (!this._isRunning) return false;
+        if (!this._isRunning) {
+            this.logWarn('NAR not running');
+            return false;
+        }
 
         this._isRunning = false;
         this._cycleInterval && clearInterval(this._cycleInterval) && (this._cycleInterval = null);
 
+        // Stop all registered components asynchronously but return immediately
+        this._stopComponentsAsync();
+        
         this._eventBus.emit('system.stopped', {timestamp: Date.now()});
+        this.logInfo('NAR stopped successfully');
         return true;
+    }
+    
+    async _stopComponentsAsync() {
+        try {
+            const success = await this._componentManager.stopAll();
+            if (!success) {
+                this.logError('Failed to stop all components');
+            }
+        } catch (error) {
+            this.logError('Error during component stop:', error);
+        }
     }
 
     async step() {
@@ -157,6 +239,7 @@ export class NAR {
             return result;
         } catch (error) {
             this._eventBus.emit('cycle.error', {error: error.message});
+            this.logError('Error in reasoning step:', error);
             throw error;
         }
     }
@@ -171,6 +254,13 @@ export class NAR {
             }
         }
         return results;
+    }
+
+    async dispose() {
+        // Dispose all registered components
+        const success = await this._componentManager.disposeAll();
+        await super.dispose();
+        return success;
     }
 
     query(queryTerm) {
@@ -192,6 +282,7 @@ export class NAR {
         this._taskManager.clearPendingTasks();
         this._cycle.reset();
         this._eventBus.emit('system.reset', {timestamp: Date.now()});
+        this.logInfo('NAR reset completed');
     }
 
     on(eventName, callback) { this._eventBus.on(eventName, callback); }

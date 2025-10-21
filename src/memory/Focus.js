@@ -235,6 +235,97 @@ class FocusSet {
     }
 
     /**
+     * Get tasks by composite scoring algorithm
+     * @param {number} count - Maximum number of tasks to return
+     * @param {Object} scoringOptions - Options for composite scoring
+     * @returns {Array<Task>} - Tasks in composite score order
+     */
+    getTasksByCompositeScore(count = 10, scoringOptions = {}) {
+        const {
+            priorityWeight = 0.4,
+            activationWeight = 0.3,
+            complexityWeight = 0.2,
+            recencyWeight = 0.1,
+            targetComplexity = null
+        } = scoringOptions;
+
+        const taskEntries = Array.from(this._tasks.values());
+
+        // Calculate composite scores for each task
+        const scoredTasks = taskEntries.map(entry => {
+            const { task, priority, addedAt } = entry;
+            
+            // Calculate activation score (based on priority)
+            const activationScore = priority;
+            
+            // Calculate complexity score (based on term complexity, if available)
+            const complexityScore = this._calculateTaskComplexityScore(task);
+            
+            // Calculate recency score (more recent tasks get higher scores)
+            const recencyScore = this._calculateRecencyScore(addedAt);
+            
+            // Calculate composite score
+            const compositeScore = 
+                (priority * priorityWeight) +
+                (activationScore * activationWeight) +
+                (complexityScore * complexityWeight) +
+                (recencyScore * recencyWeight);
+            
+            return {
+                task,
+                priority,
+                compositeScore,
+                activationScore,
+                complexityScore,
+                recencyScore
+            };
+        });
+
+        // Sort by composite score (highest first)
+        scoredTasks.sort((a, b) => b.compositeScore - a.compositeScore);
+
+        // If target complexity is specified, prefer tasks with similar complexity
+        if (targetComplexity !== null) {
+            scoredTasks.sort((a, b) => {
+                const aDistance = Math.abs(a.complexityScore - targetComplexity);
+                const bDistance = Math.abs(b.complexityScore - targetComplexity);
+                return aDistance - bDistance; // Sort by complexity distance first
+            });
+        }
+
+        return scoredTasks.slice(0, count).map(scoredTask => scoredTask.task);
+    }
+
+    /**
+     * Calculate complexity score for a task based on its term
+     * @param {Task} task - The task to score
+     * @returns {number} - Complexity score between 0 and 1
+     */
+    _calculateTaskComplexityScore(task) {
+        // If the task has a term factory or complexity method, use it
+        // Otherwise, use a simple heuristic based on term structure
+        if (task.term && typeof task.term === 'object' && task.term.components) {
+            // Calculate based on number of components and operator depth
+            const components = task.term.components || [];
+            const complexity = Math.min(1, 0.1 + (components.length * 0.3));
+            return complexity;
+        }
+        return 0.1; // Simple terms have low complexity
+    }
+
+    /**
+     * Calculate recency score for a task based on when it was added
+     * @param {number} addedAt - Timestamp when task was added
+     * @returns {number} - Recency score between 0 and 1
+     */
+    _calculateRecencyScore(addedAt) {
+        const now = Date.now();
+        const timeDiff = now - addedAt;
+        // More recent tasks get higher scores (inverse relationship with time difference)
+        return Math.exp(-timeDiff / (10 * 60 * 1000)); // Decay over 10 minutes
+    }
+
+    /**
      * Update attention score
      * @param {number} delta - Change in attention score
      */

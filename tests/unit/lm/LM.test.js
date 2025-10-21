@@ -6,7 +6,7 @@ describe('LM', () => {
 
     beforeEach(async () => {
         lm = new LM();
-        lm = await lm.initialize();
+        await lm.initialize();
 
         // Register a test provider for tests that need it
         const provider = new DummyProvider({id: 'test-provider'});
