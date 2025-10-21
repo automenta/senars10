@@ -135,7 +135,8 @@ export class Memory extends BaseComponent {
             qualityWeight = 0.15,
             complexityWeight = 0.15,
             diversityWeight = 0.1,
-            cognitiveDiversity = null
+            cognitiveDiversity = null,
+            termFactory = null
         } = options;
 
         const concepts = this.getAllConcepts();
@@ -146,22 +147,26 @@ export class Memory extends BaseComponent {
             const activationScore = concept.activation;
             const qualityScore = concept.quality || 0;
             
-            // Calculate complexity score
-            const complexityScore = this._calculateConceptComplexityScore(concept);
+            // Calculate complexity score with more sophisticated algorithm when termFactory is provided
+            const complexityScore = this._calculateConceptComplexityScore(concept, termFactory);
             
             // Calculate diversity score if cognitive diversity is provided
             const diversityScore = cognitiveDiversity 
                 ? this._calculateConceptDiversityScore(concept, cognitiveDiversity) 
                 : 0;
 
-            // Calculate composite score
+            // Calculate recency score (how recently the concept was accessed)
+            const recencyScore = this._calculateRecencyScore(concept.lastAccessed);
+
+            // Calculate composite score with additional factors
             const compositeScore = 
                 (activationScore * activationWeight) +
                 (normalizedUseCount * useCountWeight) +
                 (normalizedTaskCount * taskCountWeight) +
                 (qualityScore * qualityWeight) +
                 (complexityScore * complexityWeight) +
-                (diversityScore * diversityWeight);
+                (diversityScore * diversityWeight) +
+                (recencyScore * 0.05); // Small weight for recency
 
             return {
                 concept,
@@ -172,7 +177,8 @@ export class Memory extends BaseComponent {
                     taskCount: normalizedTaskCount * taskCountWeight,
                     quality: qualityScore * qualityWeight,
                     complexity: complexityScore * complexityWeight,
-                    diversity: diversityScore * diversityWeight
+                    diversity: diversityScore * diversityWeight,
+                    recency: recencyScore * 0.05
                 }
             };
         });
@@ -186,8 +192,12 @@ export class Memory extends BaseComponent {
     /**
      * Calculate complexity score for a concept based on its term
      */
-    _calculateConceptComplexityScore(concept) {
+    _calculateConceptComplexityScore(concept, termFactory = null) {
         // If we have access to TermFactory, use its complexity calculation
+        if (termFactory && concept.term) {
+            return Math.min(1, termFactory.getComplexity(concept.term) / 10); // Normalize to 0-1 range
+        }
+        
         // Otherwise, calculate based on the term structure
         if (concept.term && concept.term.components) {
             // Base complexity on number of components

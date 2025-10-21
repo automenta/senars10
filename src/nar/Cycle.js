@@ -50,11 +50,25 @@ export class Cycle extends BaseComponent {
             // We pass it the full context it needs to do its job.
             // For backward compatibility and proper reasoning, we need to pass focus tasks too
             const focusTasks = this._focus.getTasks(this._config.focusTaskLimit || 10);
+            
+            // In addition to focus tasks, we should also consider tasks from memory for multi-premise reasoning
+            // Get all tasks from all concepts in memory
+            const allConcepts = this._memory.getAllConcepts();
+            const memoryTasks = allConcepts.flatMap(c => c.getAllTasks ? c.getAllTasks() : []);
+            
+            // Combine focus tasks with memory tasks for comprehensive reasoning
+            // Use a Set to avoid duplicates based on task stamp IDs
+            const taskMap = new Map();
+            [...focusTasks, ...memoryTasks].forEach(task => {
+                taskMap.set(task.stamp.id, task);
+            });
+            const allTasks = Array.from(taskMap.values());
+            
             const newInferences = await this._reasoningStrategy.execute(
                 this._memory,
                 this._ruleEngine.rules,
                 this._termFactory,
-                focusTasks  // Pass focus tasks as additional parameter if supported
+                allTasks  // Pass combined tasks for multi-premise reasoning
             );
 
             // Update memory with new inferences

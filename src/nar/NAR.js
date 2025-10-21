@@ -38,7 +38,7 @@ export class NAR extends BaseComponent {
 
         // Initialize LM if enabled
         this._lm = desiredLmEnabled ? new LM() : null;
-        this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm);
+        this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm, this._termFactory);
 
         // Use coordinated reasoning strategy if LM is enabled, otherwise naive strategy
         const reasoningStrategy = desiredLmEnabled

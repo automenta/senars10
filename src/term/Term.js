@@ -39,8 +39,72 @@ export class Term {
         return crypto.createHash('sha256').update(str).digest('hex');
     }
 
+    /**
+     * Structural equality comparison between terms
+     * @param {Term} other - Other term to compare with
+     * @returns {boolean} - True if terms are structurally equal
+     */
     equals(other) {
-        return other instanceof Term && this.id === other.id;
+        if (!(other instanceof Term)) return false;
+        if (this._type !== other._type) return false;
+        if (this._operator !== other._operator) return false;
+        if (this._name !== other._name) return false;
+        
+        // For compound terms, recursively compare components
+        if (this._type === TermType.COMPOUND) {
+            if (this._components.length !== other._components.length) return false;
+            
+            // For commutative operators, order doesn't matter
+            if (this._isCommutativeOperator()) {
+                return this._componentsMatch(other._components);
+            } else {
+                // For non-commutative operators, order matters
+                for (let i = 0; i < this._components.length; i++) {
+                    if (!this._components[i].equals(other._components[i])) return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Check if the operator is commutative
+     * @returns {boolean} - True if operator is commutative
+     */
+    _isCommutativeOperator() {
+        const commutativeOps = new Set(['&', '|', '+', '*', '<->', '<=>']);
+        return commutativeOps.has(this._operator);
+    }
+    
+    /**
+     * Check if components match, considering commutativity
+     * @param {Array} otherComponents - Components to match against
+     * @returns {boolean} - True if components match
+     */
+    _componentsMatch(otherComponents) {
+        if (this._components.length !== otherComponents.length) return false;
+        
+        const thisSorted = [...this._components].sort((a, b) => this._compareTerms(a, b));
+        const otherSorted = [...otherComponents].sort((a, b) => this._compareTerms(a, b));
+        
+        for (let i = 0; i < thisSorted.length; i++) {
+            if (!thisSorted[i].equals(otherSorted[i])) return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Compare two terms for sorting purposes
+     * @param {Term} a - First term
+     * @param {Term} b - Second term
+     * @returns {number} - Comparison result (-1, 0, or 1)
+     */
+    _compareTerms(a, b) {
+        if (a._name < b._name) return -1;
+        if (a._name > b._name) return 1;
+        return 0;
     }
 
     toString() {

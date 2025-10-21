@@ -176,6 +176,16 @@ export class Concept extends ConfigurableComponent {
         return allTasks.sort((a, b) => b.budget.priority - a.budget.priority);
     }
 
+    updateTaskBudget(task, newBudget) {
+        // Remove the old task and add a new one with the updated budget
+        const storage = this._getStorage(task.type);
+        if (storage.remove(task)) {
+            const updatedTask = task.clone({ budget: newBudget });
+            return storage.add(updatedTask);
+        }
+        return false;
+    }
+
     getStats() {
         return {
             term: this._term.toString(),

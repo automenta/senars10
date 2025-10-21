@@ -430,11 +430,18 @@ export class MemoryIndex {
      * Search for related concepts using multiple indexing strategies
      */
     findRelatedConcepts(term, searchOptions = {}) {
-        const { maxResults = 10, includeCategories = [], excludeCategories = [] } = searchOptions;
+        const { 
+            maxResults = 10, 
+            includeCategories = [], 
+            excludeCategories = [],
+            minActivation = 0,
+            useSemanticSimilarity = true,
+            searchDepth = 2
+        } = searchOptions;
         
-        const results = new Set();
+        const results = new Map(); // Use Map to store concept and relevance score
         
-        // Find by components (subterm matching)
+        // Find by components (subterm matching) - this is the most precise
         if (term.components) {
             for (const comp of term.components) {
                 const byComponent = this.findConceptsByComponent(comp);
@@ -443,7 +450,11 @@ export class MemoryIndex {
                     const category = this._getTermCategory(concept.term);
                     if (excludeCategories.includes(category)) continue;
                     if (includeCategories.length > 0 && !includeCategories.includes(category)) continue;
-                    results.add(concept);
+                    if (concept.activation < minActivation) continue;
+                    
+                    // Calculate relevance based on component match
+                    const relevance = this._calculateRelevance(term, concept.term, 'component');
+                    results.set(concept, { relevance, method: 'component' });
                 }
             }
         }
@@ -454,11 +465,99 @@ export class MemoryIndex {
             (includeCategories.length === 0 || includeCategories.includes(category))) {
             const byCategory = this.findConceptsByCategory(category);
             for (const concept of byCategory) {
-                results.add(concept);
+                if (results.has(concept)) continue; // Skip if already found via components
+                if (concept.activation < minActivation) continue;
+                
+                const relevance = this._calculateRelevance(term, concept.term, 'category');
+                results.set(concept, { relevance, method: 'category' });
             }
         }
         
-        return Array.from(results).slice(0, maxResults);
+        // Semantic similarity search (if enabled)
+        if (useSemanticSimilarity) {
+            const semanticResults = this._findSemanticallySimilarConcepts(term, searchDepth);
+            for (const [concept, relevance] of semanticResults.entries()) {
+                if (results.has(concept)) continue; // Skip if already found
+                if (concept.activation < minActivation) continue;
+                
+                results.set(concept, { relevance, method: 'semantic' });
+            }
+        }
+        
+        // Convert to array, sort by relevance, and return top results
+        const sortedResults = Array.from(results.entries())
+            .sort((a, b) => b[1].relevance - a[1].relevance)
+            .slice(0, maxResults)
+            .map(entry => entry[0]); // Return just the concepts, not the relevance scores
+            
+        return sortedResults;
+    }
+    
+    /**
+     * Find semantically similar concepts based on structural similarity
+     */
+    _findSemanticallySimilarConcepts(term, depth = 2) {
+        const results = new Map();
+        
+        // Calculate similarity with all concepts of the same category
+        const category = this._getTermCategory(term);
+        const sameCategoryConcepts = this.findConceptsByCategory(category);
+        
+        for (const concept of sameCategoryConcepts) {
+            if (concept.term === term) continue; // Skip self
+            
+            const similarityScore = this._calculateStructuralSimilarity(term, concept.term);
+            if (similarityScore > 0.1) { // Only include if somewhat similar
+                results.set(concept, similarityScore);
+            }
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Calculate relevance score between two terms based on the search method
+     */
+    _calculateRelevance(term1, term2, method) {
+        switch (method) {
+            case 'component':
+                // Higher relevance for more component overlap
+                return this._calculateStructuralSimilarity(term1, term2);
+            case 'category':
+                // Medium relevance for category match
+                return 0.5;
+            case 'semantic':
+                // Use structural similarity for semantic relevance
+                return this._calculateStructuralSimilarity(term1, term2);
+            default:
+                return 0.1; // Low default relevance
+        }
+    }
+    
+    /**
+     * Calculate structural similarity between two terms
+     * This method is similar to the one in ForgettingPolicy but specific to this class
+     */
+    _calculateStructuralSimilarity(term1, term2) {
+        // For atomic terms with same name, return maximum similarity
+        if (!term1?.operator && !term2?.operator && term1?.name === term2?.name) {
+            return 1.0;
+        }
+        
+        // For compound terms, calculate similarity based on shared components
+        if (term1?.components && term2?.components) {
+            const components1 = new Set(term1.components.map(c => c.name));
+            const components2 = new Set(term2.components.map(c => c.name));
+            
+            // Calculate Jaccard similarity coefficient
+            const intersection = [...components1].filter(x => components2.has(x)).length;
+            const union = new Set([...components1, ...components2]).size;
+            
+            return union > 0 ? intersection / union : 0;
+        }
+        
+        // For terms with different structures, return low similarity
+        return 0.1;
     }
 
     getConcept(termHash) {
@@ -511,5 +610,33 @@ export class MemoryIndex {
     clear() {
         Object.values(this._indexes).forEach(index => index.clear());
         this._totalConcepts = 0;
+    }
+    
+    /**
+     * Rebuild indexes for a more efficient structure (e.g., after large changes)
+     */
+    rebuildIndex(concepts) {
+        // Clear current indexes
+        Object.values(this._indexes).forEach(index => index.clear());
+        this._totalConcepts = 0;
+        
+        // Re-add all concepts
+        for (const concept of concepts) {
+            this.addConcept(concept);
+        }
+    }
+    
+    /**
+     * Optimize index by removing unused entries and compacting structures
+     */
+    optimize() {
+        // Remove empty sets to free up memory
+        for (const index of Object.values(this._indexes)) {
+            for (const [key, value] of index.entries()) {
+                if (value.size === 0) {
+                    index.delete(key);
+                }
+            }
+        }
     }
 }

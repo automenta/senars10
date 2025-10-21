@@ -1,6 +1,8 @@
 import { Logger } from '../util/Logger.js';
 import { EventBus } from '../util/EventBus.js';
 
+import Joi from 'joi';
+
 /**
  * Abstract base component that provides common functionality for all system components.
  * Implements standardized patterns for lifecycle, metrics, and logging.
@@ -11,19 +13,75 @@ export class BaseComponent {
      * @param {Object} config - Component configuration
      * @param {string} name - Component name for identification and logging
      * @param {EventBus} [eventBus] - Optional shared event bus
+     * @param {Joi.ObjectSchema} [validationSchema] - Optional validation schema for configuration
      */
-    constructor(config = {}, name = 'BaseComponent', eventBus = null) {
+    constructor(config = {}, name = 'BaseComponent', eventBus = null, validationSchema = null) {
         this._config = config;
         this._name = name;
         this._logger = Logger;  // Logger is a singleton instance, not a class to instantiate
         this._eventBus = eventBus || new EventBus();
         this._metrics = new Map();
+        this._validationSchema = validationSchema;
         this._initialized = false;
         this._started = false;
         this._disposed = false;
+        this._startTime = null;
+        
+        // Validate configuration if schema provided
+        if (this._validationSchema) {
+            this._validateConfig(config);
+        }
         
         // Initialize common metrics
         this._initializeMetrics();
+    }
+
+    /**
+     * Validates configuration against the provided schema
+     * @param {Object} config - Configuration to validate
+     * @returns {Object} - Validated and potentially transformed config
+     */
+    _validateConfig(config) {
+        const schema = typeof this._validationSchema === 'function' 
+            ? this._validationSchema()
+            : this._validationSchema;
+        
+        const validationResult = schema.validate(config, { 
+            stripUnknown: true,
+            allowUnknown: false,
+            convert: true 
+        });
+        
+        if (validationResult.error) {
+            throw new Error(`Configuration validation failed for ${this._name}: ${validationResult.error.message}`);
+        }
+        
+        return validationResult.value;
+    }
+
+    /**
+     * Validates configuration against the provided schema
+     * @param {Object} config - Configuration to validate
+     * @returns {Object} - Validated and potentially transformed config
+     */
+    validateConfig(config = this._config) {
+        if (!this._validationSchema) return config;
+        
+        const schema = typeof this._validationSchema === 'function' 
+            ? this._validationSchema()
+            : this._validationSchema;
+        
+        const validationResult = schema.validate(config, { 
+            stripUnknown: true,
+            allowUnknown: false,
+            convert: true 
+        });
+        
+        if (validationResult.error) {
+            throw new Error(`Configuration validation failed for ${this._name}: ${validationResult.error.message}`);
+        }
+        
+        return validationResult.value;
     }
 
     /**
@@ -91,17 +149,33 @@ export class BaseComponent {
     }
 
     /**
+     * Checks if the component is running (both started and not disposed)
+     * @returns {boolean} True if running, false otherwise
+     */
+    get isRunning() {
+        return this._started && !this._disposed;
+    }
+
+    /**
+     * Gets the component uptime in milliseconds
+     * @returns {number} Uptime in milliseconds, or null if not started
+     */
+    get uptime() {
+        return this._startTime ? Date.now() - this._startTime : 0;
+    }
+
+    /**
      * Initializes the component
      * @returns {Promise<boolean>} True if initialization was successful
      */
     async initialize() {
         if (this._initialized) {
-            this._logger.warn('Component already initialized');
+            this.logWarn('Component already initialized');
             return true;
         }
 
         try {
-            this._logger.info('Initializing component');
+            this.logInfo('Initializing component');
             await this._initialize();
             this._initialized = true;
             
@@ -112,6 +186,7 @@ export class BaseComponent {
             });
             
             this._logger.info('Component initialized successfully');
+            this.incrementMetric('initializeCount');
             return true;
         } catch (error) {
             this._logger.error('Failed to initialize component', error);
@@ -130,22 +205,25 @@ export class BaseComponent {
         }
 
         if (this._started) {
-            this._logger.warn('Component already started');
+            this.logWarn('Component already started');
             return true;
         }
 
         try {
-            this._logger.info('Starting component');
+            this.logInfo('Starting component');
+            this._startTime = Date.now();
             await this._start();
             this._started = true;
             
             // Emit start event
             this._eventBus.emit(`${this._name}.started`, {
                 timestamp: Date.now(),
-                component: this._name
+                component: this._name,
+                uptime: this.uptime
             });
             
-            this._logger.info('Component started successfully');
+            this.logInfo('Component started successfully');
+            this.incrementMetric('startCount');
             return true;
         } catch (error) {
             this._logger.error('Failed to start component', error);
@@ -159,22 +237,24 @@ export class BaseComponent {
      */
     async stop() {
         if (!this._started) {
-            this._logger.warn('Component not started');
+            this.logWarn('Component not started');
             return true;
         }
 
         try {
-            this._logger.info('Stopping component');
+            this.logInfo('Stopping component');
             await this._stop();
             this._started = false;
             
             // Emit stop event
             this._eventBus.emit(`${this._name}.stopped`, {
                 timestamp: Date.now(),
-                component: this._name
+                component: this._name,
+                uptime: this.uptime
             });
             
-            this._logger.info('Component stopped successfully');
+            this.logInfo('Component stopped successfully');
+            this.incrementMetric('stopCount');
             return true;
         } catch (error) {
             this._logger.error('Failed to stop component', error);
@@ -188,12 +268,12 @@ export class BaseComponent {
      */
     async dispose() {
         if (this._disposed) {
-            this._logger.warn('Component already disposed');
+            this.logWarn('Component already disposed');
             return true;
         }
 
         try {
-            this._logger.info('Disposing component');
+            this.logInfo('Disposing component');
             
             // Stop if running
             if (this._started) {
@@ -206,10 +286,11 @@ export class BaseComponent {
             // Emit dispose event
             this._eventBus.emit(`${this._name}.disposed`, {
                 timestamp: Date.now(),
-                component: this._name
+                component: this._name,
+                uptime: this.uptime
             });
             
-            this._logger.info('Component disposed successfully');
+            this.logInfo('Component disposed successfully');
             return true;
         } catch (error) {
             this._logger.error('Failed to dispose component', error);
@@ -273,6 +354,7 @@ export class BaseComponent {
      */
     updateMetric(key, value) {
         this._metrics.set(key, value);
+        this._metrics.set('lastActivity', Date.now());
     }
 
     /**
@@ -283,6 +365,7 @@ export class BaseComponent {
     incrementMetric(key, increment = 1) {
         const currentValue = this._metrics.get(key) || 0;
         this._metrics.set(key, currentValue + increment);
+        this._metrics.set('lastActivity', Date.now());
     }
 
     /**
@@ -299,7 +382,11 @@ export class BaseComponent {
      * @returns {Object} All metrics
      */
     getMetrics() {
-        return Object.fromEntries(this._metrics);
+        return {
+            ...Object.fromEntries(this._metrics),
+            uptime: this.uptime,
+            isRunning: this.isRunning
+        };
     }
 
     /**
@@ -309,6 +396,7 @@ export class BaseComponent {
      */
     logInfo(message, metadata) {
         this._logger.info(message, metadata);
+        this._metrics.set('lastActivity', Date.now());
     }
 
     /**
@@ -318,6 +406,7 @@ export class BaseComponent {
      */
     logWarn(message, metadata) {
         this._logger.warn(message, metadata);
+        this._metrics.set('lastActivity', Date.now());
     }
 
     /**
@@ -337,6 +426,7 @@ export class BaseComponent {
      */
     logDebug(message, metadata) {
         this._logger.debug(message, metadata);
+        this._metrics.set('lastActivity', Date.now());
     }
 
     /**
@@ -348,6 +438,7 @@ export class BaseComponent {
         this._eventBus.emit(event, {
             timestamp: Date.now(),
             component: this._name,
+            uptime: this.uptime,
             ...data
         });
     }

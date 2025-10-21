@@ -6,24 +6,56 @@
 export class CognitiveDiversity {
     constructor(termFactory) {
         this.termFactory = termFactory;
+        this.registeredTerms = new Map(); // Map to store registered terms and their complexities
         this.diversityMetrics = {
             complexityDistribution: new Map(),
             diversityScore: 0,
             variety: 0,
-            averageComplexity: 0
+            averageComplexity: 0,
+            totalTerms: 0
         };
     }
 
     /**
-     * Calculate cognitive diversity for a set of terms
+     * Register a term for cognitive diversity calculations
      */
-    calculateDiversity(terms) {
-        if (!Array.isArray(terms) || terms.length === 0) {
-            return this.diversityMetrics;
+    registerTerm(term) {
+        if (!term || !term.name) {
+            return;
+        }
+        
+        const complexity = this.termFactory.getComplexity(term);
+        this.registeredTerms.set(term.name, complexity);
+        
+        // Update metrics when adding a new term
+        this._updateMetrics();
+    }
+
+    /**
+     * Unregister a term from cognitive diversity calculations
+     */
+    unregisterTerm(termName) {
+        this.registeredTerms.delete(termName);
+        this._updateMetrics();
+    }
+
+    /**
+     * Update diversity metrics based on registered terms
+     */
+    _updateMetrics() {
+        if (this.registeredTerms.size === 0) {
+            this.diversityMetrics = {
+                complexityDistribution: new Map(),
+                diversityScore: 0,
+                variety: 0,
+                averageComplexity: 0,
+                totalTerms: 0
+            };
+            return;
         }
 
-        // Calculate complexities for all terms
-        const complexities = terms.map(term => this.termFactory.getComplexity(term));
+        // Calculate complexities for all registered terms
+        const complexities = Array.from(this.registeredTerms.values());
         
         // Calculate distribution of complexities
         const distribution = this._calculateComplexityDistribution(complexities);
@@ -42,9 +74,14 @@ export class CognitiveDiversity {
             diversityScore,
             variety,
             averageComplexity,
-            totalTerms: terms.length
+            totalTerms: complexities.length
         };
+    }
 
+    /**
+     * Calculate cognitive diversity for the registered terms
+     */
+    calculateDiversity() {
         return this.diversityMetrics;
     }
 
@@ -88,6 +125,13 @@ export class CognitiveDiversity {
      */
     getMetrics() {
         return { ...this.diversityMetrics };
+    }
+
+    /**
+     * Get registered term names
+     */
+    getRegisteredTermNames() {
+        return Array.from(this.registeredTerms.keys());
     }
 
     /**
@@ -156,20 +200,57 @@ export class CognitiveDiversity {
     /**
      * Get terms that contribute most to cognitive diversity
      */
-    getDiversityContributors(terms, topN = 5) {
-        if (!Array.isArray(terms) || terms.length === 0) return [];
+    getDiversityContributors(topN = 5) {
+        if (this.registeredTerms.size === 0) return [];
         
-        // Calculate how much each term contributes to the overall diversity
-        const contributions = terms.map(term => {
-            const complexity = this.termFactory.getComplexity(term);
+        // Calculate how much each registered term contributes to the overall diversity
+        const contributions = Array.from(this.registeredTerms.entries()).map(([termName, complexity]) => {
             // Contribution is based on how different this complexity is from the average
             const deviation = Math.abs(complexity - this.diversityMetrics.averageComplexity);
-            return { term, complexity, contribution: deviation };
+            return { termName, complexity, contribution: deviation };
         });
         
         // Sort by contribution and return top N
         return contributions
             .sort((a, b) => b.contribution - a.contribution)
             .slice(0, topN);
+    }
+    
+    /**
+     * Evaluate diversity metrics for a specific term
+     */
+    evaluateDiversity(term) {
+        if (!term || !term.name) {
+            return {
+                diversityImpact: 0,
+                normalizationFactor: 1
+            };
+        }
+
+        const termComplexity = this.termFactory.getComplexity(term);
+        const currentAvg = this.diversityMetrics.averageComplexity;
+        const currentVariety = this.diversityMetrics.variety;
+        
+        // Calculate how much this term would contribute to diversity
+        const complexityDistanceFromAvg = Math.abs(termComplexity - currentAvg);
+        const diversityImpact = complexityDistanceFromAvg / (currentAvg || 1);
+        
+        // Calculate normalization factor based on current diversity
+        // If diversity is low, boost the factor to encourage variety
+        const normalizationFactor = currentVariety < 1 ? 1.5 : 1;
+        
+        return {
+            diversityImpact,
+            normalizationFactor,
+            contribution: complexityDistanceFromAvg
+        };
+    }
+    
+    /**
+     * Clear all registered terms and reset metrics
+     */
+    clear() {
+        this.registeredTerms.clear();
+        this._updateMetrics();
     }
 }

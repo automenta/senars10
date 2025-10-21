@@ -244,11 +244,91 @@ export class MemoryConsolidation extends ConfigurableComponent {
             // Calculate enhanced decay rate based on multiple factors
             const decayRate = this._calculateEnhancedDecayRate(concept, memory);
             
+            // Apply decay to the concept
             concept.applyDecay(decayRate);
+            
+            // Apply priority decay to tasks within the concept
+            this._applyPriorityDecayToTasks(concept, decayRate);
+            
             decayed++;
         }
 
         return decayed;
+    }
+    
+    /**
+     * Apply priority decay specifically to tasks within a concept 
+     * This implements more sophisticated priority management
+     * @private
+     */
+    _applyPriorityDecayToTasks(concept, decayRate) {
+        // Apply decay to all task priorities within the concept
+        const allTasks = concept.getAllTasks();
+        
+        for (const task of allTasks) {
+            // Calculate task-specific decay factors beyond the base decay rate
+            const taskDecayRate = this._calculateTaskDecayRate(task, concept, decayRate);
+            
+            // Apply the decay to the task's priority, ensuring we don't modify frozen objects
+            const newPriority = task.budget.priority * (1 - taskDecayRate);
+            
+            // Ensure priority doesn't go below minimum
+            const finalPriority = Math.max(newPriority, this.getConfigValue('minPriorityToKeep'));
+            
+            // Update the task with the new budget (create new task with updated budget)
+            concept.updateTaskBudget(task, {...task.budget, priority: finalPriority});
+        }
+    }
+    
+    /**
+     * Calculate task-specific decay rate based on various factors
+     * @private
+     */
+    _calculateTaskDecayRate(task, concept, baseDecayRate) {
+        // Base decay rate from concept
+        let taskDecayRate = baseDecayRate;
+        
+        // Factor 1: Task recency factor (recent tasks decay slower)
+        const taskAge = Date.now() - task.stamp.creationTime;
+        if (taskAge < 60000) { // Less than 1 minute old
+            taskDecayRate *= 0.2; // Much slower decay for very recent tasks
+        } else if (taskAge < 300000) { // Less than 5 minutes old
+            taskDecayRate *= 0.5; // Slower decay for recent tasks
+        }
+        
+        // Factor 2: Task type factor (goals may decay differently than beliefs)
+        switch (task.type) {
+            case 'GOAL':
+                // Goals decay at a different rate than beliefs
+                taskDecayRate *= 1.2; // Goals may decay faster if not acted upon
+                break;
+            case 'BELIEF':
+                // Beliefs might have standard decay unless they're very high quality
+                if (task.truth && task.truth.confidence > 0.9) {
+                    taskDecayRate *= 0.7; // High confidence beliefs decay slower
+                }
+                break;
+            case 'QUESTION':
+                // Questions may have their own decay rate
+                taskDecayRate *= 0.8; // Questions might decay slower to maintain curiosity
+                break;
+        }
+        
+        // Factor 3: Task priority factor (high priority tasks decay slower)
+        if (task.budget.priority > 0.8) {
+            taskDecayRate *= 0.5; // High priority tasks decay much slower
+        } else if (task.budget.priority < 0.2) {
+            taskDecayRate *= 1.5; // Low priority tasks decay faster
+        }
+        
+        // Factor 4: Concept context factor (tasks in high activation concepts decay differently)
+        if (concept.activation > 0.7) {
+            taskDecayRate *= 0.6; // Tasks in high activation concepts decay slower
+        } else if (concept.activation < 0.2) {
+            taskDecayRate *= 1.3; // Tasks in low activation concepts decay faster
+        }
+        
+        return Math.max(0, Math.min(1, taskDecayRate)); // Clamp between 0 and 1
     }
     
     /**

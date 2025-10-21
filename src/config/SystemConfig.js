@@ -1,3 +1,4 @@
+import Joi from 'joi';
 import {CYCLE, MEMORY, PERFORMANCE, SYSTEM} from './constants.js';
 
 const DEFAULT_CONFIG = {
@@ -39,36 +40,58 @@ const DEFAULT_CONFIG = {
     }
 };
 
-const CONFIG_SCHEMA = {
-    system: {
-        port: 'number',
-        host: 'string',
-        maxErrorRate: 'number',
-        recoveryAttempts: 'number',
-        gracefulDegradationThreshold: 'number'
-    },
-    memory: {
-        capacity: 'number',
-        focusSetSize: 'number',
-        forgettingThreshold: 'number',
-        consolidationInterval: 'number',
-        activationDecay: 'number'
-    },
-    cycle: {delay: 'number', maxTasksPerCycle: 'number', ruleApplicationLimit: 'number'},
-    performance: {enableProfiling: 'boolean', maxExecutionTime: 'number', cacheSize: 'number', batchSize: 'number'},
-    logging: {level: 'string', enableConsole: 'boolean', enableFile: 'boolean'},
-    errorHandling: {
-        enableGracefulDegradation: 'boolean',
-        maxErrorRate: 'number',
-        enableRecovery: 'boolean',
-        recoveryAttempts: 'number'
-    }
-};
+const CONFIG_SCHEMA = Joi.object({
+    system: Joi.object({
+        port: Joi.number().port().default(SYSTEM.DEFAULT_PORT),
+        host: Joi.string().hostname().default(SYSTEM.DEFAULT_HOST),
+        maxErrorRate: Joi.number().min(0).max(1).default(SYSTEM.MAX_ERROR_RATE),
+        recoveryAttempts: Joi.number().min(0).default(SYSTEM.RECOVERY_ATTEMPTS),
+        gracefulDegradationThreshold: Joi.number().min(0).max(1).default(SYSTEM.GRACEFUL_DEGRADATION_THRESHOLD),
+    }).default(),
+    memory: Joi.object({
+        capacity: Joi.number().min(1).default(MEMORY.DEFAULT_CAPACITY),
+        focusSetSize: Joi.number().min(1).default(MEMORY.FOCUS_SET_SIZE),
+        forgettingThreshold: Joi.number().min(0).max(1).default(MEMORY.FORGETTING_THRESHOLD),
+        consolidationInterval: Joi.number().min(1).default(MEMORY.CONSOLIDATION_INTERVAL),
+        activationDecay: Joi.number().min(0).max(1).default(MEMORY.ACTIVATION_DECAY),
+    }).default(),
+    cycle: Joi.object({
+        delay: Joi.number().min(1).max(1000).default(CYCLE.DEFAULT_DELAY),
+        maxTasksPerCycle: Joi.number().min(1).default(10),
+        ruleApplicationLimit: Joi.number().min(1).default(50),
+    }).default(),
+    performance: Joi.object({
+        enableProfiling: Joi.boolean().default(false),
+        maxExecutionTime: Joi.number().min(1).default(PERFORMANCE.TIMEOUT_MS),
+        cacheSize: Joi.number().min(1).default(PERFORMANCE.CACHE_SIZE),
+        batchSize: Joi.number().min(1).default(PERFORMANCE.BATCH_SIZE),
+    }).default(),
+    logging: Joi.object({
+        level: Joi.string().valid('error', 'warn', 'info', 'debug').default('info'),
+        enableConsole: Joi.boolean().default(true),
+        enableFile: Joi.boolean().default(false),
+    }).default(),
+    errorHandling: Joi.object({
+        enableGracefulDegradation: Joi.boolean().default(true),
+        maxErrorRate: Joi.number().min(0).max(1).default(SYSTEM.MAX_ERROR_RATE),
+        enableRecovery: Joi.boolean().default(true),
+        recoveryAttempts: Joi.number().min(0).default(SYSTEM.RECOVERY_ATTEMPTS),
+    }).default()
+});
 
 export class SystemConfig {
     constructor(userConfig = {}) {
-        this._config = this._deepMerge(DEFAULT_CONFIG, userConfig);
-        this._validateConfig();
+        const validationResult = CONFIG_SCHEMA.validate(userConfig, { 
+            stripUnknown: true,
+            allowUnknown: false,
+            convert: true 
+        });
+        
+        if (validationResult.error) {
+            throw new Error(`Configuration validation failed: ${validationResult.error.message}`);
+        }
+        
+        this._config = this._deepMerge(DEFAULT_CONFIG, validationResult.value);
         this._frozen = false;
     }
 
@@ -89,19 +112,6 @@ export class SystemConfig {
         return result;
     }
 
-    _validateConfig() {
-        const errors = [];
-        for (const [section, schema] of Object.entries(CONFIG_SCHEMA)) {
-            for (const [key, type] of Object.entries(schema)) {
-                const value = this.get(`${section}.${key}`);
-                if (value !== undefined && typeof value !== type) {
-                    errors.push(`Invalid type for ${section}.${key}: expected ${type}, got ${typeof value}`);
-                }
-            }
-        }
-        if (errors.length > 0) throw new Error(`Configuration validation failed:\n${errors.join('\n')}`);
-    }
-
     get(path) {
         const pathParts = path.split('.');
         let current = this._config;
@@ -114,6 +124,7 @@ export class SystemConfig {
 
     set(path, value) {
         if (this._frozen) throw new Error('Configuration is frozen and cannot be modified');
+        
         const pathParts = path.split('.');
         const lastKey = pathParts.pop();
         let current = this._config;
@@ -124,12 +135,35 @@ export class SystemConfig {
         }
 
         current[lastKey] = value;
-        this._validateConfig();
+        
+        // Validate the entire config after setting a value
+        const validationResult = CONFIG_SCHEMA.validate(this._config, { 
+            stripUnknown: true,
+            allowUnknown: false,
+            convert: true 
+        });
+        
+        if (validationResult.error) {
+            throw new Error(`Configuration validation failed after setting value: ${validationResult.error.message}`);
+        }
+        
+        return this;
     }
 
     update(updates) {
-        this._config = this._deepMerge(this._config, updates);
-        this._validateConfig();
+        const merged = this._deepMerge(this._config, updates);
+        const validationResult = CONFIG_SCHEMA.validate(merged, { 
+            stripUnknown: true,
+            allowUnknown: false,
+            convert: true 
+        });
+        
+        if (validationResult.error) {
+            throw new Error(`Configuration validation failed after update: ${validationResult.error.message}`);
+        }
+        
+        this._config = validationResult.value;
+        return this;
     }
 
     freeze() {
