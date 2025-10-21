@@ -16,7 +16,7 @@ export class RuleEngine extends BaseComponent {
         this._ruleSets = new Map();
         this._lm = lm;
         this._termFactory = termFactory;
-        this._metrics = MetricsUtil.create();
+        this._ruleUtilMetrics = MetricsUtil.create();
         this._typeMetrics = {lmRuleApplications: 0, nalRuleApplications: 0};
         this._ruleProcessor = ruleProcessor || new SequentialRuleProcessor(config.ruleProcessor || {});
         this._performanceOptimizer = new PerformanceOptimizer(config.performance || {});
@@ -31,7 +31,7 @@ export class RuleEngine extends BaseComponent {
     }
 
     get metrics() {
-        return {...this._metrics, ...this._typeMetrics};
+        return {...this._ruleUtilMetrics, ...this._typeMetrics};
     }
 
     get lm() {
@@ -310,6 +310,6 @@ export class RuleEngine extends BaseComponent {
     }
 
     _updateMetrics(success, time) {
-        this._metrics = MetricsUtil.update(this._metrics, success, time);
+        this._ruleUtilMetrics = MetricsUtil.update(this._ruleUtilMetrics, success, time);
     }
 }

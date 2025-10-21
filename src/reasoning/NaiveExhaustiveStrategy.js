@@ -37,33 +37,28 @@ export class NaiveExhaustiveStrategy extends StrategyInterface {
             let memory, termFactory, tasks;
 
             // Handle context appropriately
-            if (context && typeof context === 'object' && context.hasOwnProperty('memory')) {
+            if (context && typeof context === 'object' && context.memory && context.termFactory) {
                 // It's a ReasoningContext
                 memory = context.memory;
                 termFactory = context.termFactory;
+                tasks = context.tasks || [];
             } else {
-                // Handle multiple backward compatibility patterns:
-                // Pattern 1: execute(memory, rules[], termFactory, focusTasks[]) - from updated Cycle
-                if (Array.isArray(optionalFocusTasks) && optionalFocusTasks.length > 0) {
+                // Handle the pattern from Cycle: execute(memory, rules[], termFactory, allTasks[])
+                if (Array.isArray(optionalFocusTasks)) {
+                    // execute(memory, rules, termFactory, tasks)
                     memory = context;
-                    // rules is the rules array
-                    // taskOrTasks is termFactory
-                    // optionalFocusTasks is the focus tasks array
-                    termFactory = taskOrTasks;
-                    tasks = optionalFocusTasks; // Use focus tasks from cycle
+                    termFactory = taskOrTasks;  // taskOrTasks is termFactory when optionalFocusTasks is present
+                    tasks = optionalFocusTasks;  // optionalFocusTasks is the tasks array
+                } else if (Array.isArray(taskOrTasks)) {
+                    // execute(memory, rules[], termFactory, tasks[])
+                    memory = context;
+                    termFactory = rules;  // rules is termFactory when taskOrTasks is array
+                    tasks = taskOrTasks;  // taskOrTasks is the tasks array
                 } else {
-                    // Pattern 2: execute(memory, termFactory, tasks) or execute(memory, rules[], termFactory)
+                    // Default fallback - get all tasks from memory
                     memory = context;
                     termFactory = rules;
-                    tasks = Array.isArray(taskOrTasks) ? taskOrTasks : [taskOrTasks].filter(t => t !== undefined);
-
-                    // For backward compatibility, if tasks is just undefined, try to get from memory
-                    if (tasks.length === 1 && tasks[0] === undefined) {
-                        // Get tasks from memory if needed for backward compatibility
-                        if (this._getAllTasksFromMemory) {
-                            tasks = this._getAllTasksFromMemory(memory) || [];
-                        }
-                    }
+                    tasks = this._getAllTasksFromMemory(context) || [];
                 }
             }
 
