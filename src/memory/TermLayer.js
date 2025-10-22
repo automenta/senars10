@@ -30,7 +30,6 @@ export class TermLayer extends Layer {
   add(source, target, data = {}) {
     // Check if we've reached capacity and need to remove lowest priority link
     if (this.count >= this.capacity) {
-      // Remove the lowest priority link
       this._removeLowestPriorityLink();
     }
 
@@ -44,14 +43,7 @@ export class TermLayer extends Layer {
     const priority = data.priority || 1; // Default priority
     
     // Add to the bag with its priority
-    const linkId = this._createLinkId(source, target);
-    const linkEntry = {
-      id: linkId,
-      source,
-      target,
-      data: { ...data, priority },
-      budget: { priority }  // Add budget object with priority for the Bag
-    };
+    const linkEntry = this._createLinkEntry(source, target, { ...data, priority });
     
     // Add to bag - if bag is at capacity, it'll auto-evict lowest priority
     const added = this.linkBag.add(linkEntry);
@@ -72,12 +64,11 @@ export class TermLayer extends Layer {
    */
   get(source) {
     const sourceLinks = this.linkMap.get(source.name);
-    if (!sourceLinks) return [];
-
-    return Array.from(sourceLinks.values()).map(linkEntry => ({
-      target: linkEntry.target,
-      data: linkEntry.data
-    }));
+    return sourceLinks ? 
+      Array.from(sourceLinks.values()).map(linkEntry => ({
+        target: linkEntry.target,
+        data: linkEntry.data
+      })) : [];
   }
 
   /**
@@ -123,9 +114,9 @@ export class TermLayer extends Layer {
    * @returns {Array} - Array of source terms
    */
   getSources() {
-    return Array.from(this.linkMap.keys()).map(name => 
-      this._getSourceTermByName(name)
-    ).filter(term => term !== undefined);
+    return Array.from(this.linkMap.keys())
+      .map(name => this._getSourceTermByName(name))
+      .filter(term => term !== undefined);
   }
 
   /**
@@ -187,6 +178,24 @@ export class TermLayer extends Layer {
   }
 
   /**
+   * Create a link entry object
+   * @private
+   * @param {Term} source - Source term
+   * @param {Term} target - Target term
+   * @param {Object} data - Link data including priority
+   * @returns {Object} - The link entry object
+   */
+  _createLinkEntry(source, target, data) {
+    return {
+      id: this._createLinkId(source, target),
+      source,
+      target,
+      data,
+      budget: { priority: data.priority }  // Add budget object with priority for the Bag
+    };
+  }
+
+  /**
    * Create a unique ID for a link between two terms
    * @private
    * @param {Term} source - Source term
@@ -216,8 +225,6 @@ export class TermLayer extends Layer {
    */
   _removeLowestPriorityLink() {
     // Find the lowest priority link in the bag
-    const lowestPriorityItem = this.linkBag.peek(); // Since peek gets highest, we need the opposite
-    
     // To get the lowest priority item, we need to sort all items by priority
     const allItems = [...this.linkBag._items.entries()]
       .sort((a, b) => a[1] - b[1]); // Sort by priority ascending

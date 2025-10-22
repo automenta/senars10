@@ -170,8 +170,7 @@ export class PatternMatcher {
         
         // If bindings exist, apply them before comparison
         if (bindings) {
-            // Create a temporary bindings object without recursive substitution for this comparison
-            // We just want to substitute the variables in place, not recursively
+            // Apply substitutions to both terms
             t1 = this.substitute(t1, bindings);
             t2 = this.substitute(t2, bindings);
         }

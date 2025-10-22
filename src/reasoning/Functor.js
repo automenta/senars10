@@ -41,12 +41,7 @@ export class Functor {
    */
   validate(...args) {
     // Default validation: check arity
-    if (this.arity !== -1 && args.length !== this.arity) {
-      return false;
-    }
-    
-    // Additional validation can be implemented by subclasses
-    return true;
+    return this.arity === -1 || args.length === this.arity;
   }
 }
 

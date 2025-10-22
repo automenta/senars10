@@ -30,13 +30,7 @@ export class BooleanReductionEngine {
             }
         }
 
-        let reducedComponents;
-        try {
-            reducedComponents = term.components.map(comp => this.reduce(comp));
-        } catch (error) {
-            console.error(`Error during component reduction: ${error.message}`);
-            return SYSTEM_ATOMS.Null;
-        }
+        const reducedComponents = term.components.map(comp => this.reduce(comp));
         
         if (reducedComponents.some((comp, idx) => comp !== term.components[idx])) {
             try {
@@ -142,18 +136,9 @@ export class BooleanReductionEngine {
     cascadeReduce(term) {
         if (!term) return SYSTEM_ATOMS.Null;
 
-        let reducedTerm;
-        try {
-            if (term.isCompound) {
-                const reducedComponents = term.components.map(comp => this.cascadeReduce(comp));
-                reducedTerm = new Term(term.type, term.name, reducedComponents, term.operator);
-            } else {
-                reducedTerm = term;
-            }
-        } catch (error) {
-            console.error(`Error during cascade reduction: ${error.message}`);
-            return SYSTEM_ATOMS.Null;
-        }
+        const reducedTerm = term.isCompound ? 
+            new Term(term.type, term.name, term.components.map(comp => this.cascadeReduce(comp)), term.operator) :
+            term;
 
         return this.reduce(reducedTerm);
     }

@@ -37,37 +37,42 @@ export class TermIndexer {
             const timestamp = Date.now();
             const entry = { term, metadata, timestamp };
 
-            // Index by hash
-            this._addToIndex(this.indexes.byHash, term.hash, entry);
-
-            // Index by operator if compound
-            if (term.isCompound && term.operator) {
-                this._addToIndex(this.indexes.byOperator, term.operator, entry);
-            }
-
-            // Index by name
-            this._addToIndex(this.indexes.byName, term.name || 'unknown', entry);
-
-            // Index by complexity if enabled
-            if (this.options.enableComplexityIndexing) {
-                this._addToIndex(this.indexes.byComplexity, term.complexity || 1, entry);
-            }
-
-            // Index by component count if compound
-            if (term.isCompound) {
-                this._addToIndex(this.indexes.byComponentCount, term.components.length, entry);
-            }
-
-            // Index by atomic components if enabled
-            if (this.options.enableComponentIndexing && term.isCompound) {
-                this._indexByComponents(term, metadata);
-            }
+            // Index by various strategies
+            this._indexByAllStrategies(term, entry, metadata);
 
             this.stats.totalIndexed++;
             return true;
         } catch (error) {
             console.error(`Error indexing term: ${error.message}`);
             return false;
+        }
+    }
+
+    _indexByAllStrategies(term, entry, metadata) {
+        // Index by hash
+        this._addToIndex(this.indexes.byHash, term.hash, entry);
+
+        // Index by operator if compound
+        if (term.isCompound && term.operator) {
+            this._addToIndex(this.indexes.byOperator, term.operator, entry);
+        }
+
+        // Index by name
+        this._addToIndex(this.indexes.byName, term.name || 'unknown', entry);
+
+        // Index by complexity if enabled
+        if (this.options.enableComplexityIndexing) {
+            this._addToIndex(this.indexes.byComplexity, term.complexity || 1, entry);
+        }
+
+        // Index by component count if compound
+        if (term.isCompound) {
+            this._addToIndex(this.indexes.byComponentCount, term.components.length, entry);
+        }
+
+        // Index by atomic components if enabled
+        if (this.options.enableComponentIndexing && term.isCompound) {
+            this._indexByComponents(term, metadata);
         }
     }
 
@@ -97,11 +102,7 @@ export class TermIndexer {
         const result = this.indexes[indexKey].get(key) || [];
         if (result.length > 0) this.stats.cacheHits++;
         
-        const terms = new Array(result.length);
-        for (let i = 0; i < result.length; i++) {
-            terms[i] = result[i].term;
-        }
-        return terms;
+        return result.map(item => item.term);
     }
 
     findByHash(hash) {
