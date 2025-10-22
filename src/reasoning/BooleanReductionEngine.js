@@ -3,90 +3,97 @@ import {SYSTEM_ATOMS, isNull, isTrue, isFalse} from './SystemAtoms.js';
 
 export class BooleanReductionEngine {
     constructor() {
-        this.reductionRules = this._initializeReductionRules();
-    }
-
-    _initializeReductionRules() {
-        return {
-            '&': (args) => this._reduceAnd(args),
-            '|': (args) => this._reduceOr(args),
-            '--': (args) => this._reduceNegation(args),
-            '==>': (args) => this._reduceImplication(args),
-            '<=>': (args) => this._reduceEquivalence(args)
+        this.reductionRules = {
+            '&': this._reduceAnd.bind(this),
+            '|': this._reduceOr.bind(this), 
+            '--': this._reduceNegation.bind(this),
+            '==>': this._reduceImplication.bind(this),
+            '<=>': this._reduceEquivalence.bind(this)
         };
     }
 
     reduce(term) {
-        if (!term) return SYSTEM_ATOMS.Null;
-        if (!term.isCompound) return term;
+        if (!term || !term.isCompound) return term;
 
-        if (this.reductionRules[term.operator]) {
+        // Apply specific reduction rule if available
+        const rule = this.reductionRules[term.operator];
+        if (rule) {
             try {
-                const reducedResult = this.reductionRules[term.operator](term.components);
-                if (reducedResult) return reducedResult;
+                const result = rule(term.components);
+                if (result) return result;
             } catch (error) {
                 console.error(`Error during reduction of term ${term}: ${error.message}`);
                 return SYSTEM_ATOMS.Null;
             }
         }
 
+        // Recursively reduce components
         const reducedComponents = term.components.map(comp => this.reduce(comp));
         
-        if (reducedComponents.some((comp, idx) => comp !== term.components[idx])) {
-            try {
-                return new Term(term.type, term.name, reducedComponents, term.operator);
-            } catch (error) {
-                console.error(`Error creating reduced term: ${error.message}`);
-                return SYSTEM_ATOMS.Null;
-            }
-        }
+        // Create new term if components changed, otherwise return original
+        return reducedComponents.some((comp, idx) => comp !== term.components[idx]) 
+            ? this._safeCreateTerm(term, reducedComponents)
+            : term;
+    }
 
-        return term;
+    _safeCreateTerm(originalTerm, components) {
+        try {
+            return new Term(originalTerm.type, originalTerm.name, components, originalTerm.operator);
+        } catch (error) {
+            console.error(`Error creating reduced term: ${error.message}`);
+            return SYSTEM_ATOMS.Null;
+        }
     }
 
     _reduceAnd(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.True;
-
+        
+        // Handle poison pill and early termination
         for (const comp of components) if (isNull(comp)) return SYSTEM_ATOMS.Null;
         for (const comp of components) if (isFalse(comp)) return SYSTEM_ATOMS.False;
 
+        // Filter and return simplified result
         const nonTrueComponents = components.filter(comp => !isTrue(comp));
-        const len = nonTrueComponents.length;
-
-        if (len === 0) return SYSTEM_ATOMS.True;
-        if (len === 1) return nonTrueComponents[0];
-        return new Term('compound', 'AND', nonTrueComponents, '&');
+        const count = nonTrueComponents.length;
+        
+        return count === 0 ? SYSTEM_ATOMS.True : 
+               count === 1 ? nonTrueComponents[0] :
+               new Term('compound', 'AND', nonTrueComponents, '&');
     }
 
     _reduceOr(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.False;
-
+        
+        // Handle poison pill and early termination
         for (const comp of components) if (isNull(comp)) return SYSTEM_ATOMS.Null;
         for (const comp of components) if (isTrue(comp)) return SYSTEM_ATOMS.True;
 
+        // Filter and return simplified result
         const nonFalseComponents = components.filter(comp => !isFalse(comp));
-        const len = nonFalseComponents.length;
-
-        if (len === 0) return SYSTEM_ATOMS.False;
-        if (len === 1) return nonFalseComponents[0];
-        return new Term('compound', 'OR', nonFalseComponents, '|');
+        const count = nonFalseComponents.length;
+        
+        return count === 0 ? SYSTEM_ATOMS.False :
+               count === 1 ? nonFalseComponents[0] :
+               new Term('compound', 'OR', nonFalseComponents, '|');
     }
 
     _reduceNegation(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.Null;
 
         const operand = components[0];
-
+        
+        // Double negation elimination
         if (operand.isCompound && operand.operator === '--' && operand.components.length === 1) {
             return operand.components[0];
         }
 
+        // Direct system atom reductions
         if (isTrue(operand)) return SYSTEM_ATOMS.False;
         if (isFalse(operand)) return SYSTEM_ATOMS.True;
         if (isNull(operand)) return SYSTEM_ATOMS.Null;
 
+        // Reduce operand and check again
         const reducedOperand = this.reduce(operand);
-        
         if (isTrue(reducedOperand)) return SYSTEM_ATOMS.False;
         if (isFalse(reducedOperand)) return SYSTEM_ATOMS.True;
         if (isNull(reducedOperand)) return SYSTEM_ATOMS.Null;
@@ -99,19 +106,19 @@ export class BooleanReductionEngine {
 
         const [antecedent, consequent] = components;
 
+        // Direct reductions for known values
         if (isNull(antecedent) || isNull(consequent)) return SYSTEM_ATOMS.Null;
-        if (isFalse(antecedent)) return SYSTEM_ATOMS.True;
-        if (isTrue(consequent)) return SYSTEM_ATOMS.True;
+        if (isFalse(antecedent) || isTrue(consequent)) return SYSTEM_ATOMS.True;
         if (isTrue(antecedent) && isFalse(consequent)) return SYSTEM_ATOMS.False;
 
+        // Recursively reduce components
         const reducedAntecedent = this.reduce(antecedent);
         const reducedConsequent = this.reduce(consequent);
 
-        if (reducedAntecedent !== antecedent || reducedConsequent !== consequent) {
-            return new Term('compound', 'IMPLICATION', [reducedAntecedent, reducedConsequent], '==>');
-        }
-
-        return new Term('compound', 'IMPLICATION', [antecedent, consequent], '==>');
+        // Return simplified term if any reduction occurred
+        return (reducedAntecedent !== antecedent || reducedConsequent !== consequent)
+            ? new Term('compound', 'IMPLICATION', [reducedAntecedent, reducedConsequent], '==>')
+            : new Term('compound', 'IMPLICATION', [antecedent, consequent], '==>');
     }
 
     _reduceEquivalence(components) {
@@ -119,26 +126,27 @@ export class BooleanReductionEngine {
 
         const [left, right] = components;
 
+        // Direct reductions for known values
         if (isNull(left) || isNull(right)) return SYSTEM_ATOMS.Null;
         if ((isTrue(left) && isTrue(right)) || (isFalse(left) && isFalse(right))) return SYSTEM_ATOMS.True;
         if ((isTrue(left) && isFalse(right)) || (isFalse(left) && isTrue(right))) return SYSTEM_ATOMS.False;
 
+        // Recursively reduce components
         const reducedLeft = this.reduce(left);
         const reducedRight = this.reduce(right);
 
-        if (reducedLeft !== left || reducedRight !== right) {
-            return new Term('compound', 'EQUIVALENCE', [reducedLeft, reducedRight], '<=>');
-        }
-
-        return new Term('compound', 'EQUIVALENCE', [left, right], '<=>');
+        // Return simplified term if any reduction occurred
+        return (reducedLeft !== left || reducedRight !== right)
+            ? new Term('compound', 'EQUIVALENCE', [reducedLeft, reducedRight], '<=>')
+            : new Term('compound', 'EQUIVALENCE', [left, right], '<=>');
     }
 
     cascadeReduce(term) {
         if (!term) return SYSTEM_ATOMS.Null;
-
-        const reducedTerm = term.isCompound ? 
-            new Term(term.type, term.name, term.components.map(comp => this.cascadeReduce(comp)), term.operator) :
-            term;
+        
+        const reducedTerm = term.isCompound 
+            ? new Term(term.type, term.name, term.components.map(comp => this.cascadeReduce(comp)), term.operator)
+            : term;
 
         return this.reduce(reducedTerm);
     }

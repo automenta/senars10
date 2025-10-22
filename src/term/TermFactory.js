@@ -203,22 +203,31 @@ export class TermFactory {
     _canonicalizeComponents(operator, components) {
         if (!operator) return components; // Atomic terms don't need canonicalization
 
-        let canonicalComponents = [...components];
-
         // Special handling for operators with specific canonicalization rules
-        if (operator === '<->' || operator === '<=>') { // Equivalence operators
-            // For equivalence, arrange terms in a consistent order
-            canonicalComponents = this._canonicalizeEquivalence(canonicalComponents);
-        } else if (operator === '-->') { // Implication
-            // For implication, maintain the order but ensure canonical form
-            canonicalComponents = this._canonicalizeImplication(canonicalComponents);
-        } else if (COMMUTATIVE_OPERATORS.has(operator)) {
-            // Remove redundant components for commutative operators
-            canonicalComponents = this._removeRedundancy(canonicalComponents);
-            canonicalComponents = this._normalizeCommutative(canonicalComponents);
-        }
+        const canonicalizer = this._getCanonicalizer(operator);
+        return canonicalizer ? canonicalizer.call(this, components) : [...components];
+    }
 
-        return canonicalComponents;
+    /**\n     * Get canonicalizer function for the given operator\n     */
+    _getCanonicalizer(operator) {
+        const canonicalizers = {
+            '<->': this._canonicalizeEquivalence,
+            '<=>': this._canonicalizeEquivalence,
+            '-->': this._canonicalizeImplication,
+            '=': this._canonicalizeEquivalence  // Also commutative like equivalence operators
+        };
+        
+        // Handle commutative operators with a default approach
+        if (COMMUTATIVE_OPERATORS.has(operator)) {
+            return (components) => {
+                let canonicalComponents = [...components];
+                canonicalComponents = this._removeRedundancy(canonicalComponents);
+                canonicalComponents = this._normalizeCommutative(canonicalComponents);
+                return canonicalComponents;
+            };
+        }
+        
+        return canonicalizers[operator] || null;
     }
 
     /**

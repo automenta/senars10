@@ -4,7 +4,6 @@ import {SYSTEM_ATOMS, isNull, isTrue, isFalse} from './SystemAtoms.js';
 export class CoreFunctorLibrary {
     constructor(registry = null) {
         this.registry = registry || new FunctorRegistry();
-        this._nullCheck = (...args) => args.some(arg => arg == null);
         this._initializeCoreFunctors();
     }
 
@@ -15,25 +14,17 @@ export class CoreFunctorLibrary {
     }
 
     _registerArithmeticFunctors() {
-        const registerFunc = (name, fn, desc, arity = 2) => {
-            this.registry.register(name, (...args) => {
-                if (this._nullCheck(...args)) return null;
-                return fn(...args);
-            }, { 
-                arity, 
-                name: desc, 
-                description: `${desc}: ${name}(${Array(arity).fill('x').join(', ')})` 
-            });
-        };
-
         // Basic arithmetic operations
-        registerFunc('add', (a, b) => Number(a) + Number(b), 'Addition', 2);
-        registerFunc('subtract', (a, b) => Number(a) - Number(b), 'Subtraction', 2);
-        registerFunc('multiply', (a, b) => Number(a) * Number(b), 'Multiplication', 2);
+        this._registerSafeFunctor('add', (a, b) => Number(a) + Number(b), 'Addition', 2);
+        this._registerSafeFunctor('subtract', (a, b) => Number(a) - Number(b), 'Subtraction', 2);
+        this._registerSafeFunctor('multiply', (a, b) => Number(a) * Number(b), 'Multiplication', 2);
         
+        // Division with special handling for zero
         this.registry.register('divide', (a, b) => {
-            if (a == null || b == null || Number(b) === 0) return null;
-            return Number(a) / Number(b);
+            if (this._isNullish(a) || this._isNullish(b)) return null;
+            if (Number(b) === 0) return null; // Division by zero returns null
+            const result = Number(a) / Number(b);
+            return isNaN(result) ? null : result;
         }, { 
             arity: 2, 
             name: 'Division', 
@@ -41,29 +32,18 @@ export class CoreFunctorLibrary {
         });
 
         // Comparison operations
-        registerFunc('equals', (a, b) => Number(a) === Number(b), 'Equals', 2);
-        registerFunc('greaterThan', (a, b) => Number(a) > Number(b), 'Greater Than', 2);
-        registerFunc('lessThan', (a, b) => Number(a) < Number(b), 'Less Than', 2);
+        this._registerSafeFunctor('equals', (a, b) => Number(a) === Number(b), 'Equals', 2);
+        this._registerSafeFunctor('greaterThan', (a, b) => Number(a) > Number(b), 'Greater Than', 2);
+        this._registerSafeFunctor('lessThan', (a, b) => Number(a) < Number(b), 'Less Than', 2);
     }
 
     _registerBooleanFunctors() {
-        const registerBoolFunc = (name, fn, desc, arity = 2) => {
-            this.registry.register(name, (...args) => {
-                if (this._nullCheck(...args)) return null;
-                return fn(...args);
-            }, { 
-                arity, 
-                name: desc, 
-                description: `${desc}: ${name}(${Array(arity).fill('x').join(', ')})` 
-            });
-        };
-
         // Basic boolean operations
-        registerBoolFunc('and', (a, b) => Boolean(a) && Boolean(b), 'Boolean AND', 2);
-        registerBoolFunc('or', (a, b) => Boolean(a) || Boolean(b), 'Boolean OR', 2);
+        this._registerSafeFunctor('and', (a, b) => Boolean(a) && Boolean(b), 'Boolean AND', 2);
+        this._registerSafeFunctor('or', (a, b) => Boolean(a) || Boolean(b), 'Boolean OR', 2);
         
         this.registry.register('not', (a) => {
-            if (a == null) return null;
+            if (this._isNullish(a)) return null;
             return !Boolean(a);
         }, { 
             arity: 1, 
@@ -72,8 +52,8 @@ export class CoreFunctorLibrary {
         });
         
         // Additional boolean operations
-        registerBoolFunc('xor', (a, b) => Boolean(a) !== Boolean(b), 'Boolean XOR', 2);
-        registerBoolFunc('implies', (a, b) => !Boolean(a) || Boolean(b), 'Boolean Implication', 2);
+        this._registerSafeFunctor('xor', (a, b) => Boolean(a) !== Boolean(b), 'Boolean XOR', 2);
+        this._registerSafeFunctor('implies', (a, b) => !Boolean(a) || Boolean(b), 'Boolean Implication', 2);
     }
 
     _registerUtilityFunctors() {
@@ -90,13 +70,37 @@ export class CoreFunctorLibrary {
         });
 
         this.registry.register('if', (condition, thenValue, elseValue) => {
-            if (condition == null) return null;
+            if (this._isNullish(condition)) return null;
             return Boolean(condition) ? thenValue : elseValue;
         }, { 
             arity: 3, 
             name: 'Conditional', 
             description: 'Conditional selection: if(condition, thenValue, elseValue)' 
         });
+    }
+
+    // Helper to register a function that handles null inputs safely
+    _registerSafeFunctor(name, fn, description, arity = 2) {
+        this.registry.register(name, (...args) => {
+            if (args.some(arg => this._isNullish(arg))) return null;
+            
+            try {
+                const result = fn(...args);
+                return result;
+            } catch (error) {
+                console.error(`Error executing functor ${name}: ${error.message}`);
+                return null;
+            }
+        }, { 
+            arity, 
+            name: description, 
+            description: `${description}: ${name}(${Array(arity).fill('x').join(', ')})` 
+        });
+    }
+
+    // Check if a value is null or equivalent to null
+    _isNullish(value) {
+        return value == null || (typeof value === 'number' && isNaN(value));
     }
 
     getRegistry() {
@@ -108,7 +112,12 @@ export class CoreFunctorLibrary {
     }
 
     executeFunctor(name, ...args) {
-        return this.registry.execute(name, ...args);
+        try {
+            return this.registry.execute(name, ...args);
+        } catch (error) {
+            console.error(`Error executing functor ${name}: ${error.message}`);
+            return null;
+        }
     }
 
     getStats() {

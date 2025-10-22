@@ -12,7 +12,8 @@ export class RuleSelectionQueue {
         };
         
         // Store rules with their performance metrics
-        this.rules = [];
+        this.ruleIndex = new Map(); // ruleId -> index in rules array
+        this.rules = []; // Array of rule objects
         this.ruleMetrics = new Map(); // ruleId -> metrics object
         
         // Statistics
@@ -46,13 +47,15 @@ export class RuleSelectionQueue {
         }
         
         // Add rule if not already in the queue
-        if (!this.rules.find(r => r.id === ruleId)) {
+        if (!this.ruleIndex.has(ruleId)) {
+            const index = this.rules.length;
             this.rules.push({
                 rule,
                 id: ruleId,
                 basePriority: priority,
                 dynamicPriority: priority
             });
+            this.ruleIndex.set(ruleId, index); // Track index for O(1) lookup
         }
         
         return this;
@@ -90,9 +93,9 @@ export class RuleSelectionQueue {
             this.stats.totalApplications;
             
         // Update the rule's dynamic priority in the queue
-        const queueRule = this.rules.find(r => r.id === ruleId);
-        if (queueRule) {
-            queueRule.dynamicPriority = metrics.dynamicPriority;
+        const index = this.ruleIndex.get(ruleId);
+        if (index !== undefined && index < this.rules.length) {
+            this.rules[index].dynamicPriority = metrics.dynamicPriority;
         }
     }
 
@@ -130,11 +133,18 @@ export class RuleSelectionQueue {
             }
         }
 
-        // Sort rules by dynamic priority (highest first)
-        this.rules.sort((a, b) => b.dynamicPriority - a.dynamicPriority);
+        // Find rule with highest priority without sorting the entire array
+        let highestPriorityRule = null;
+        let highestPriority = -Infinity;
+        
+        for (const rule of this.rules) {
+            if (rule.dynamicPriority > highestPriority) {
+                highestPriority = rule.dynamicPriority;
+                highestPriorityRule = rule;
+            }
+        }
 
-        // Return the rule with highest priority
-        return this.rules[0];
+        return highestPriorityRule;
     }
 
     /**
@@ -191,8 +201,18 @@ export class RuleSelectionQueue {
      * Remove a rule from the queue
      */
     removeRule(ruleId) {
-        this.rules = this.rules.filter(r => r.id !== ruleId);
-        this.ruleMetrics.delete(ruleId);
+        const index = this.ruleIndex.get(ruleId);
+        if (index === undefined) return this;
+        
+        // Remove from rules array by swapping with last element (if not the last)
+        const lastRule = this.rules[this.rules.length - 1];
+        this.rules[index] = lastRule;
+        this.ruleIndex.set(lastRule.id, index); // Update index of moved rule
+        
+        this.rules.pop(); // Remove last element
+        this.ruleIndex.delete(ruleId); // Remove from index map
+        this.ruleMetrics.delete(ruleId); // Remove metrics
+        
         return this;
     }
 
@@ -201,6 +221,7 @@ export class RuleSelectionQueue {
      */
     clear() {
         this.rules = [];
+        this.ruleIndex.clear();
         this.ruleMetrics.clear();
         this.stats = {
             totalApplications: 0,

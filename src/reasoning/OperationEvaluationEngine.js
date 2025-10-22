@@ -15,99 +15,96 @@ export class OperationEvaluationEngine {
     }
 
     async evaluate(operationTerm, context, variableBindings = new Map()) {
+        // Handle non-operation terms first
         if (!operationTerm.isCompound || operationTerm.operator !== '^') {
             return this._evaluateNonOperation(operationTerm, context, variableBindings);
         }
 
+        // Validate operation format
         if (operationTerm.components.length !== 2) {
-            return { result: SYSTEM_ATOMS.Null, success: false, message: 'Invalid operation format' };
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format');
         }
 
         const [functionTerm, argsTerm] = operationTerm.components;
         
-        let functionName;
-        if (functionTerm.name && functionTerm.name.startsWith('?')) {
-            if (variableBindings.has(functionTerm.name)) {
-                const boundTerm = variableBindings.get(functionTerm.name);
-                functionName = boundTerm.name;
-            } else {
-                return { result: SYSTEM_ATOMS.Null, success: false, message: 'Unbound variable in function position' };
-            }
-        } else {
-            functionName = functionTerm.name || functionTerm.toString();
+        // Resolve function name with variable binding support
+        const functionName = this._resolveFunctionName(functionTerm, variableBindings);
+        if (!functionName) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Unbound variable in function position');
         }
 
-        let args = this._extractArguments(argsTerm, variableBindings);
+        const args = this._extractArguments(argsTerm, variableBindings);
+        const functor = this.functorRegistry.get(functionName);
+
+        if (!functor) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, `Functor '${functionName}' not found`);
+        }
 
         try {
-            const functor = this.functorRegistry.get(functionName);
-            if (!functor) {
-                return { result: SYSTEM_ATOMS.Null, success: false, message: `Functor '${functionName}' not found` };
-            }
-
             const argValues = args.map(arg => this._termToValue(arg));
             const result = functor.call(...argValues);
             const resultTerm = this._valueToTerm(result);
 
             if (isNull(resultTerm)) {
-                return { result: resultTerm, success: false, message: 'Operation resulted in Null (poison pill)' };
+                return this._createResult(resultTerm, false, 'Operation resulted in Null (poison pill)');
             }
 
-            return { result: resultTerm, success: true, functorName: functionName };
+            return this._createResult(resultTerm, true, null, { functorName: functionName });
         } catch (error) {
             console.error(`Error evaluating operation: ${error.message}`);
-            return { result: SYSTEM_ATOMS.Null, success: false, message: error.message };
+            return this._createResult(SYSTEM_ATOMS.Null, false, error.message);
         }
     }
 
-    _extractArguments(argsTerm, variableBindings) {
-        let args = [];
-        if (argsTerm.isCompound && argsTerm.operator === ',') {
-            let startIndex = 0;
-            if (argsTerm.components.length > 0 && 
-                (argsTerm.components[0].name === '*' || argsTerm.components[0].name === '?*')) {
-                startIndex = 1;
-            }
-            
-            for (let i = startIndex; i < argsTerm.components.length; i++) {
-                args.push(this._substituteVariables(argsTerm.components[i], variableBindings));
-            }
-        } else if (argsTerm.name === '*' || argsTerm.name === '?*') {
-            args = []; // No arguments
-        } else {
-            args = [this._substituteVariables(argsTerm, variableBindings)];
+    // Resolve function name, handling variable bindings
+    _resolveFunctionName(functionTerm, variableBindings) {
+        if (functionTerm.name && functionTerm.name.startsWith('?')) {
+            return variableBindings.has(functionTerm.name) 
+                ? variableBindings.get(functionTerm.name).name 
+                : null;
         }
-        return args;
+        return functionTerm.name || functionTerm.toString();
+    }
+
+    _extractArguments(argsTerm, variableBindings) {
+        if (!argsTerm.isCompound || argsTerm.operator !== ',') {
+            if (argsTerm.name === '*' || argsTerm.name === '?*') {
+                return []; // No arguments
+            }
+            return [this._substituteVariables(argsTerm, variableBindings)];
+        }
+
+        // Handle compound arguments, skipping the first component if it's a wildcard (*)
+        let startIndex = (argsTerm.components[0] && 
+                         (argsTerm.components[0].name === '*' || argsTerm.components[0].name === '?*')) ? 1 : 0;
+        
+        return argsTerm.components
+            .slice(startIndex)
+            .map(comp => this._substituteVariables(comp, variableBindings));
     }
 
     _evaluateNonOperation(term, context, variableBindings) {
         const substitutedTerm = this._substituteVariables(term, variableBindings);
+        const message = substitutedTerm.isCompound 
+            ? 'Non-operation compound term, no evaluation performed' 
+            : undefined;
 
-        return {
-            result: substitutedTerm,
-            success: true,
-            message: substitutedTerm.isCompound ? 'Non-operation compound term, no evaluation performed' : undefined
-        };
+        return this._createResult(substitutedTerm, true, message);
     }
 
     _substituteVariables(term, bindings) {
         if (!term) return term;
 
+        // Handle variable binding
         if (term.name && typeof term.name === 'string' && term.name.startsWith('?')) {
             return bindings.has(term.name) ? bindings.get(term.name) : term;
         }
 
+        // Handle compound terms recursively
         if (term.isCompound) {
-            let hasChanges = false;
-            const newComponents = [];
-            
-            for (const component of term.components) {
-                const substitutedComponent = this._substituteVariables(component, bindings);
-                newComponents.push(substitutedComponent);
-                
-                if (substitutedComponent !== component) hasChanges = true;
-            }
-            
+            const newComponents = term.components.map(comp => this._substituteVariables(comp, bindings));
+            // Only create new term if there were actual changes
+            const hasChanges = newComponents.some((comp, idx) => comp !== term.components[idx]);
             return hasChanges ? new Term(term.type, term.name, newComponents, term.operator) : term;
         }
 
@@ -117,52 +114,53 @@ export class OperationEvaluationEngine {
     _termToValue(term) {
         if (!term) return null;
 
+        // Handle system atoms first
         const termName = term.name;
         if (termName === 'True') return true;
         if (termName === 'False') return false;
         if (termName === 'Null') return null;
 
+        // Handle atomic terms
         if (term.isAtomic) {
             const numValue = Number(termName);
             return isNaN(numValue) ? termName : numValue;
         }
 
-        return term; // For compound terms, return as-is
+        // For compound terms, return as-is
+        return term;
     }
 
     _valueToTerm(value) {
         if (value === null) return SYSTEM_ATOMS.Null;
-        
         if (typeof value === 'boolean') return value ? SYSTEM_ATOMS.True : SYSTEM_ATOMS.False;
         
         if (typeof value === 'number') {
             if (isNaN(value)) return SYSTEM_ATOMS.Null;
-            try {
-                return new Term('atom', value.toString(), [value.toString()]);
-            } catch (error) {
-                console.error(`Error creating number term: ${error.message}`);
-                return SYSTEM_ATOMS.Null;
-            }
+            return this._createTermWithErrorHandling('atom', value.toString());
         }
         
         if (typeof value === 'string') {
             if (['True', 'False', 'Null'].includes(value)) return SYSTEM_ATOMS[value];
-            try {
-                return new Term('atom', value, [value]);
-            } catch (error) {
-                console.error(`Error creating string term: ${error.message}`);
-                return SYSTEM_ATOMS.Null;
-            }
+            return this._createTermWithErrorHandling('atom', value);
         }
         
         if (value instanceof Term) return value;
+        return this._createTermWithErrorHandling('atom', String(value));
+    }
 
+    // Helper function to create terms with error handling
+    _createTermWithErrorHandling(type, name) {
         try {
-            return new Term('atom', String(value), [String(value)]);
+            return new Term(type, name, [name]);
         } catch (error) {
-            console.error(`Error creating term from value: ${error.message}`);
+            console.error(`Error creating term: ${error.message}`);
             return SYSTEM_ATOMS.Null;
         }
+    }
+
+    // Helper function to standardize result objects
+    _createResult(result, success, message, additionalData = {}) {
+        return { result, success, message, ...additionalData };
     }
 
     addFunctor(name, execute, config = {}) {

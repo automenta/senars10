@@ -95,16 +95,15 @@ export class PatternMatcher {
      * @private
      */
     _unifyCommutative(pattern, term, bindings) {
-        // A simple approach: try the ordered matching (pattern[i] with term[i])
-        // For commutative operators, the order of matching may vary but for basic cases
-        // the ordered approach should work
         if (pattern.components.length !== term.components.length) {
             return false;
         }
 
-        // Use the same approach as regular unification but with the same bindings object
+        // For commutative operators, try ordered matching first (most efficient)
         for (let i = 0; i < pattern.components.length; i++) {
             if (!this._unifyTerms(pattern.components[i], term.components[i], bindings)) {
+                // If ordered matching fails, we could implement a more thorough approach,
+                // but for now return false to maintain efficiency
                 return false;
             }
         }
@@ -157,6 +156,13 @@ export class PatternMatcher {
      * @returns {boolean} - Whether the operator is commutative
      */
     _isCommutativeOperator = (operator => new Set(['&', '|', '<->', '<=>', '=']).has(operator));
+    
+    // Cache the commutative operator set for performance
+    _commutativeOperators = new Set(['&', '|', '<->', '<=>', '=']);
+    
+    isCommutativeOperator(operator) {
+        return this._commutativeOperators.has(operator);
+    }
 
     /**
      * Check if two terms are equal with respect to bindings
@@ -180,7 +186,25 @@ export class PatternMatcher {
             return t1.equals(t2);
         }
         
-        // Fallback to string representation
-        return t1.toString() === t2.toString();
+        // Efficient comparison by checking name first
+        if (t1.name !== t2.name) return false;
+        
+        // If names match and they're atomic, they're equal
+        if (t1.isAtomic && t2.isAtomic) return true;
+        
+        // For compound terms, compare operator and components
+        if (t1.isCompound && t2.isCompound) {
+            if (t1.operator !== t2.operator) return false;
+            if (t1.components.length !== t2.components.length) return false;
+            
+            for (let i = 0; i < t1.components.length; i++) {
+                if (!this._termsEqual(t1.components[i], t2.components[i], bindings)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        return false;
     }
 }

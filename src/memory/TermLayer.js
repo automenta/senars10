@@ -224,14 +224,18 @@ export class TermLayer extends Layer {
    * @private
    */
   _removeLowestPriorityLink() {
-    // Find the lowest priority link in the bag
-    // To get the lowest priority item, we need to sort all items by priority
-    const allItems = [...this.linkBag._items.entries()]
-      .sort((a, b) => a[1] - b[1]); // Sort by priority ascending
+    // Find the lowest priority item using a single pass instead of sorting all items
+    let lowestItem = null;
+    let lowestPriority = Infinity;
     
-    if (allItems.length > 0) {
-      const [lowestItem, priority] = allItems[0];
-      
+    for (const [item, priority] of this.linkBag._items.entries()) {
+      if (priority < lowestPriority) {
+        lowestPriority = priority;
+        lowestItem = item;
+      }
+    }
+
+    if (lowestItem) {
       // Remove from bag
       this.linkBag.remove(lowestItem);
       

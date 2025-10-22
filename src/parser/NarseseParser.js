@@ -58,7 +58,7 @@ export class NarseseParser {
                         components: [
                             { components: [functionName] }, // The function name as a simple term
                             { 
-                                operator: '*',
+                                operator: ',', // Using comma as tuple operator to represent (*)
                                 components: [{ components: ['*'] }] // Just the * placeholder
                             }
                         ]
@@ -165,4 +165,18 @@ export class NarseseParser {
         if (typeof input !== 'string') throw new Error('Input must be a string');
         if (!input.trim()) throw new Error('Empty input');
     };
+
+    // Create operation term for function call notation: f(x,y) becomes f ^ (*, x, y)
+    _createOperation(functionName, args) {
+        const funcTerm = { components: [functionName] };
+        const argTuple = { 
+            operator: ',',
+            components: [{ components: ['*'] }, ...args]
+        };
+        
+        return {
+            operator: '^',
+            components: [funcTerm, argTuple]
+        };
+    }
 }
