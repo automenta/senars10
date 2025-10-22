@@ -28,18 +28,10 @@ export class TermLayer extends Layer {
    * @returns {boolean} - True if link was added successfully
    */
   add(source, target, data = {}) {
-    // Check if we've reached capacity and need to remove lowest priority link
-    if (this.count >= this.capacity) {
-      this._removeLowestPriorityLink();
-    }
-
+    this._ensureCapacity();
+    
     // Initialize source map if it doesn't exist
-    if (!this.linkMap.has(source.name)) {
-      this.linkMap.set(source.name, new Map());
-    }
-
-    // Update or create the link
-    const sourceLinks = this.linkMap.get(source.name);
+    const sourceLinks = this._getOrCreateSourceMap(source.name);
     const priority = data.priority || 1; // Default priority
     
     // Add to the bag with its priority
@@ -85,11 +77,7 @@ export class TermLayer extends Layer {
 
     // Remove from linkMap
     const linkEntry = sourceLinks.get(target.name);
-    sourceLinks.delete(target.name);
-    
-    if (sourceLinks.size === 0) {
-      this.linkMap.delete(source.name);
-    }
+    this._removeFromLinkMap(sourceLinks, target.name, source.name);
 
     // Remove from bag
     this.linkBag.remove(linkEntry);
@@ -138,9 +126,7 @@ export class TermLayer extends Layer {
     
     // If priority changed, need to update in bag
     if (data.priority !== undefined) {
-      // Since we can't directly update priority in bag, we'll remove and re-add
-      this.linkBag.remove(linkEntry);
-      this.linkBag.add(linkEntry);
+      this._updatePriorityInBag(linkEntry);
     }
     
     return true;
@@ -224,7 +210,25 @@ export class TermLayer extends Layer {
    * @private
    */
   _removeLowestPriorityLink() {
-    // Find the lowest priority item using a single pass instead of sorting all items
+    const lowestItem = this._findLowestPriorityItem();
+    
+    if (lowestItem) {
+      this.linkBag.remove(lowestItem);
+      this._removeFromLinkMap(
+        this.linkMap.get(lowestItem.source.name), 
+        lowestItem.target.name, 
+        lowestItem.source.name
+      );
+      this.count--;
+    }
+  }
+
+  /**
+   * Find the lowest priority item in the bag
+   * @private
+   * @returns {Object|null} - The lowest priority item or null if none exists
+   */
+  _findLowestPriorityItem() {
     let lowestItem = null;
     let lowestPriority = Infinity;
     
@@ -234,24 +238,55 @@ export class TermLayer extends Layer {
         lowestItem = item;
       }
     }
+    
+    return lowestItem;
+  }
 
-    if (lowestItem) {
-      // Remove from bag
-      this.linkBag.remove(lowestItem);
-      
-      // Remove from linkMap
-      const sourceName = lowestItem.source.name;
-      const targetName = lowestItem.target.name;
-      
-      const sourceLinks = this.linkMap.get(sourceName);
-      if (sourceLinks) {
-        sourceLinks.delete(targetName);
-        if (sourceLinks.size === 0) {
-          this.linkMap.delete(sourceName);
-        }
-      }
-      
-      this.count--;
+  /**
+   * Ensure capacity by removing lowest priority link if needed
+   * @private
+   */
+  _ensureCapacity() {
+    if (this.count >= this.capacity) {
+      this._removeLowestPriorityLink();
     }
+  }
+
+  /**
+   * Get or create source map for a given source name
+   * @private
+   * @param {string} sourceName - Name of the source term
+   * @returns {Map} - The source links map
+   */
+  _getOrCreateSourceMap(sourceName) {
+    if (!this.linkMap.has(sourceName)) {
+      this.linkMap.set(sourceName, new Map());
+    }
+    return this.linkMap.get(sourceName);
+  }
+
+  /**
+   * Remove an entry from the link map
+   * @private
+   * @param {Map} sourceLinks - Source links map
+   * @param {string} targetName - Name of the target term
+   * @param {string} sourceName - Name of the source term
+   */
+  _removeFromLinkMap(sourceLinks, targetName, sourceName) {
+    sourceLinks.delete(targetName);
+    if (sourceLinks.size === 0) {
+      this.linkMap.delete(sourceName);
+    }
+  }
+
+  /**
+   * Update priority of a link in bag
+   * @private
+   * @param {Object} linkEntry - Link entry to update
+   */
+  _updatePriorityInBag(linkEntry) {
+    // Since we can't directly update priority in bag, we'll remove and re-add
+    this.linkBag.remove(linkEntry);
+    this.linkBag.add(linkEntry);
   }
 }

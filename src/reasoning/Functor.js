@@ -40,7 +40,7 @@ export class FunctorRegistry {
   register(name, functor, aliases = []) {
     if (typeof functor === 'function') {
       // If a function is passed instead of a functor object, wrap it
-      functor = new Functor(name, functor, { arity: aliases.length > 0 && Array.isArray(aliases[aliases.length - 1]) ? aliases.pop() : 0 });
+      functor = new Functor(name, functor, { arity: this._extractArity(aliases) });
     }
     
     if (this.functors.has(name)) {
@@ -48,9 +48,17 @@ export class FunctorRegistry {
     }
     
     this.functors.set(name, functor);
-    aliases.forEach(alias => this.aliases.set(alias, name));
+    this._addAliases(aliases, name);
     
     return true;
+  }
+
+  _extractArity(aliases) {
+    return aliases.length > 0 && Array.isArray(aliases[aliases.length - 1]) ? aliases.pop() : 0;
+  }
+
+  _addAliases(aliases, functorName) {
+    aliases.forEach(alias => this.aliases.set(alias, functorName));
   }
 
   get(name) {
@@ -74,12 +82,14 @@ export class FunctorRegistry {
     const actualName = this.aliases.get(name) || name;
     if (!this.functors.has(actualName)) return false;
 
-    // Remove aliases that point to this functor
-    for (const [alias, functorName] of this.aliases.entries()) {
-      if (functorName === actualName) this.aliases.delete(alias);
-    }
-    
+    this._removeAliases(actualName);
     return this.functors.delete(actualName);
+  }
+
+  _removeAliases(functorName) {
+    for (const [alias, name] of this.aliases.entries()) {
+      if (name === functorName) this.aliases.delete(alias);
+    }
   }
 
   getFunctorNames() { return Array.from(this.functors.keys()); }

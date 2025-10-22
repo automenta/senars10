@@ -10,19 +10,19 @@ export class Memoizer {
     }
 
     memoize(fn) {
-        const self = this;
+        const { cache, maxSize, accessOrder } = this;
         
         return function memoized(...args) {
-            const key = self._createKey(args);
+            const key = this._createKey(args);
             
-            if (self.cache.has(key)) {
-                self._updateAccessOrder(key);
-                return self.cache.get(key);
+            if (cache.has(key)) {
+                this._updateAccessOrder(key, accessOrder);
+                return cache.get(key);
             }
             
-            if (self.cache.size >= self.maxSize) {
-                const lruKey = self.accessOrder.shift();
-                self.cache.delete(lruKey);
+            if (cache.size >= maxSize) {
+                const lruKey = accessOrder.shift();
+                cache.delete(lruKey);
             }
             
             let result;
@@ -33,8 +33,8 @@ export class Memoizer {
                 return null;
             }
             
-            self.cache.set(key, result);
-            self.accessOrder.push(key);
+            cache.set(key, result);
+            accessOrder.push(key);
 
             return result;
         };
@@ -44,14 +44,18 @@ export class Memoizer {
         try {
             return JSON.stringify(args);
         } catch (e) {
-            return args.map(arg => typeof arg === 'object' ? String(arg) : String(arg)).join('|');
+            return args.map(arg => this._stringifyArg(arg)).join('|');
         }
     }
 
-    _updateAccessOrder(key) {
-        const index = this.accessOrder.indexOf(key);
-        if (index !== -1) this.accessOrder.splice(index, 1);
-        this.accessOrder.push(key);
+    _stringifyArg(arg) {
+        return typeof arg === 'object' ? String(arg) : String(arg);
+    }
+
+    _updateAccessOrder(key, accessOrder) {
+        const index = accessOrder.indexOf(key);
+        if (index !== -1) accessOrder.splice(index, 1);
+        accessOrder.push(key);
     }
 
     clear() {

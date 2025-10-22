@@ -25,6 +25,10 @@ export class OperationEvaluationEngine {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format');
         }
 
+        return this._evaluateOperation(operationTerm, variableBindings);
+    }
+    
+    _evaluateOperation(operationTerm, variableBindings) {
         const [functionTerm, argsTerm] = operationTerm.components;
         
         // Resolve function name with variable binding support
@@ -74,6 +78,11 @@ export class OperationEvaluationEngine {
             return [this._substituteVariables(argsTerm, variableBindings)];
         }
 
+        // Handle compound arguments
+        return this._extractCompoundArguments(argsTerm, variableBindings);
+    }
+    
+    _extractCompoundArguments(argsTerm, variableBindings) {
         // Handle compound arguments, skipping the first component if it's a wildcard (*)
         let startIndex = (argsTerm.components[0] && 
                          (argsTerm.components[0].name === '*' || argsTerm.components[0].name === '?*')) ? 1 : 0;

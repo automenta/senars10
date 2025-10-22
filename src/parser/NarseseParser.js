@@ -179,4 +179,27 @@ export class NarseseParser {
             components: [funcTerm, argTuple]
         };
     }
+
+    _isFunctionCall = trimmed => trimmed.includes('(') && trimmed.endsWith(')');
+
+    _parseFunctionCall = trimmed => {
+        const match = trimmed.match(/^([^(]+)\((.*)\)$/);
+        if (!match) return {components: [trimmed]};
+        
+        const functionName = match[1].trim();
+        const argsStr = match[2].trim();
+        const args = argsStr ? this.parseList(argsStr) : [];
+        
+        return this._createOperation(functionName, args);
+    };
+
+    _parseBracketContent = (trimmed, start, end) => {
+        const inner = trimmed.slice(1, -1).trim();
+        // Check if inner content needs compound parsing (contains operators)
+        const needsCompoundParsing = /\s*(-->|<->|==>|\<\=>|\\^|\{\{--|--\}\}|&,\s|\|\s|&\/\s)/.test(inner);
+        if (needsCompoundParsing) return this.parseCompound(inner);
+        // Handle different bracket types: () = compound, {} = set, [] = array
+        const operator = start === '(' ? ',' : (start === '{' ? '{}' : '[]');
+        return {operator, components: this.parseList(inner)};
+    };
 }

@@ -67,27 +67,31 @@ export class PatternMatcher {
 
         // Check compound terms
         if (pattern.isCompound) {
-            if (pattern.operator !== term.operator) {
-                // Handle commutative operators
-                if (this._isCommutativeOperator(pattern.operator) && 
-                    this._isCommutativeOperator(term.operator) &&
-                    pattern.components.length === term.components.length) {
-                    return this._unifyCommutative(pattern, term, bindings);
-                }
-                return false;
-            }
-            if (pattern.components.length !== term.components.length) return false;
-
-            // Recursively unify components
-            for (let i = 0; i < pattern.components.length; i++) {
-                if (!this._unifyTerms(pattern.components[i], term.components[i], bindings)) {
-                    return false;
-                }
-            }
-            return true;
+            return this._unifyCompound(pattern, term, bindings);
         }
 
         return false;
+    }
+    
+    _unifyCompound(pattern, term, bindings) {
+        if (pattern.operator !== term.operator) {
+            // Handle commutative operators
+            if (this._isCommutativeOperator(pattern.operator) && 
+                this._isCommutativeOperator(term.operator) &&
+                pattern.components.length === term.components.length) {
+                return this._unifyCommutative(pattern, term, bindings);
+            }
+            return false;
+        }
+        if (pattern.components.length !== term.components.length) return false;
+
+        // Recursively unify components
+        for (let i = 0; i < pattern.components.length; i++) {
+            if (!this._unifyTerms(pattern.components[i], term.components[i], bindings)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

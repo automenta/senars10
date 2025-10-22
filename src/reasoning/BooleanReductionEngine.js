@@ -48,9 +48,9 @@ export class BooleanReductionEngine {
     _reduceAnd(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.True;
         
-        // Handle poison pill and early termination
-        for (const comp of components) if (isNull(comp)) return SYSTEM_ATOMS.Null;
-        for (const comp of components) if (isFalse(comp)) return SYSTEM_ATOMS.False;
+        // Check for poison pills or early termination
+        const poisonResult = this._checkPoison(components);
+        if (poisonResult) return poisonResult;
 
         // Filter and return simplified result
         const nonTrueComponents = components.filter(comp => !isTrue(comp));
@@ -64,9 +64,9 @@ export class BooleanReductionEngine {
     _reduceOr(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.False;
         
-        // Handle poison pill and early termination
-        for (const comp of components) if (isNull(comp)) return SYSTEM_ATOMS.Null;
-        for (const comp of components) if (isTrue(comp)) return SYSTEM_ATOMS.True;
+        // Check for poison pills or early termination
+        const poisonResult = this._checkPoison(components, isTrue, SYSTEM_ATOMS.True);
+        if (poisonResult) return poisonResult;
 
         // Filter and return simplified result
         const nonFalseComponents = components.filter(comp => !isFalse(comp));
@@ -83,7 +83,7 @@ export class BooleanReductionEngine {
         const operand = components[0];
         
         // Double negation elimination
-        if (operand.isCompound && operand.operator === '--' && operand.components.length === 1) {
+        if (this._isDoubleNegation(operand)) {
             return operand.components[0];
         }
 
@@ -139,6 +139,17 @@ export class BooleanReductionEngine {
         return (reducedLeft !== left || reducedRight !== right)
             ? new Term('compound', 'EQUIVALENCE', [reducedLeft, reducedRight], '<=>')
             : new Term('compound', 'EQUIVALENCE', [left, right], '<=>');
+    }
+
+    _isDoubleNegation = operand => 
+        operand.isCompound && operand.operator === '--' && operand.components.length === 1;
+
+    _checkPoison = (components, checkFn = isFalse, returnVal = SYSTEM_ATOMS.False) => {
+        for (const comp of components) {
+            if (isNull(comp)) return SYSTEM_ATOMS.Null;
+            if (checkFn && checkFn(comp)) return returnVal;
+        }
+        return null;
     }
 
     cascadeReduce(term) {
