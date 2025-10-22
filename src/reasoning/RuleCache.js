@@ -32,7 +32,14 @@ export class Memoizer {
             }
             
             // If not cached, call the function and cache the result
-            const result = fn.apply(this, args);
+            let result;
+            try {
+                result = fn.apply(this, args);
+            } catch (error) {
+                console.error(`Error during memoized function execution: ${error.message}`);
+                return null; // Return null on error instead of caching errors
+            }
+            
             self.cache.set(key, result);
             self.accessOrder.push(key); // Add to end (most recently used)
 

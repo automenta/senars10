@@ -48,57 +48,62 @@ export class TermIndexer {
             return false;
         }
 
-        // Check capacity limit
-        if (this.stats.totalIndexed >= this.options.maxIndexedTerms) {
-            this._evictOldest();
-        }
-
-        // Index by hash
-        if (!this.indexes.byHash.has(term.hash)) {
-            this.indexes.byHash.set(term.hash, []);
-        }
-        this.indexes.byHash.get(term.hash).push({ term, metadata, timestamp: Date.now() });
-
-        // Index by operator if compound
-        if (term.isCompound && term.operator) {
-            if (!this.indexes.byOperator.has(term.operator)) {
-                this.indexes.byOperator.set(term.operator, []);
+        try {
+            // Check capacity limit
+            if (this.stats.totalIndexed >= this.options.maxIndexedTerms) {
+                this._evictOldest();
             }
-            this.indexes.byOperator.get(term.operator).push({ term, metadata, timestamp: Date.now() });
-        }
 
-        // Index by name (for atomic terms) or by root name (for compound terms)
-        const name = term.name || 'unknown';
-        if (!this.indexes.byName.has(name)) {
-            this.indexes.byName.set(name, []);
-        }
-        this.indexes.byName.get(name).push({ term, metadata, timestamp: Date.now() });
-
-        // Index by complexity if enabled
-        if (this.options.enableComplexityIndexing) {
-            const complexity = term.complexity || 1;
-            if (!this.indexes.byComplexity.has(complexity)) {
-                this.indexes.byComplexity.set(complexity, []);
+            // Index by hash
+            if (!this.indexes.byHash.has(term.hash)) {
+                this.indexes.byHash.set(term.hash, []);
             }
-            this.indexes.byComplexity.get(complexity).push({ term, metadata, timestamp: Date.now() });
-        }
+            this.indexes.byHash.get(term.hash).push({ term, metadata, timestamp: Date.now() });
 
-        // Index by component count if compound
-        if (term.isCompound) {
-            const compCount = term.components.length;
-            if (!this.indexes.byComponentCount.has(compCount)) {
-                this.indexes.byComponentCount.set(compCount, []);
+            // Index by operator if compound
+            if (term.isCompound && term.operator) {
+                if (!this.indexes.byOperator.has(term.operator)) {
+                    this.indexes.byOperator.set(term.operator, []);
+                }
+                this.indexes.byOperator.get(term.operator).push({ term, metadata, timestamp: Date.now() });
             }
-            this.indexes.byComponentCount.get(compCount).push({ term, metadata, timestamp: Date.now() });
-        }
 
-        // Index by atomic components if enabled
-        if (this.options.enableComponentIndexing && term.isCompound) {
-            this._indexByComponents(term, metadata);
-        }
+            // Index by name (for atomic terms) or by root name (for compound terms)
+            const name = term.name || 'unknown';
+            if (!this.indexes.byName.has(name)) {
+                this.indexes.byName.set(name, []);
+            }
+            this.indexes.byName.get(name).push({ term, metadata, timestamp: Date.now() });
 
-        this.stats.totalIndexed++;
-        return true;
+            // Index by complexity if enabled
+            if (this.options.enableComplexityIndexing) {
+                const complexity = term.complexity || 1;
+                if (!this.indexes.byComplexity.has(complexity)) {
+                    this.indexes.byComplexity.set(complexity, []);
+                }
+                this.indexes.byComplexity.get(complexity).push({ term, metadata, timestamp: Date.now() });
+            }
+
+            // Index by component count if compound
+            if (term.isCompound) {
+                const compCount = term.components.length;
+                if (!this.indexes.byComponentCount.has(compCount)) {
+                    this.indexes.byComponentCount.set(compCount, []);
+                }
+                this.indexes.byComponentCount.get(compCount).push({ term, metadata, timestamp: Date.now() });
+            }
+
+            // Index by atomic components if enabled
+            if (this.options.enableComponentIndexing && term.isCompound) {
+                this._indexByComponents(term, metadata);
+            }
+
+            this.stats.totalIndexed++;
+            return true;
+        } catch (error) {
+            console.error(`Error indexing term: ${error.message}`);
+            return false;
+        }
     }
 
     /**
@@ -140,7 +145,12 @@ export class TermIndexer {
         this.stats.totalQueries++;
         const result = this.indexes.byHash.get(hash) || [];
         if (result.length > 0) this.stats.cacheHits++;
-        return result.map(item => item.term);
+        // Use a for loop for better performance than map
+        const terms = new Array(result.length);
+        for (let i = 0; i < result.length; i++) {
+            terms[i] = result[i].term;
+        }
+        return terms;
     }
 
     /**
@@ -150,7 +160,12 @@ export class TermIndexer {
         this.stats.totalQueries++;
         const result = this.indexes.byOperator.get(operator) || [];
         if (result.length > 0) this.stats.cacheHits++;
-        return result.map(item => item.term);
+        // Use a for loop for better performance than map
+        const terms = new Array(result.length);
+        for (let i = 0; i < result.length; i++) {
+            terms[i] = result[i].term;
+        }
+        return terms;
     }
 
     /**
@@ -160,7 +175,12 @@ export class TermIndexer {
         this.stats.totalQueries++;
         const result = this.indexes.byName.get(name) || [];
         if (result.length > 0) this.stats.cacheHits++;
-        return result.map(item => item.term);
+        // Use a for loop for better performance than map
+        const terms = new Array(result.length);
+        for (let i = 0; i < result.length; i++) {
+            terms[i] = result[i].term;
+        }
+        return terms;
     }
 
     /**
@@ -186,7 +206,12 @@ export class TermIndexer {
         this.stats.totalQueries++;
         const result = this.indexes.byComponentCount.get(count) || [];
         if (result.length > 0) this.stats.cacheHits++;
-        return result.map(item => item.term);
+        // Use a for loop for better performance than map
+        const terms = new Array(result.length);
+        for (let i = 0; i < result.length; i++) {
+            terms[i] = result[i].term;
+        }
+        return terms;
     }
 
     /**
@@ -196,38 +221,53 @@ export class TermIndexer {
         this.stats.totalQueries++;
         const result = this.indexes.byAtomicComponent.get(componentName) || [];
         if (result.length > 0) this.stats.cacheHits++;
-        return result.map(item => item.term);
+        // Use a for loop for better performance than map
+        const terms = new Array(result.length);
+        for (let i = 0; i < result.length; i++) {
+            terms[i] = result[i].term;
+        }
+        return terms;
     }
 
     /**
      * Find terms matching a pattern (simple pattern matching)
      */
     findMatching(pattern) {
+        if (!pattern) {
+            this.stats.totalQueries++;
+            return [];
+        }
+
         this.stats.totalQueries++;
         
-        // For simple pattern matching, we can combine different index queries
-        const candidates = new Set();
+        try {
+            // For simple pattern matching, we can combine different index queries
+            const candidates = new Set();
 
-        // If pattern has an operator, get terms with same operator
-        if (pattern.isCompound && pattern.operator) {
-            this.findByOperator(pattern.operator).forEach(term => candidates.add(term));
-        }
-        
-        // If pattern has specific components, refine search
-        if (pattern.isCompound && pattern.components && pattern.components.length > 0) {
-            for (const comp of pattern.components) {
-                if (comp.isAtomic) {
-                    this.findByAtomicComponent(comp.name).forEach(term => candidates.add(term));
+            // If pattern has an operator, get terms with same operator
+            if (pattern.isCompound && pattern.operator) {
+                this.findByOperator(pattern.operator).forEach(term => candidates.add(term));
+            }
+            
+            // If pattern has specific components, refine search
+            if (pattern.isCompound && pattern.components && pattern.components.length > 0) {
+                for (const comp of pattern.components) {
+                    if (comp.isAtomic) {
+                        this.findByAtomicComponent(comp.name).forEach(term => candidates.add(term));
+                    }
                 }
             }
-        }
-        
-        // If pattern is atomic, get by name
-        if (pattern.isAtomic) {
-            this.findByName(pattern.name).forEach(term => candidates.add(term));
-        }
+            
+            // If pattern is atomic, get by name
+            if (pattern.isAtomic) {
+                this.findByName(pattern.name).forEach(term => candidates.add(term));
+            }
 
-        return Array.from(candidates);
+            return Array.from(candidates);
+        } catch (error) {
+            console.error(`Error during pattern matching: ${error.message}`);
+            return [];
+        }
     }
 
     /**

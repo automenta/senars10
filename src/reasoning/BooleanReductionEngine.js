@@ -25,7 +25,7 @@ export class BooleanReductionEngine {
             '--': (args) => this._reduceNegation(args),
             
             // Implication reductions
-            '==/': (args) => this._reduceImplication(args),
+            '==>': (args) => this._reduceImplication(args),
             
             // Equivalence reductions
             '<=>': (args) => this._reduceEquivalence(args)
@@ -36,7 +36,11 @@ export class BooleanReductionEngine {
      * Main reduction method that applies cascading reductions
      */
     reduce(term) {
-        if (!term || !term.isCompound) {
+        if (!term) {
+            return SYSTEM_ATOMS.Null;  // Return Null if no term is provided
+        }
+        
+        if (!term.isCompound) {
             return term;  // Atomic terms can't be reduced further
         }
 
@@ -58,11 +62,22 @@ export class BooleanReductionEngine {
 
         // If no specific rule applied or no reduction possible, 
         // recursively try to reduce components
-        const reducedComponents = term.components.map(comp => this.reduce(comp));
+        let reducedComponents;
+        try {
+            reducedComponents = term.components.map(comp => this.reduce(comp));
+        } catch (error) {
+            console.error(`Error during component reduction: ${error.message}`);
+            return SYSTEM_ATOMS.Null;
+        }
         
         // If components changed, create a new term with reduced components
         if (reducedComponents.some((comp, idx) => comp !== term.components[idx])) {
-            return new Term(term.type, term.name, reducedComponents, term.operator);
+            try {
+                return new Term(term.type, term.name, reducedComponents, term.operator);
+            } catch (error) {
+                console.error(`Error creating reduced term: ${error.message}`);
+                return SYSTEM_ATOMS.Null;
+            }
         }
 
         // Return original term if no reduction was possible
@@ -286,11 +301,16 @@ export class BooleanReductionEngine {
 
         // First, recursively reduce all subterms
         let reducedTerm;
-        if (term.isCompound) {
-            const reducedComponents = term.components.map(comp => this.cascadeReduce(comp));
-            reducedTerm = new Term(term.type, term.name, reducedComponents, term.operator);
-        } else {
-            reducedTerm = term;
+        try {
+            if (term.isCompound) {
+                const reducedComponents = term.components.map(comp => this.cascadeReduce(comp));
+                reducedTerm = new Term(term.type, term.name, reducedComponents, term.operator);
+            } else {
+                reducedTerm = term;
+            }
+        } catch (error) {
+            console.error(`Error during cascade reduction: ${error.message}`);
+            return SYSTEM_ATOMS.Null;
         }
 
         // Then, try to apply top-level reduction

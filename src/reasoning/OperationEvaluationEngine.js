@@ -59,13 +59,19 @@ export class OperationEvaluationEngine {
         // Get arguments and substitute variables
         let args = [];
         if (argsTerm.isCompound && argsTerm.operator === ',') { // Tuple of arguments
-            // Skip the first element (*) which is just a placeholder
-            for (let i = 1; i < argsTerm.components.length; i++) {
+            // Skip the first element (*) which is just a placeholder - only if it's the special placeholder
+            let startIndex = 0;
+            if (argsTerm.components.length > 0 && 
+                (argsTerm.components[0].name === '*' || argsTerm.components[0].name === '?*')) {
+                startIndex = 1;
+            }
+            
+            for (let i = startIndex; i < argsTerm.components.length; i++) {
                 const arg = argsTerm.components[i];
                 const substitutedArg = this._substituteVariables(arg, variableBindings);
                 args.push(substitutedArg);
             }
-        } else if (argsTerm.name === '*') {
+        } else if (argsTerm.name === '*' || argsTerm.name === '?*') {
             // No arguments case (function with no args)
             args = [];
         } else {
@@ -135,10 +141,24 @@ export class OperationEvaluationEngine {
 
         // If it's a compound term, recursively process components
         if (term.isCompound) {
-            const newComponents = term.components.map(component => 
-                this._substituteVariables(component, bindings)
-            );
-            return new Term(term.type, term.name, newComponents, term.operator);
+            let hasChanges = false;
+            const newComponents = [];
+            
+            for (let i = 0; i < term.components.length; i++) {
+                const component = term.components[i];
+                const substitutedComponent = this._substituteVariables(component, bindings);
+                newComponents.push(substitutedComponent);
+                
+                if (substitutedComponent !== component) {
+                    hasChanges = true;
+                }
+            }
+            
+            // Only create a new term if there were changes
+            if (hasChanges) {
+                return new Term(term.type, term.name, newComponents, term.operator);
+            }
+            return term;
         }
 
         return term;
@@ -150,20 +170,20 @@ export class OperationEvaluationEngine {
     _termToValue(term) {
         if (!term) return null;
 
-        // Check for system atoms
-        if (isTrue(term)) return true;
-        if (isFalse(term)) return false;
-        if (isNull(term)) return null;
+        // Check for system atoms (most common case first)
+        const termName = term.name;
+        if (termName === 'True') return true;
+        if (termName === 'False') return false;
+        if (termName === 'Null') return null;
 
         // If it's a number-like atom, try to convert to number
         if (term.isAtomic) {
-            const name = term.name;
             // Check if it looks like a number
-            const numValue = Number(name);
+            const numValue = Number(termName);
             if (!isNaN(numValue)) {
                 return numValue;
             }
-            return name; // Return as string
+            return termName; // Return as string
         }
 
         // For compound terms, return the term itself for now
@@ -183,7 +203,15 @@ export class OperationEvaluationEngine {
         }
 
         if (typeof value === 'number') {
-            return new Term('atom', value.toString(), [value.toString()]);
+            if (isNaN(value)) {
+                return SYSTEM_ATOMS.Null;
+            }
+            try {
+                return new Term('atom', value.toString(), [value.toString()]);
+            } catch (error) {
+                console.error(`Error creating number term: ${error.message}`);
+                return SYSTEM_ATOMS.Null;
+            }
         }
 
         if (typeof value === 'string') {
@@ -192,7 +220,12 @@ export class OperationEvaluationEngine {
             if (value === 'False') return SYSTEM_ATOMS.False;
             if (value === 'Null') return SYSTEM_ATOMS.Null;
             
-            return new Term('atom', value, [value]);
+            try {
+                return new Term('atom', value, [value]);
+            } catch (error) {
+                console.error(`Error creating string term: ${error.message}`);
+                return SYSTEM_ATOMS.Null;
+            }
         }
 
         if (value instanceof Term) {
@@ -200,7 +233,12 @@ export class OperationEvaluationEngine {
         }
 
         // Default case: convert to string representation
-        return new Term('atom', String(value), [String(value)]);
+        try {
+            return new Term('atom', String(value), [String(value)]);
+        } catch (error) {
+            console.error(`Error creating term from value: ${error.message}`);
+            return SYSTEM_ATOMS.Null;
+        }
     }
 
     /**

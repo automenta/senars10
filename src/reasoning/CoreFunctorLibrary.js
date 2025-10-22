@@ -26,6 +26,34 @@ export class CoreFunctorLibrary {
     }
 
     /**
+     * Get the functor registry
+     */
+    getRegistry() {
+        return this.registry;
+    }
+
+    /**
+     * Add a custom functor
+     */
+    addFunctor(name, execute, config = {}) {
+        return this.registry.register(name, execute, config.aliases || []);
+    }
+
+    /**
+     * Execute a functor by name
+     */
+    executeFunctor(name, ...args) {
+        return this.registry.execute(name, ...args);
+    }
+
+    /**
+     * Get registry statistics
+     */
+    getStats() {
+        return this.registry.getStats();
+    }
+
+    /**
      * Register arithmetic functors
      */
     _registerArithmeticFunctors() {

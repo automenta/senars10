@@ -17,6 +17,14 @@ import {CooperationEngine} from './CooperationEngine.js';
 import {RuleCooperationManager} from './RuleCooperationManager.js';
 import {PerformanceOptimizer} from './PerformanceOptimizer.js';
 import {StrategyMetrics} from './StrategyMetrics.js';
+import {Functor, FunctorRegistry} from './Functor.js';
+import {CoreFunctorLibrary} from './CoreFunctorLibrary.js';
+import {OperationEvaluationEngine} from './OperationEvaluationEngine.js';
+import {TRUE_TERM, FALSE_TERM, NULL_TERM, isSystemAtom, isTrue, isFalse, isNull} from './SystemAtoms.js';
+import {BooleanReductionEngine} from './BooleanReductionEngine.js';
+import {RuleSelectionQueue, AdaptiveRuleSelectionQueue} from './RuleSelectionQueue.js';
+import {TermIndexer} from './TermIndexer.js';
+import {Memoizer} from './RuleCache.js';
 
 export {
     // Reasoner and core components
@@ -42,7 +50,25 @@ export {
     // Supporting components
     ReasoningContext,
     PerformanceOptimizer,
-    StrategyMetrics
+    StrategyMetrics,
+    
+    // Phase 2 additions
+    Functor,
+    FunctorRegistry,
+    CoreFunctorLibrary,
+    OperationEvaluationEngine,
+    TRUE_TERM,
+    FALSE_TERM,
+    NULL_TERM,
+    isSystemAtom,
+    isTrue,
+    isFalse,
+    isNull,
+    BooleanReductionEngine,
+    RuleSelectionQueue,
+    AdaptiveRuleSelectionQueue,
+    TermIndexer,
+    Memoizer
 };
 
 // Default export for backwards compatibility
@@ -65,5 +91,22 @@ export default {
     CooperationEngine,
     RuleCooperationManager,
     PerformanceOptimizer,
-    StrategyMetrics
+    StrategyMetrics,
+    // Phase 2 additions
+    Functor,
+    FunctorRegistry,
+    CoreFunctorLibrary,
+    OperationEvaluationEngine,
+    TRUE_TERM,
+    FALSE_TERM,
+    NULL_TERM,
+    isSystemAtom,
+    isTrue,
+    isFalse,
+    isNull,
+    BooleanReductionEngine,
+    RuleSelectionQueue,
+    AdaptiveRuleSelectionQueue,
+    TermIndexer,
+    Memoizer
 };

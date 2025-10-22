@@ -10,7 +10,7 @@ export class ConditionalRule extends NALRule {
     constructor() {
         super('conditional', {
             name: 'Conditional Rule',
-            description: 'Performs conditional inference: If <a ==> b> and <a> then <b> (material implication)',
+            description: 'Performs conditional inference: If (a ==> b) and (a) then (b) (material implication)',
             priority: 0.8,
             category: 'conditional'
         });

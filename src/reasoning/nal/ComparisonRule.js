@@ -10,7 +10,7 @@ export class ComparisonRule extends NALRule {
     constructor() {
         super('comparison', {
             name: 'Comparison Rule',
-            description: 'Performs comparison inference: If <a --> c> and <b --> c> then <a <-> b>',
+            description: 'Performs comparison inference: If (a --> c) and (b --> c) then (a <-> b)',
             priority: 0.6,
             category: 'syllogistic'
         });

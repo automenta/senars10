@@ -19,8 +19,7 @@ export class SetTheoreticRule extends NALRule {
     _matches(task, context) {
         // Matches terms involving set operations (extensional: {}, intensional: [])
         return task.term?.isCompound && 
-               (task.term.operator === '{}' || task.term.operator === '[]' || 
-                task.term.operator === '||' || task.term.operator === '&&');
+               (task.term.operator === '{}' || task.term.operator === '[]');
     }
 
     async _apply(task, context) {
