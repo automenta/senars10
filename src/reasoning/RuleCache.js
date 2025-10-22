@@ -1,12 +1,11 @@
 /**
  * Memoization utility with capacity limits for AIKR compliance
- * Optimized for performance with efficient LRU implementation
  */
 export class Memoizer {
     constructor(maxSize = 1000) {
         this.cache = new Map();
         this.maxSize = maxSize;
-        this.accessOrder = [];  // Track access order for LRU
+        this.accessOrder = [];
     }
 
     memoize(fn) {

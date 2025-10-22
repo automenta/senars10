@@ -1,6 +1,5 @@
 /**
  * Abstract Functor interface for atomic operations in the SeNARS system.
- * Provides the foundation for registering and executing operations.
  */
 export class Functor {
   constructor(name, execute, config = {}) {
@@ -11,7 +10,7 @@ export class Functor {
     this.name = name;
     this.execute = execute;
     this.config = config;
-    this.arity = config.arity ?? 0; // Number of arguments the functor takes
+    this.arity = config.arity ?? 0;
     this.isCommutative = config.isCommutative || false;
     this.isAssociative = config.isAssociative || false;
   }
@@ -29,18 +28,30 @@ export class Functor {
 }
 
 /**
+ * Concrete implementation of Functor to wrap simple functions
+ */
+export class ConcreteFunctor extends Functor {
+  constructor(name, execute, config = {}) {
+    super(name, execute, config);
+  }
+}
+
+/**
  * FunctorRegistry - A system for registering and managing Functors
  */
 export class FunctorRegistry {
   constructor() {
-    this.functors = new Map(); // name -> Functor
-    this.aliases = new Map();  // alias -> name
+    this.functors = new Map();
+    this.aliases = new Map();
   }
 
   register(name, functor, aliases = []) {
+    // Make sure aliases is an array and make a copy so we can safely modify it
+    const aliasesArray = Array.isArray(aliases) ? aliases : [];
+    const aliasesCopy = [...aliasesArray];
+    
     if (typeof functor === 'function') {
-      // If a function is passed instead of a functor object, wrap it
-      functor = new Functor(name, functor, { arity: this._extractArity(aliases) });
+      functor = new ConcreteFunctor(name, functor, { arity: this._extractArity(aliasesCopy) });
     }
     
     if (this.functors.has(name)) {
@@ -48,7 +59,7 @@ export class FunctorRegistry {
     }
     
     this.functors.set(name, functor);
-    this._addAliases(aliases, name);
+    this._addAliases(aliasesCopy, name);
     
     return true;
   }

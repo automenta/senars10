@@ -15,7 +15,6 @@ export class BooleanReductionEngine {
     reduce(term) {
         if (!term || !term.isCompound) return term;
 
-        // Apply specific reduction rule if available
         const rule = this.reductionRules[term.operator];
         if (rule) {
             try {
@@ -27,10 +26,7 @@ export class BooleanReductionEngine {
             }
         }
 
-        // Recursively reduce components
         const reducedComponents = term.components.map(comp => this.reduce(comp));
-        
-        // Create new term if components changed, otherwise return original
         return reducedComponents.some((comp, idx) => comp !== term.components[idx]) 
             ? this._safeCreateTerm(term, reducedComponents)
             : term;
@@ -48,11 +44,9 @@ export class BooleanReductionEngine {
     _reduceAnd(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.True;
         
-        // Check for poison pills or early termination
         const poisonResult = this._checkPoison(components);
         if (poisonResult) return poisonResult;
 
-        // Filter and return simplified result
         const nonTrueComponents = components.filter(comp => !isTrue(comp));
         const count = nonTrueComponents.length;
         
@@ -64,11 +58,9 @@ export class BooleanReductionEngine {
     _reduceOr(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.False;
         
-        // Check for poison pills or early termination
         const poisonResult = this._checkPoison(components, isTrue, SYSTEM_ATOMS.True);
         if (poisonResult) return poisonResult;
 
-        // Filter and return simplified result
         const nonFalseComponents = components.filter(comp => !isFalse(comp));
         const count = nonFalseComponents.length;
         
@@ -82,17 +74,11 @@ export class BooleanReductionEngine {
 
         const operand = components[0];
         
-        // Double negation elimination
-        if (this._isDoubleNegation(operand)) {
-            return operand.components[0];
-        }
-
-        // Direct system atom reductions
+        if (this._isDoubleNegation(operand)) return operand.components[0];
         if (isTrue(operand)) return SYSTEM_ATOMS.False;
         if (isFalse(operand)) return SYSTEM_ATOMS.True;
         if (isNull(operand)) return SYSTEM_ATOMS.Null;
 
-        // Reduce operand and check again
         const reducedOperand = this.reduce(operand);
         if (isTrue(reducedOperand)) return SYSTEM_ATOMS.False;
         if (isFalse(reducedOperand)) return SYSTEM_ATOMS.True;
@@ -106,16 +92,13 @@ export class BooleanReductionEngine {
 
         const [antecedent, consequent] = components;
 
-        // Direct reductions for known values
         if (isNull(antecedent) || isNull(consequent)) return SYSTEM_ATOMS.Null;
         if (isFalse(antecedent) || isTrue(consequent)) return SYSTEM_ATOMS.True;
         if (isTrue(antecedent) && isFalse(consequent)) return SYSTEM_ATOMS.False;
 
-        // Recursively reduce components
         const reducedAntecedent = this.reduce(antecedent);
         const reducedConsequent = this.reduce(consequent);
 
-        // Return simplified term if any reduction occurred
         return (reducedAntecedent !== antecedent || reducedConsequent !== consequent)
             ? new Term('compound', 'IMPLICATION', [reducedAntecedent, reducedConsequent], '==>')
             : new Term('compound', 'IMPLICATION', [antecedent, consequent], '==>');
@@ -126,16 +109,13 @@ export class BooleanReductionEngine {
 
         const [left, right] = components;
 
-        // Direct reductions for known values
         if (isNull(left) || isNull(right)) return SYSTEM_ATOMS.Null;
         if ((isTrue(left) && isTrue(right)) || (isFalse(left) && isFalse(right))) return SYSTEM_ATOMS.True;
         if ((isTrue(left) && isFalse(right)) || (isFalse(left) && isTrue(right))) return SYSTEM_ATOMS.False;
 
-        // Recursively reduce components
         const reducedLeft = this.reduce(left);
         const reducedRight = this.reduce(right);
 
-        // Return simplified term if any reduction occurred
         return (reducedLeft !== left || reducedRight !== right)
             ? new Term('compound', 'EQUIVALENCE', [reducedLeft, reducedRight], '<=>')
             : new Term('compound', 'EQUIVALENCE', [left, right], '<=>');

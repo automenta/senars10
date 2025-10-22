@@ -15,12 +15,10 @@ export class OperationEvaluationEngine {
     }
 
     async evaluate(operationTerm, context, variableBindings = new Map()) {
-        // Handle non-operation terms first
         if (!operationTerm.isCompound || operationTerm.operator !== '^') {
             return this._evaluateNonOperation(operationTerm, context, variableBindings);
         }
 
-        // Validate operation format
         if (operationTerm.components.length !== 2) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format');
         }
@@ -31,7 +29,6 @@ export class OperationEvaluationEngine {
     _evaluateOperation(operationTerm, variableBindings) {
         const [functionTerm, argsTerm] = operationTerm.components;
         
-        // Resolve function name with variable binding support
         const functionName = this._resolveFunctionName(functionTerm, variableBindings);
         if (!functionName) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Unbound variable in function position');
@@ -60,7 +57,6 @@ export class OperationEvaluationEngine {
         }
     }
 
-    // Resolve function name, handling variable bindings
     _resolveFunctionName(functionTerm, variableBindings) {
         if (functionTerm.name && functionTerm.name.startsWith('?')) {
             return variableBindings.has(functionTerm.name) 
@@ -78,12 +74,10 @@ export class OperationEvaluationEngine {
             return [this._substituteVariables(argsTerm, variableBindings)];
         }
 
-        // Handle compound arguments
         return this._extractCompoundArguments(argsTerm, variableBindings);
     }
     
     _extractCompoundArguments(argsTerm, variableBindings) {
-        // Handle compound arguments, skipping the first component if it's a wildcard (*)
         let startIndex = (argsTerm.components[0] && 
                          (argsTerm.components[0].name === '*' || argsTerm.components[0].name === '?*')) ? 1 : 0;
         
@@ -104,15 +98,12 @@ export class OperationEvaluationEngine {
     _substituteVariables(term, bindings) {
         if (!term) return term;
 
-        // Handle variable binding
         if (term.name && typeof term.name === 'string' && term.name.startsWith('?')) {
             return bindings.has(term.name) ? bindings.get(term.name) : term;
         }
 
-        // Handle compound terms recursively
         if (term.isCompound) {
             const newComponents = term.components.map(comp => this._substituteVariables(comp, bindings));
-            // Only create new term if there were actual changes
             const hasChanges = newComponents.some((comp, idx) => comp !== term.components[idx]);
             return hasChanges ? new Term(term.type, term.name, newComponents, term.operator) : term;
         }
@@ -123,19 +114,16 @@ export class OperationEvaluationEngine {
     _termToValue(term) {
         if (!term) return null;
 
-        // Handle system atoms first
         const termName = term.name;
         if (termName === 'True') return true;
         if (termName === 'False') return false;
         if (termName === 'Null') return null;
 
-        // Handle atomic terms
         if (term.isAtomic) {
             const numValue = Number(termName);
             return isNaN(numValue) ? termName : numValue;
         }
 
-        // For compound terms, return as-is
         return term;
     }
 
@@ -157,7 +145,6 @@ export class OperationEvaluationEngine {
         return this._createTermWithErrorHandling('atom', String(value));
     }
 
-    // Helper function to create terms with error handling
     _createTermWithErrorHandling(type, name) {
         try {
             return new Term(type, name, [name]);
@@ -167,7 +154,6 @@ export class OperationEvaluationEngine {
         }
     }
 
-    // Helper function to standardize result objects
     _createResult(result, success, message, additionalData = {}) {
         return { result, success, message, ...additionalData };
     }

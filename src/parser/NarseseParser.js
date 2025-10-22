@@ -36,30 +36,25 @@ export class NarseseParser {
                 const argsStr = match[2].trim();
                 
                 if (argsStr) {
-                    // Parse the arguments as a list
                     const args = this.parseList(argsStr);
-                    
-                    // Create the operation: f ^ (*, x, y, ...)
-                    // where (*, x, y, ...) represents a tuple with * as the first element
                     return {
                         operator: '^',
                         components: [
-                            { components: [functionName] }, // The function name as a simple term
+                            { components: [functionName] },
                             { 
-                                operator: ',', // Using comma as tuple operator to represent (*, x, y)
-                                components: [{ components: ['*'] }, ...args] // First component is *, then actual args
+                                operator: ',',
+                                components: [{ components: ['*'] }, ...args]
                             }
                         ]
                     };
                 } else {
-                    // Handle function with no arguments: f()
                     return {
                         operator: '^',
                         components: [
-                            { components: [functionName] }, // The function name as a simple term
+                            { components: [functionName] },
                             { 
-                                operator: ',', // Using comma as tuple operator to represent (*)
-                                components: [{ components: ['*'] }] // Just the * placeholder
+                                operator: ',',
+                                components: [{ components: ['*'] }]
                             }
                         ]
                     };
@@ -70,10 +65,8 @@ export class NarseseParser {
         for (const [start, end] of Object.entries(BRACKETS)) {
             if (trimmed.startsWith(start) && trimmed.endsWith(end)) {
                 const inner = trimmed.slice(1, -1).trim();
-                // Check if inner content needs compound parsing (contains operators)
-                const needsCompoundParsing = /\s*(-->|<->|==>|\x3c\x3d>|\\^|\{\{--|--\}\}|&[,]\s|\|\s|\&\/\s)/.test(inner);
+                const needsCompoundParsing = /\s*(-->|<->|==>|\<\=>|\\\^|\{\{--|--\}\}|&,\s|\|\s|\&\/\s)/.test(inner);
                 if (needsCompoundParsing) return this.parseCompound(inner);
-                // Handle different bracket types: () = compound, {} = set, [] = array
                 const operator = start === '(' ? ',' : (start === '{' ? '{}' : '[]');
                 return {operator, components: this.parseList(inner)};
             }
@@ -164,42 +157,5 @@ export class NarseseParser {
     _validateInput = input => {
         if (typeof input !== 'string') throw new Error('Input must be a string');
         if (!input.trim()) throw new Error('Empty input');
-    };
-
-    // Create operation term for function call notation: f(x,y) becomes f ^ (*, x, y)
-    _createOperation(functionName, args) {
-        const funcTerm = { components: [functionName] };
-        const argTuple = { 
-            operator: ',',
-            components: [{ components: ['*'] }, ...args]
-        };
-        
-        return {
-            operator: '^',
-            components: [funcTerm, argTuple]
-        };
-    }
-
-    _isFunctionCall = trimmed => trimmed.includes('(') && trimmed.endsWith(')');
-
-    _parseFunctionCall = trimmed => {
-        const match = trimmed.match(/^([^(]+)\((.*)\)$/);
-        if (!match) return {components: [trimmed]};
-        
-        const functionName = match[1].trim();
-        const argsStr = match[2].trim();
-        const args = argsStr ? this.parseList(argsStr) : [];
-        
-        return this._createOperation(functionName, args);
-    };
-
-    _parseBracketContent = (trimmed, start, end) => {
-        const inner = trimmed.slice(1, -1).trim();
-        // Check if inner content needs compound parsing (contains operators)
-        const needsCompoundParsing = /\s*(-->|<->|==>|\<\=>|\\^|\{\{--|--\}\}|&,\s|\|\s|&\/\s)/.test(inner);
-        if (needsCompoundParsing) return this.parseCompound(inner);
-        // Handle different bracket types: () = compound, {} = set, [] = array
-        const operator = start === '(' ? ',' : (start === '{' ? '{}' : '[]');
-        return {operator, components: this.parseList(inner)};
     };
 }
