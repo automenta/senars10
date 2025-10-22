@@ -1,4 +1,4 @@
-# SeNARS v10: Enhanced Development Plan
+# SeNARS v10: Enhanced Development Plan (Final)
 
 ## 1. Introduction: Architectural Elegance & Functional Enhancement
 
@@ -51,7 +51,7 @@ The existing system features:
     - [ ] Implement the **`TermLayer`** as a concrete **`Layer`** (akin to NARS `TermLink`s), using a capacity-limited **`Bag`** of prioritized references for AIKR compliance.
 
 - **1.4. Functor Framework:**
-    - [ ] Design and implement a system for registering **`Functor`**s (atomic operations) and their associated evaluation logic.
+    - [ ] Design and implement a system for registering **`Functor`**s (atomic operations) and their associated evaluation logic, exposed via a programmatic interface like `system.registerFunctor()`.
 
 ### Acceptance Criteria for Phase 1:
 - [ ] Core architecture is consolidated with consistent lifecycle and configuration patterns.
@@ -85,7 +85,7 @@ The existing system features:
 
 - **2.4. Enhance Validation & Hybrid Reasoning Synergy:**
     - [ ] Create a comprehensive unit test suite for all new NAL rules and evaluation/reduction logic.
-    - [ ] Implement synergistic reasoning pathways where NAL and LM outputs can feed into each other to refine results or generate new premises.
+    - [ ] Foster neurosymbolic synergy through the diverse application of NAL and LM rules on a shared memory space.
     - [ ] Implement sophisticated conflict resolution that weighs evidence from different reasoning sources.
 
 ### Acceptance Criteria for Phase 2:
@@ -99,9 +99,10 @@ The existing system features:
 ### Phase 3: Meta-Cognition & Advanced Evaluation (Back-Solving)
 *Goal: Implement self-monitoring, integrate associative memory, and introduce advanced back-solving to achieve Prolog-like capabilities.*
 
-- **3.1. Self-Optimizing Component:**
-    - [ ] Implement a `Self` component with system-wide monitoring and adaptive parameter tuning.
-    - [ ] Develop anomaly detection and predictive optimization based on performance metrics.
+- **3.1. Foundational Self-Optimization:**
+    - [ ] Implement a **`MetricsMonitor`** component to track key system performance indicators (e.g., rule success rates, execution times, cache hit rates).
+    - [ ] Use these metrics to implement an initial self-optimization mechanism: **dynamic rule priority adjustment**.
+    - [ ] Ensure the design is abstract and extensible to allow for the future inclusion of additional metrics and control parameters.
 
 - **3.2. Advanced Evaluation: Back-Solving:**
     - [ ] Enhance the evaluation engine to support **back-solving** for variables in Operation terms (e.g., solving for `?x` in `add(1, ?x) = 3`).
@@ -117,7 +118,7 @@ The existing system features:
 ### Acceptance Criteria for Phase 3:
 - [ ] The evaluation engine supports back-solving for key **`Functor`**s.
 - [ ] The **`TermLayer`** is actively used in the reasoning cycle, improving performance or capabilities.
-- [ ] The self-optimization component demonstrates measurable performance improvements.
+- [ ] The self-optimization component can dynamically adjust rule priorities based on performance metrics.
 - [ ] Meta-cognitive capabilities enable system awareness and self-correction.
 
 ---
@@ -127,7 +128,9 @@ The existing system features:
 
 - **4.1. Advanced Tool Framework:**
     - [ ] Implement sophisticated tool discovery, sandboxing, and workflow orchestration.
-    - [ ] **Synergize Tools and Functors:** Bridge the external tool framework with the internal **`Functor`** evaluation system, allowing them to interoperate securely.
+    - [ ] **Establish a Clear Functor/Tool Boundary:**
+        - [ ] Maintain a strict separation: **`Functor`**s are for pure, synchronous, CPU-bound logic. **`Tool`**s are for external, asynchronous operations with side effects (I/O, network).
+        - [ ] To bridge them, create specific **`Functor`**s that can **schedule** a **`Tool`** execution, with the result returned to the system asynchronously as a new task or event.
 
 - **4.2. Multi-Modal & Embedding Integration:**
     - [ ] **`EmbeddingLayer` Implementation:**
@@ -141,7 +144,7 @@ The existing system features:
 
 ### Acceptance Criteria for Phase 4:
 - [ ] The **`EmbeddingLayer`** is fully implemented, providing asynchronous, progressive, and persistent semantic reasoning.
-- [ ] The tool framework and internal **`Functor`** system can interoperate.
+- [ ] A clear, secure boundary between internal **`Functor`**s and external **`Tool`**s is implemented.
 - [ ] Multi-modal reasoning capabilities process diverse data types effectively.
 
 ---
