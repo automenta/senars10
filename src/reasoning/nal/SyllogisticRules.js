@@ -1,6 +1,7 @@
 import {DeductionRule} from './DeductionRule.js';
 import {InductionRule} from './InductionRule.js';
 import {AbductionRule} from './AbductionRule.js';
+import {ComparisonRule} from './ComparisonRule.js';
 
 /**
  * Syllogistic reasoning rules collection
@@ -10,7 +11,8 @@ export class SyllogisticRules {
         return [
             new DeductionRule(),
             new InductionRule(),
-            new AbductionRule()
+            new AbductionRule(),
+            new ComparisonRule()
         ];
     }
 
@@ -24,5 +26,9 @@ export class SyllogisticRules {
 
     static getAbductionRule() {
         return new AbductionRule();
+    }
+    
+    static getComparisonRule() {
+        return new ComparisonRule();
     }
 }

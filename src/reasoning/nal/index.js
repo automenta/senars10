@@ -4,6 +4,10 @@ export {NALRule} from './NALRule.js';
 export {DeductionRule} from './DeductionRule.js';
 export {InductionRule} from './InductionRule.js';
 export {AbductionRule} from './AbductionRule.js';
+export {ComparisonRule} from './ComparisonRule.js';
+export {SetTheoreticRule} from './SetTheoreticRule.js';
+export {ConditionalRule} from './ConditionalRule.js';
+export {TemporalDeductionRule} from './TemporalDeductionRule.js';
 export {RuleManager} from './RuleManager.js';
 export {RuleEngine} from './RuleEngine.js';
 
