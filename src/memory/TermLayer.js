@@ -49,7 +49,8 @@ export class TermLayer extends Layer {
       id: linkId,
       source,
       target,
-      data: { ...data, priority }
+      data: { ...data, priority },
+      budget: { priority }  // Add budget object with priority for the Bag
     };
     
     // Add to bag - if bag is at capacity, it'll auto-evict lowest priority

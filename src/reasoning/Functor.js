@@ -1,5 +1,5 @@
 /**
- * Functor interface for atomic operations in the SeNARS system.
+ * Abstract Functor interface for atomic operations in the SeNARS system.
  * Provides the foundation for registering and executing operations.
  */
 export class Functor {
@@ -47,6 +47,15 @@ export class Functor {
     
     // Additional validation can be implemented by subclasses
     return true;
+  }
+}
+
+/**
+ * Concrete implementation of a Functor for general use
+ */
+export class ConcreteFunctor extends Functor {
+  constructor(name, execute, config = {}) {
+    super(name, execute, config);
   }
 }
 
@@ -152,7 +161,7 @@ export class FunctorRegistry {
 
   /**
    * Get all registered functor aliases
-   * @returns {Array} - Array of functor aliases
+   * @returns {Array} - Array of functor names
    */
   getAliases() {
     return Array.from(this.aliases.keys());
