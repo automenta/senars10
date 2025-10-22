@@ -1,7 +1,7 @@
 import {TermFactory} from '../term/TermFactory.js';
 
 const PUNCTUATION_TYPE_MAP = {'.': 'BELIEF', '!': 'GOAL', '?': 'QUESTION'};
-const INFIX_OPERATORS = ['-->', '<->', '==>', '<=>', '^', '{{--', '--}}'];
+const INFIX_OPERATORS = ['-->', '<->', '==>', '<=>', '^', '{{--', '--}}', '='];
 const PREFIX_OPERATORS = [['--, ', '--'], ['&, ', '&'], ['|, ', '|'], ['&/, ', '&/']];
 const BRACKETS = {'(': ')', '{': '}', '[': ']'};
 const BRACKET_STARTS = Object.keys(BRACKETS);
@@ -27,11 +27,51 @@ export class NarseseParser {
 
     parseTermData = input => {
         const trimmed = input.trim();
+        
+        // Handle function call notation: f(x,y) as shorthand for f ^ (x,y)
+        if (trimmed.includes('(') && trimmed.endsWith(')')) {
+            const match = trimmed.match(/^([^(]+)\((.*)\)$/);
+            if (match) {
+                const functionName = match[1].trim();
+                const argsStr = match[2].trim();
+                
+                if (argsStr) {
+                    // Parse the arguments as a list
+                    const args = this.parseList(argsStr);
+                    
+                    // Create the operation: f ^ (*, x, y, ...)
+                    // where (*, x, y, ...) represents a tuple with * as the first element
+                    return {
+                        operator: '^',
+                        components: [
+                            { components: [functionName] }, // The function name as a simple term
+                            { 
+                                operator: ',', // Using comma as tuple operator to represent (*, x, y)
+                                components: [{ components: ['*'] }, ...args] // First component is *, then actual args
+                            }
+                        ]
+                    };
+                } else {
+                    // Handle function with no arguments: f()
+                    return {
+                        operator: '^',
+                        components: [
+                            { components: [functionName] }, // The function name as a simple term
+                            { 
+                                operator: '*',
+                                components: [{ components: ['*'] }] // Just the * placeholder
+                            }
+                        ]
+                    };
+                }
+            }
+        }
+        
         for (const [start, end] of Object.entries(BRACKETS)) {
             if (trimmed.startsWith(start) && trimmed.endsWith(end)) {
                 const inner = trimmed.slice(1, -1).trim();
                 // Check if inner content needs compound parsing (contains operators)
-                const needsCompoundParsing = /\s*(-->|<->|==>|<=>|\^|\{\{--|--\}\}|&[,]\s|\|\s|\&\/\s)/.test(inner);
+                const needsCompoundParsing = /\s*(-->|<->|==>|\x3c\x3d>|\\^|\{\{--|--\}\}|&[,]\s|\|\s|\&\/\s)/.test(inner);
                 if (needsCompoundParsing) return this.parseCompound(inner);
                 // Handle different bracket types: () = compound, {} = set, [] = array
                 const operator = start === '(' ? ',' : (start === '{' ? '{}' : '[]');

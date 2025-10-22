@@ -99,7 +99,7 @@ export class Term {
      * @returns {boolean} - True if operator is commutative
      */
     _isCommutativeOperator() {
-        const commutativeOps = new Set(['&', '|', '+', '*', '<->', '<=>']);
+        const commutativeOps = new Set(['&', '|', '+', '*', '<->', '<=>', '=']);
         return commutativeOps.has(this._operator);
     }
 

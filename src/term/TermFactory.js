@@ -3,7 +3,7 @@ import {CognitiveDiversity} from './CognitiveDiversity.js';
 
 export {Term};
 
-const COMMUTATIVE_OPERATORS = new Set(['&', '|', '+', '*', '<->']);
+const COMMUTATIVE_OPERATORS = new Set(['&', '|', '+', '*', '<->', '=']);
 const ASSOCIATIVE_OPERATORS = new Set(['&', '|']);
 
 export class TermFactory {
@@ -309,6 +309,7 @@ export class TermFactory {
             '<->': `(<->, ${names[0]}, ${names[1]})`,
             '==>': `(==>, ${names[0]}, ${names[1]})`,
             '<=>': `(<=>, ${names[0]}, ${names[1]})`,
+            '=': `(=, ${names[0]}, ${names[1]})`,
             '^': `(^, ${names[0]}, ${names[1]})`,
             '{{--': `({{--, ${names[0]}, ${names[1]})`,
             '--}}': `(--}}, ${names[0]}, ${names[1]})`,
@@ -522,5 +523,36 @@ export class TermFactory {
      */
     calculateCognitiveDiversity() {
         return this._cognitiveDiversity.calculateDiversity();
+    }
+
+    /**
+     * Create or get the special True atom
+     */
+    createTrue() {
+        return this._getOrCreateAtomic('True');
+    }
+
+    /**
+     * Create or get the special False atom
+     */
+    createFalse() {
+        return this._getOrCreateAtomic('False');
+    }
+
+    /**
+     * Create or get the special Null atom
+     */
+    createNull() {
+        return this._getOrCreateAtomic('Null');
+    }
+
+    /**
+     * Check if a term is a special system atom (True, False, Null)
+     * @param {Term} term - The term to check
+     * @returns {boolean} - True if the term is a system atom
+     */
+    isSystemAtom(term) {
+        return term && term.isAtomic && 
+            (term.name === 'True' || term.name === 'False' || term.name === 'Null');
     }
 }
