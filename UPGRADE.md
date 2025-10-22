@@ -41,7 +41,7 @@ The existing system features:
 
 - **1.2. Term System Optimization:**
     - [ ] Implement advanced term canonicalization, normalization with proper commutativity handling
-    - [ ] Optimize term factory caching
+    - [ ] Optimize term factory caching with a **capacity limit** to obey AIKR.
     - [ ] Add computational complexity metrics for cognitive diversity calculations
     - [ ] Enhance term equality and comparison for structural correctness
 
@@ -51,11 +51,15 @@ The existing system features:
     - [ ] Enhance memory indexing strategies for different term types
     - [ ] Improve consolidation algorithms with better priority decay mechanisms
 
+- **1.4. Associative Memory Architecture (`Layer`s):**
+    - [ ] Design and implement an abstract, pluggable `Layer` interface for associative links, allowing for dynamic implementations and per-link data.
+    - [ ] Implement the `TermLayer` as a concrete `Layer` (similar to NARS `TermLink`s), using a capacity-limited `Bag` of prioritized references for AIKR compliance.
+
 ### Acceptance Criteria for Phase 1:
-- [ ] All components follow consistent lifecycle and configuration patterns
-- [ ] Term operations demonstrate improved performance and correctness
-- [ ] Memory systems exhibit enhanced efficiency with cognitive diversity preservation
-- [ ] Configuration validation prevents invalid system states
+- [ ] All components follow consistent lifecycle and configuration patterns.
+- [ ] Term operations demonstrate improved performance and correctness, with capacity-limited caches.
+- [ ] The abstract `Layer` and concrete `TermLayer` are implemented, providing a foundation for associative memory.
+- [ ] Configuration validation prevents invalid system states.
 
 ---
 
@@ -117,8 +121,8 @@ An analysis of the current implementation reveals the following readiness level 
 
 - **2.2. Implement Performance Optimizations (Priority 2):**
     - [ ] **Rule Caching and Memoization:**
-        - [ ] Implement a memoization decorator for `NALRule._apply` to cache results for identical premises.
-        - [ ] Develop a caching strategy for frequently used rules to reduce lookup times.
+        - [ ] Implement a **capacity-limited** memoization decorator for `NALRule._apply` to cache results for identical premises, ensuring AIKR compliance.
+        - [ ] Develop a **capacity-limited** caching strategy for frequently used rules to reduce lookup times.
     - [ ] **Performance-based Rule Prioritization:**
         - [ ] Implement a priority queue for rule selection based on a combination of static priority and dynamic performance metrics (e.g., execution time, success rate).
         - [ ] Introduce a "winnowing" process to filter out less relevant rules before the main selection process.
@@ -126,18 +130,19 @@ An analysis of the current implementation reveals the following readiness level 
         - [ ] Create an indexing mechanism for terms in memory to speed up pattern matching.
         - [ ] Optimize the `_unifyPatterns` method for common cases.
 
-- **2.3. Enhance Validation and Coordination Framework (Priority 3):**
+- **2.3. Enhance Validation and Hybrid Reasoning Synergy (Priority 3):**
     - [ ] **Rule Validation and Testing:**
         - [ ] Create a comprehensive suite of unit tests for each new NAL rule.
         - [ ] Develop a validation framework to check for logical consistency between rules.
     - [ ] **Hybrid Reasoning Coordination:**
-        - [ ] Implement a more sophisticated conflict resolution mechanism that considers the truth values and sources of conflicting conclusions.
-        - [ ] Enhance the reasoning gap detection to allow for more targeted application of LM and NAL rules.
+        - [ ] Implement a sophisticated conflict resolution mechanism that considers the truth values and sources of conflicting conclusions.
+        - [ ] Design the system to **combine, cooperate, and synergize** NAL and LM reasoning pathways, rather than merely switching between them.
+        - [ ] Enhance reasoning gap detection to allow for more targeted, synergistic application of LM and NAL rules.
 
 ### Acceptance Criteria for Phase 2:
 - [ ] At least 15 new NAL rules are implemented, tested, and integrated into the reasoning engine.
-- [ ] The reasoning engine demonstrates a measurable improvement in performance due to the new optimization features.
-- [ ] The hybrid reasoning system can resolve conflicts and intelligently switch between NAL and LM reasoning.
+- [ ] The reasoning engine demonstrates measurable improvement from capacity-limited optimization features.
+- [ ] The hybrid reasoning system demonstrates effective synergy between NAL and LM reasoning.
 - [ ] The validation framework prevents the introduction of inconsistent or incorrect rules.
 
 ---
@@ -180,11 +185,18 @@ An analysis of the current implementation reveals the following readiness level 
     - [ ] Create tool chaining and workflow orchestration capabilities
     - [ ] Implement tool result validation and consistency checking
 
-- **4.2. Multi-Modal Integration:**
-    - [ ] Enhance embedding integration for semantic similarity reasoning
-    - [ ] Add multimedia processing tools (PDF, image, audio processing)
-    - [ ] Implement cross-modal reasoning between different data types
-    - [ ] Create multi-modal query processing capabilities
+- **4.2. Multi-Modal & Embedding Integration:**
+    - [ ] **Embedding `Layer` Implementation:**
+        - [ ] Implement the `EmbeddingLayer` as a concrete `Layer` for semantic similarity reasoning.
+        - [ ] Associate each `EmbeddingLayer` with a specific LM embedding model, allowing for multiple, separate layers to support different models.
+        - [ ] Implement a priority-based, fixed-capacity "Pending Work Queue" `Bag` for asynchronous embedding computation. This I/O-bound LM call must run in a separate thread to prevent blocking CPU-bound reasoning.
+        - [ ] Ensure the system is **progressive**: it must use available embedding data without assuming or requiring that embeddings are fully computed.
+        - [ ] Implement a **capacity-limited LRU cache** for computed embeddings, with persistence to disk for reuse.
+        - [ ] This feature adapts and enhances the `embeddingRef` concept from `v8/`.
+    - [ ] **Other Multi-Modal Tools:**
+        - [ ] Add multimedia processing tools (PDF, image, audio processing).
+        - [ ] Implement cross-modal reasoning between different data types.
+        - [ ] Create multi-modal query processing capabilities.
 
 - **4.3. Tool Intelligence:**
     - [ ] Implement intelligent tool selection based on task requirements
@@ -193,10 +205,9 @@ An analysis of the current implementation reveals the following readiness level 
     - [ ] Develop tool failure prediction and mitigation strategies
 
 ### Acceptance Criteria for Phase 4:
-- [ ] Tool framework demonstrates safe execution with comprehensive validation
-- [ ] Multi-modal reasoning capabilities process diverse data types effectively
-- [ ] Tool intelligence improves selection accuracy and efficiency
-- [ ] Cross-modal reasoning demonstrates enhanced capability and accuracy
+- [ ] The `EmbeddingLayer` is fully implemented, providing asynchronous, progressive, and persistent semantic reasoning capabilities.
+- [ ] Tool framework demonstrates safe execution with comprehensive validation.
+- [ ] Multi-modal reasoning capabilities process diverse data types effectively.
 
 ---
 
@@ -216,16 +227,15 @@ An analysis of the current implementation reveals the following readiness level 
     - [ ] Implement batch processing capabilities for complex operations
 
 - **5.3. API & Integration Layer:**
-    - [ ] Develop comprehensive REST API with consistent interface design
-    - [ ] Create WebSocket streaming for real-time event notifications
-    - [ ] Implement agent interfaces for autonomous operation
-    - [ ] Add extensive plugin APIs for extensibility
+    - [ ] Develop a comprehensive **WebSocket API** for streaming real-time event notifications and interaction.
+    - [ ] Implement agent interfaces for autonomous operation.
+    - [ ] Add extensive plugin APIs for extensibility.
 
 ### Acceptance Criteria for Phase 5:
-- [ ] Web UI provides comprehensive insight into system operation and reasoning
-- [ ] TUI/REPL offers intuitive and powerful user interaction capabilities
-- [ ] APIs support robust external integration with consistent behavior
-- [ ] All interfaces maintain accessibility and performance standards
+- [ ] Web UI provides comprehensive insight into system operation and reasoning.
+- [ ] TUI/REPL offers intuitive and powerful user interaction capabilities.
+- [ ] The WebSocket API supports robust, real-time external integration.
+- [ ] All interfaces maintain accessibility and performance standards.
 
 ---
 
@@ -246,15 +256,15 @@ An analysis of the current implementation reveals the following readiness level 
 
 - **6.3. Performance Optimization:**
     - [ ] Profile and optimize critical reasoning paths for scale
-    - [ ] Implement advanced caching strategies for terms, rules, and inferences
+    - [ ] Implement and verify advanced **capacity-limited** caching strategies for terms, rules, and inferences to ensure AIKR compliance.
     - [ ] Optimize memory management with intelligent garbage collection
     - [ ] Enhance parallel processing capabilities for rule application
 
 ### Acceptance Criteria for Phase 6:
-- [ ] Property-based tests verify correctness of all core operations
-- [ ] Integration tests validate complete system functionality under load
-- [ ] Performance benchmarks demonstrate scalability and efficiency
-- [ ] System exhibits robustness under failure conditions and stress
+- [ ] Property-based tests verify correctness of all core operations.
+- [ ] Integration tests validate complete system functionality under load.
+- [ ] Performance benchmarks demonstrate scalability and efficiency, including cache performance.
+- [ ] System exhibits robustness under failure conditions and stress.
 
 ---
 
