@@ -93,36 +93,52 @@ An analysis of the current implementation reveals the following readiness level 
 *Goal: Address critical gaps by implementing a comprehensive NAL rule set and sophisticated reasoning optimizations.*
 
 - **2.1. Expand Core NAL Rules (Priority 1):**
-    - [ ] Implement the full set of core NAL inference rules (15+ rules), including:
-        - [ ] Deduction (already present)
-        - [ ] Induction
-        - [ ] Abduction
-        - [ ] Exemplification
+    - [ ] **Syllogistic and Conditional Rules:**
+        - [x] Modus Ponens (already present)
+        - [x] Syllogism (already present)
+        - [ ] Modus Tollens
+        - [ ] Hypothetical Syllogism
+    - [ ] **Conversion and Contraposition:**
         - [ ] Conversion
-        - [ ] Comparison
-        - [ ] Negation
-        - [ ] And others as specified in NAL literature.
-    - [ ] Implement higher-order reasoning rules for meta-level inference.
-    - [ ] Enhance pattern matching to support complex variable binding and substitution beyond the basic '?X' convention.
+        - [ ] Contraposition
+    - [ ] **Comparison and Analogy:**
+        - [ ] Analogy (structural and semantic)
+        - [ ] Comparison (similarity and difference)
+    - [ ] **Set-theoretic and Higher-Order Rules:**
+        - [ ] Exemplification and Generalization
+        - [ ] Intersection and Union
+        - [ ] Negation and Double Negation
+    - [ ] **Temporal and Causal Rules:**
+        - [ ] Temporal Inference (e.g., before, after)
+        - [ ] Causal Inference (e.g., causes, effects)
+    - [ ] **Advanced Pattern Matching:**
+        - [ ] Implement support for set-theoretic matching in patterns.
+        - [ ] Enhance variable binding to handle restricted and dependent variables.
 
 - **2.2. Implement Performance Optimizations (Priority 2):**
-    - [ ] Implement winnowing-based rule evaluation for efficient selection of relevant rules.
-    - [ ] Add intelligent rule caching and result memoization to avoid redundant computations.
-    - [ ] Optimize pattern matching algorithms by implementing indexing strategies for faster term retrieval.
-    - [ ] Create a dynamic rule prioritization system based on performance metrics and contextual relevance.
+    - [ ] **Rule Caching and Memoization:**
+        - [ ] Implement a memoization decorator for `NALRule._apply` to cache results for identical premises.
+        - [ ] Develop a caching strategy for frequently used rules to reduce lookup times.
+    - [ ] **Performance-based Rule Prioritization:**
+        - [ ] Implement a priority queue for rule selection based on a combination of static priority and dynamic performance metrics (e.g., execution time, success rate).
+        - [ ] Introduce a "winnowing" process to filter out less relevant rules before the main selection process.
+    - [ ] **Pattern Matching Indexing:**
+        - [ ] Create an indexing mechanism for terms in memory to speed up pattern matching.
+        - [ ] Optimize the `_unifyPatterns` method for common cases.
 
 - **2.3. Enhance Validation and Coordination Framework (Priority 3):**
-    - [ ] Develop a robust validation framework to ensure rule correctness and logical consistency.
-    - [ ] Enhance NAL-LM integration with more sophisticated path selection logic.
-    - [ ] Implement a conflict resolution mechanism to manage contradictory outputs from different reasoning sources (NAL vs. LM).
-    - [ ] Add reasoning gap detection to intelligently trigger fallback or alternative reasoning strategies.
-    - [ ] Create cross-validation protocols for hybrid inferences to improve reliability.
+    - [ ] **Rule Validation and Testing:**
+        - [ ] Create a comprehensive suite of unit tests for each new NAL rule.
+        - [ ] Develop a validation framework to check for logical consistency between rules.
+    - [ ] **Hybrid Reasoning Coordination:**
+        - [ ] Implement a more sophisticated conflict resolution mechanism that considers the truth values and sources of conflicting conclusions.
+        - [ ] Enhance the reasoning gap detection to allow for more targeted application of LM and NAL rules.
 
 ### Acceptance Criteria for Phase 2:
-- [ ] Complete NAL rule set with all inference patterns implemented and tested
-- [ ] Reasoning performance shows measurable improvement with optimization
-- [ ] Hybrid reasoning demonstrates enhanced accuracy and intelligent path selection
-- [ ] Rule validation prevents inconsistent or contradictory inferences
+- [ ] At least 15 new NAL rules are implemented, tested, and integrated into the reasoning engine.
+- [ ] The reasoning engine demonstrates a measurable improvement in performance due to the new optimization features.
+- [ ] The hybrid reasoning system can resolve conflicts and intelligently switch between NAL and LM reasoning.
+- [ ] The validation framework prevents the introduction of inconsistent or incorrect rules.
 
 ---
 
