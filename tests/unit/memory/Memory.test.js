@@ -1,9 +1,6 @@
 import {Memory} from '../../../src/memory/Memory.js';
 import {createMemoryConfig, createTask, createTerm, TEST_CONSTANTS} from '../../support/factories.js';
-import {
-    TestSuiteFactory,
-    memoryAssertions
-} from '../../support/testOrganizer.js';
+import {memoryAssertions, TestSuiteFactory} from '../../support/testOrganizer.js';
 
 // Use the TestSuiteFactory to create a comprehensive Memory test suite
 TestSuiteFactory.createMemoryRelatedSuite({

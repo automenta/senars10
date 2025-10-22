@@ -4,7 +4,7 @@
  */
 
 import {deepFreeze} from '../util/common.js';
-import { validateConfig } from '../config/ConfigValidator.js';
+import {validateConfig} from '../config/ConfigValidator.js';
 
 // Simple default configuration
 const DEFAULT_CONFIG = deepFreeze({

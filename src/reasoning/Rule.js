@@ -5,7 +5,7 @@ import {clamp} from '../util/common.js';
 export class Rule {
     constructor(id, type, priority = 1.0, config = {}) {
         if (!id || typeof id !== 'string') throw new Error('Rule ID must be a non-empty string');
-        
+
         this._id = id;
         this._type = type;
         this._priority = clamp(priority, TRUTH.MIN_PRIORITY, TRUTH.MAX_PRIORITY);
@@ -16,17 +16,45 @@ export class Rule {
         });
     }
 
-    get id() { return this._id; }
-    get type() { return this._type; }
-    get priority() { return this._priority; }
-    get enabled() { return this._enabled; }
-    get config() { return this._config; }
-    get metrics() { return this._metrics; }
+    get id() {
+        return this._id;
+    }
 
-    enable() { return this._updateIfChanged('_enabled', true); }
-    disable() { return this._updateIfChanged('_enabled', false); }
-    withPriority(priority) { return this._updateIfChanged('_priority', clamp(priority, TRUTH.MIN_PRIORITY, TRUTH.MAX_PRIORITY)); }
-    withConfig(config) { return this._updateIfChanged('_config', {...this._config, ...config}); }
+    get type() {
+        return this._type;
+    }
+
+    get priority() {
+        return this._priority;
+    }
+
+    get enabled() {
+        return this._enabled;
+    }
+
+    get config() {
+        return this._config;
+    }
+
+    get metrics() {
+        return this._metrics;
+    }
+
+    enable() {
+        return this._updateIfChanged('_enabled', true);
+    }
+
+    disable() {
+        return this._updateIfChanged('_enabled', false);
+    }
+
+    withPriority(priority) {
+        return this._updateIfChanged('_priority', clamp(priority, TRUTH.MIN_PRIORITY, TRUTH.MAX_PRIORITY));
+    }
+
+    withConfig(config) {
+        return this._updateIfChanged('_config', {...this._config, ...config});
+    }
 
     _updateIfChanged(prop, val) {
         if (prop === '_enabled') {
@@ -41,13 +69,17 @@ export class Rule {
     }
 
     async apply(task, memoryOrContext, termFactory) {
-        const {effectiveContext, effectiveMemory, effectiveTermFactory} = this._resolveContext(memoryOrContext, termFactory);
-        
+        const {
+            effectiveContext,
+            effectiveMemory,
+            effectiveTermFactory
+        } = this._resolveContext(memoryOrContext, termFactory);
+
         if (!this.canApply(task)) return {results: [], rule: this};
 
         const start = performance.now();
         try {
-            const results = effectiveContext 
+            const results = effectiveContext
                 ? await this._applyWithContext(task, effectiveContext)
                 : await this._apply(task, effectiveMemory, effectiveTermFactory);
 
@@ -64,9 +96,13 @@ export class Rule {
 
     _resolveContext(memoryOrContext, termFactory) {
         const isContext = memoryOrContext?.hasOwnProperty('config');
-        
-        return isContext 
-            ? {effectiveContext: memoryOrContext, effectiveMemory: memoryOrContext.memory, effectiveTermFactory: memoryOrContext.termFactory || termFactory}
+
+        return isContext
+            ? {
+                effectiveContext: memoryOrContext,
+                effectiveMemory: memoryOrContext.memory,
+                effectiveTermFactory: memoryOrContext.termFactory || termFactory
+            }
             : {effectiveMemory: memoryOrContext, effectiveTermFactory: termFactory, effectiveContext: null};
     }
 
@@ -74,8 +110,13 @@ export class Rule {
         return await this._apply(task, context.memory, context.termFactory);
     }
 
-    _matches(task) { return this._enabled; }
-    _apply(task, memory, termFactory) { return []; }
+    _matches(task) {
+        return this._enabled;
+    }
+
+    _apply(task, memory, termFactory) {
+        return [];
+    }
 
     _clone(overrides = {}, newConfig = null) {
         const configArg = newConfig || {...this._config, ...overrides};

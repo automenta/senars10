@@ -123,8 +123,10 @@ export * from './testSuiteFactory.js';
 // export * from './flexibleTestUtils.js';
 
 // Export flexible utilities individually to avoid conflicts
-export { flexibleAssertions, flexibleTruthUtils, flexibleTestConfig, flexibleTestWrappers, default as flexibleTestUtils } from './flexibleTestUtils.js';
-export { TestTemplateFactory, default as testTemplateFactory } from './TestTemplateFactory.js';
+export {
+    flexibleAssertions, flexibleTruthUtils, flexibleTestConfig, flexibleTestWrappers, default as flexibleTestUtils
+} from './flexibleTestUtils.js';
+export {TestTemplateFactory, default as testTemplateFactory} from './TestTemplateFactory.js';
 
 /**
  * Fluent test API for more readable and expressive tests

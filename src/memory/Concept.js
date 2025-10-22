@@ -180,7 +180,7 @@ export class Concept extends ConfigurableComponent {
         // Remove the old task and add a new one with the updated budget
         const storage = this._getStorage(task.type);
         if (storage.remove(task)) {
-            const updatedTask = task.clone({ budget: newBudget });
+            const updatedTask = task.clone({budget: newBudget});
             return storage.add(updatedTask);
         }
         return false;

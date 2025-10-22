@@ -7,7 +7,7 @@ export class MemoryIndex {
             similarity: new Map(),  // Map<term, Set<related>>
             compound: new Map(),    // Map<operator, Set<terms>>
             term: new Map(),        // Map<termHash, concept>
-            
+
             // Enhanced indexes for different term types
             atomic: new Map(),      // Map<termName, Set<concepts>> - indexing atomic terms
             compoundByOp: new Map(), // Map<operator, Set<concepts>> - indexing compound terms by operator
@@ -17,14 +17,14 @@ export class MemoryIndex {
             temporal: new Map(),    // Map<timeRange, Set<concepts>> - temporal indexing
             activation: new Map()   // Map<activationRange, Set<concepts>> - activation-based indexing
         };
-        
+
         // Configuration for different indexing strategies
         this._config = {
             complexityLevels: [1, 3, 5, 10, 20], // Different complexity thresholds
             activationBuckets: [0.1, 0.3, 0.5, 0.7, 0.9], // Activation level ranges
             maxTemporalRange: 3600000 // 1 hour in milliseconds
         };
-        
+
         this._totalConcepts = 0;
     }
 
@@ -128,7 +128,7 @@ export class MemoryIndex {
         if (term.components) {
             for (const comp of term.components) {
                 this._addToIndex('component', comp, concept);
-                
+
                 // Also index nested components
                 if (comp.isCompound) {
                     this._indexCompoundTerm(comp, concept);
@@ -156,7 +156,7 @@ export class MemoryIndex {
         // Get complexity of the term (if available)
         const complexity = this._getTermComplexity(term);
         const complexityLevel = this._getComplexityLevel(complexity);
-        
+
         this._addToIndex('complexity', complexityLevel, concept);
     }
 
@@ -166,7 +166,7 @@ export class MemoryIndex {
     _removeFromComplexityIndex(term, concept) {
         const complexity = this._getTermComplexity(term);
         const complexityLevel = this._getComplexityLevel(complexity);
-        
+
         this._removeFromIndex('complexity', complexityLevel, concept);
     }
 
@@ -227,12 +227,12 @@ export class MemoryIndex {
     _getTermComplexity(term) {
         // Base complexity on number of components and nesting
         if (!term || !term.components) return 1;
-        
+
         let complexity = 1; // Base complexity
-        
+
         if (Array.isArray(term.components)) {
             complexity += term.components.length * 0.5; // Add complexity for each component
-            
+
             // Add complexity for nested structures
             for (const comp of term.components) {
                 if (comp.components && comp.components.length > 0) {
@@ -240,7 +240,7 @@ export class MemoryIndex {
                 }
             }
         }
-        
+
         return complexity;
     }
 
@@ -261,19 +261,27 @@ export class MemoryIndex {
      */
     _getTermCategory(term) {
         if (!term) return 'unknown';
-        
+
         if (term.isAtomic) return 'atomic';
-        
+
         // Categorize based on operator
         switch (term.operator) {
-            case '-->': return 'inheritance';
-            case '==>': return 'implication';
-            case '<->': return 'similarity';
-            case '&': return 'conjunction';
-            case '|': return 'disjunction';
-            case '^': return 'operation';
-            case '--': return 'negation';
-            default: return 'compound';
+            case '-->':
+                return 'inheritance';
+            case '==>':
+                return 'implication';
+            case '<->':
+                return 'similarity';
+            case '&':
+                return 'conjunction';
+            case '|':
+                return 'disjunction';
+            case '^':
+                return 'operation';
+            case '--':
+                return 'negation';
+            default:
+                return 'compound';
         }
     }
 
@@ -282,7 +290,7 @@ export class MemoryIndex {
      */
     _getActivationBucket(activation) {
         if (activation === undefined) activation = 0;
-        
+
         for (let i = 0; i < this._config.activationBuckets.length; i++) {
             if (activation <= this._config.activationBuckets[i]) {
                 return `act_${this._config.activationBuckets[i]}`;
@@ -420,7 +428,7 @@ export class MemoryIndex {
         // Get concepts from both the basic compound index and the enhanced compoundByOp index
         const basicConcepts = this.findConceptsByOperator(operator);
         const enhancedConcepts = Array.from(this._indexes.compoundByOp.get(operator) || []);
-        
+
         // Combine and deduplicate
         const allConcepts = [...basicConcepts, ...enhancedConcepts];
         return Array.from(new Set(allConcepts));
@@ -430,17 +438,17 @@ export class MemoryIndex {
      * Search for related concepts using multiple indexing strategies
      */
     findRelatedConcepts(term, searchOptions = {}) {
-        const { 
-            maxResults = 10, 
-            includeCategories = [], 
+        const {
+            maxResults = 10,
+            includeCategories = [],
             excludeCategories = [],
             minActivation = 0,
             useSemanticSimilarity = true,
             searchDepth = 2
         } = searchOptions;
-        
+
         const results = new Map(); // Use Map to store concept and relevance score
-        
+
         // Find by components (subterm matching) - this is the most precise
         if (term.components) {
             for (const comp of term.components) {
@@ -451,70 +459,70 @@ export class MemoryIndex {
                     if (excludeCategories.includes(category)) continue;
                     if (includeCategories.length > 0 && !includeCategories.includes(category)) continue;
                     if (concept.activation < minActivation) continue;
-                    
+
                     // Calculate relevance based on component match
                     const relevance = this._calculateRelevance(term, concept.term, 'component');
-                    results.set(concept, { relevance, method: 'component' });
+                    results.set(concept, {relevance, method: 'component'});
                 }
             }
         }
-        
+
         // Find by category
         const category = this._getTermCategory(term);
-        if (!excludeCategories.includes(category) && 
+        if (!excludeCategories.includes(category) &&
             (includeCategories.length === 0 || includeCategories.includes(category))) {
             const byCategory = this.findConceptsByCategory(category);
             for (const concept of byCategory) {
                 if (results.has(concept)) continue; // Skip if already found via components
                 if (concept.activation < minActivation) continue;
-                
+
                 const relevance = this._calculateRelevance(term, concept.term, 'category');
-                results.set(concept, { relevance, method: 'category' });
+                results.set(concept, {relevance, method: 'category'});
             }
         }
-        
+
         // Semantic similarity search (if enabled)
         if (useSemanticSimilarity) {
             const semanticResults = this._findSemanticallySimilarConcepts(term, searchDepth);
             for (const [concept, relevance] of semanticResults.entries()) {
                 if (results.has(concept)) continue; // Skip if already found
                 if (concept.activation < minActivation) continue;
-                
-                results.set(concept, { relevance, method: 'semantic' });
+
+                results.set(concept, {relevance, method: 'semantic'});
             }
         }
-        
+
         // Convert to array, sort by relevance, and return top results
         const sortedResults = Array.from(results.entries())
             .sort((a, b) => b[1].relevance - a[1].relevance)
             .slice(0, maxResults)
             .map(entry => entry[0]); // Return just the concepts, not the relevance scores
-            
+
         return sortedResults;
     }
-    
+
     /**
      * Find semantically similar concepts based on structural similarity
      */
     _findSemanticallySimilarConcepts(term, depth = 2) {
         const results = new Map();
-        
+
         // Calculate similarity with all concepts of the same category
         const category = this._getTermCategory(term);
         const sameCategoryConcepts = this.findConceptsByCategory(category);
-        
+
         for (const concept of sameCategoryConcepts) {
             if (concept.term === term) continue; // Skip self
-            
+
             const similarityScore = this._calculateStructuralSimilarity(term, concept.term);
             if (similarityScore > 0.1) { // Only include if somewhat similar
                 results.set(concept, similarityScore);
             }
         }
-        
+
         return results;
     }
-    
+
     /**
      * Calculate relevance score between two terms based on the search method
      */
@@ -533,7 +541,7 @@ export class MemoryIndex {
                 return 0.1; // Low default relevance
         }
     }
-    
+
     /**
      * Calculate structural similarity between two terms
      * This method is similar to the one in ForgettingPolicy but specific to this class
@@ -543,19 +551,19 @@ export class MemoryIndex {
         if (!term1?.operator && !term2?.operator && term1?.name === term2?.name) {
             return 1.0;
         }
-        
+
         // For compound terms, calculate similarity based on shared components
         if (term1?.components && term2?.components) {
             const components1 = new Set(term1.components.map(c => c.name));
             const components2 = new Set(term2.components.map(c => c.name));
-            
+
             // Calculate Jaccard similarity coefficient
             const intersection = [...components1].filter(x => components2.has(x)).length;
             const union = new Set([...components1, ...components2]).size;
-            
+
             return union > 0 ? intersection / union : 0;
         }
-        
+
         // For terms with different structures, return low similarity
         return 0.1;
     }
@@ -611,7 +619,7 @@ export class MemoryIndex {
         Object.values(this._indexes).forEach(index => index.clear());
         this._totalConcepts = 0;
     }
-    
+
     /**
      * Rebuild indexes for a more efficient structure (e.g., after large changes)
      */
@@ -619,13 +627,13 @@ export class MemoryIndex {
         // Clear current indexes
         Object.values(this._indexes).forEach(index => index.clear());
         this._totalConcepts = 0;
-        
+
         // Re-add all concepts
         for (const concept of concepts) {
             this.addConcept(concept);
         }
     }
-    
+
     /**
      * Optimize index by removing unused entries and compacting structures
      */

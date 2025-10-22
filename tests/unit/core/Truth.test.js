@@ -2,11 +2,10 @@ import {Truth} from '../../../src/Truth.js';
 import {TRUTH} from '../../../src/config/constants.js';
 import {createTruth, TEST_CONSTANTS} from '../../support/factories.js';
 import {
-    StandardTestSuites,
-    TestSuiteFactory,
     equalityTests,
     flexibleAssertions,
     stringRepresentationTests,
+    TestSuiteFactory,
     truthAssertions
 } from '../../support/testOrganizer.js';
 import fc from 'fast-check';

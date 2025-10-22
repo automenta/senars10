@@ -10,15 +10,15 @@ import {
     equalityTests,
     flexibleAssertions,
     initializationTests,
+    memoryAssertions,
     parameterizedTests,
     robustNARTests,
     runPerformanceTest,
     stringRepresentationTests,
-    testData,
-    waitForCondition,
     taskAssertions,
+    testData,
     truthAssertions,
-    memoryAssertions
+    waitForCondition
 } from './baseTestUtils.js';
 
 import {narTestSuites} from './narTestSetup.js';

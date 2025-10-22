@@ -1,8 +1,8 @@
-import { BaseComponent } from '../util/BaseComponent.js';
-import { Metrics } from '../util/Metrics.js';
-import { ProviderRegistry } from './ProviderRegistry.js';
-import { ModelSelector } from './ModelSelector.js';
-import { NarseseTranslator } from './NarseseTranslator.js';
+import {BaseComponent} from '../util/BaseComponent.js';
+import {Metrics} from '../util/Metrics.js';
+import {ProviderRegistry} from './ProviderRegistry.js';
+import {ModelSelector} from './ModelSelector.js';
+import {NarseseTranslator} from './NarseseTranslator.js';
 
 /**
  * Main Language Model component that manages LM providers and operations.
@@ -11,12 +11,12 @@ import { NarseseTranslator } from './NarseseTranslator.js';
 export class LM extends BaseComponent {
     constructor(config = {}, eventBus = null) {
         super(config, 'LM', eventBus);
-        
+
         // Initialize LM-specific properties
         this.providers = new ProviderRegistry();
         this.modelSelector = new ModelSelector(this.providers);
         this.narseseTranslator = new NarseseTranslator();
-        
+
         // Use metrics from BaseComponent instead of creating a new one
         this.lmMetrics = new Metrics();
         this.activeWorkflows = new Set();
@@ -36,6 +36,10 @@ export class LM extends BaseComponent {
         return {...this._config};
     }
 
+    get metrics() {
+        return this.lmMetrics;
+    }
+
     async _initialize() {
         // Initialize metrics tracker with config
         if (this.lmMetrics.initialize) {
@@ -46,10 +50,6 @@ export class LM extends BaseComponent {
             config: Object.keys(this.config),
             providerCount: this.providers.size
         });
-    }
-
-    get metrics() {
-        return this.lmMetrics;
     }
 
     registerProvider(id, provider) {

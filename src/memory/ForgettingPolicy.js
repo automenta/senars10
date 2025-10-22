@@ -38,33 +38,33 @@ export class ForgettingPolicy {
      */
     applyActivationPropagation(concept, memory, propagationMap) {
         // Propagate activation to related concepts based on term similarity
-        const relatedConcepts = propagationMap ? 
-            this._getRelatedConceptsFromMap(concept, propagationMap) : 
+        const relatedConcepts = propagationMap ?
+            this._getRelatedConceptsFromMap(concept, propagationMap) :
             this._findRelatedConcepts(concept, memory);
-        
+
         for (const relatedConcept of relatedConcepts) {
             // Calculate activation boost based on relationship strength and current activation
             const relationshipStrength = this._calculateRelationshipStrength(concept, relatedConcept);
             const activationBoost = concept.activation * this.propagationStrength * relationshipStrength;
-            
+
             // Apply the activation boost to the related concept
             relatedConcept.boostActivation(activationBoost);
-            
+
             // Also propagate the activation to the concept's tasks
             this._propagateActivationToTasks(relatedConcept, activationBoost);
         }
     }
-    
+
     /**
      * Get related concepts from a provided propagation map
      */
     _getRelatedConceptsFromMap(concept, propagationMap) {
         if (!propagationMap || !concept.term) return [];
-        
+
         const termKey = concept.term.id || concept.term.name;
         return propagationMap.get(termKey) || [];
     }
-    
+
     /**
      * Calculate the strength of relationship between two concepts
      * @param {Concept} concept1 - First concept
@@ -73,17 +73,17 @@ export class ForgettingPolicy {
      */
     _calculateRelationshipStrength(concept1, concept2) {
         if (!concept1.term || !concept2.term) return 0;
-        
+
         // Calculate structural similarity
         const structuralSimilarity = this._calculateStructuralSimilarity(concept1.term, concept2.term);
-        
+
         // Calculate semantic similarity (terms that share components or are in similar contexts)
         const semanticSimilarity = this._calculateSemanticSimilarity(concept1.term, concept2.term);
-        
+
         // Combined relationship strength - average of both similarities
         return (structuralSimilarity + semanticSimilarity) / 2;
     }
-    
+
     /**
      * Calculate structural similarity between two terms
      * @param {Term} term1 - First term
@@ -95,23 +95,23 @@ export class ForgettingPolicy {
         if (!term1.operator && !term2.operator && term1.name === term2.name) {
             return 1.0;
         }
-        
+
         // For compound terms, calculate similarity based on shared components
         if (term1.components && term2.components) {
             const components1 = new Set(term1.components.map(c => c.name));
             const components2 = new Set(term2.components.map(c => c.name));
-            
+
             // Calculate Jaccard similarity coefficient
             const intersection = [...components1].filter(x => components2.has(x)).length;
             const union = new Set([...components1, ...components2]).size;
-            
+
             return union > 0 ? intersection / union : 0;
         }
-        
+
         // For terms with different structures, return low similarity
         return 0.1;
     }
-    
+
     /**
      * Calculate semantic similarity between two terms
      * @param {Term} term1 - First term
@@ -124,24 +124,24 @@ export class ForgettingPolicy {
         if (!term1.components || !term2.components) {
             return 0.1; // Low similarity for terms without components to compare
         }
-        
+
         // Higher similarity if both terms have same operator
         if (term1.operator && term2.operator && term1.operator === term2.operator) {
             return 0.7;
         }
-        
+
         // Medium similarity for different operators but shared components
-        const sharedComponents = term1.components.filter(comp1 => 
+        const sharedComponents = term1.components.filter(comp1 =>
             term2.components.some(comp2 => comp1.name === comp2.name)
         );
-        
+
         if (sharedComponents.length > 0) {
             return 0.5;
         }
-        
+
         return 0.1; // Low similarity by default
     }
-    
+
     /**
      * Propagate activation to tasks within a concept
      */
@@ -159,8 +159,8 @@ export class ForgettingPolicy {
      * Simple forgetting policy based on activation and priority
      */
     _simplePolicy(concept) {
-        return concept.activation < this.threshold || 
-               (concept.tasks.length > 0 && concept.tasks[0].budget.priority < this.minPriority);
+        return concept.activation < this.threshold ||
+            (concept.tasks.length > 0 && concept.tasks[0].budget.priority < this.minPriority);
     }
 
     /**
@@ -170,7 +170,7 @@ export class ForgettingPolicy {
         const age = currentTime - (concept.createdAt || currentTime);
         const lowActivation = concept.activation < this.threshold;
         const oldAge = age > this.maxAge;
-        
+
         return lowActivation && oldAge;
     }
 
@@ -190,7 +190,7 @@ export class ForgettingPolicy {
         // This would implement more sophisticated logic that adapts based on
         // system state, memory pressure, and other factors
         const baseForget = this._simplePolicy(concept);
-        
+
         // Adjust threshold based on memory utilization or other factors
         // (This is a simplified version - full implementation would be more complex)
         return baseForget;
@@ -201,7 +201,7 @@ export class ForgettingPolicy {
      */
     _calculateAveragePriority(concept) {
         if (!concept.tasks || concept.tasks.length === 0) return 0;
-        
+
         const totalPriority = concept.tasks.reduce((sum, task) => sum + task.budget.priority, 0);
         return totalPriority / concept.tasks.length;
     }
@@ -213,19 +213,19 @@ export class ForgettingPolicy {
         // Find concepts with similar or related terms
         // This could use various metrics like term overlap, subsumption, etc.
         if (!concept.term) return [];
-        
+
         const allConcepts = memory.getAllConcepts();
         const related = [];
-        
+
         for (const otherConcept of allConcepts) {
             if (otherConcept === concept) continue;
-            
+
             // Check for term relationships (simplified version)
             if (this._areTermsRelated(concept.term, otherConcept.term)) {
                 related.push(otherConcept);
             }
         }
-        
+
         return related;
     }
 
@@ -235,19 +235,19 @@ export class ForgettingPolicy {
     _areTermsRelated(term1, term2) {
         // This is a simplified check - a full implementation would have more sophisticated logic
         if (!term1 || !term2) return false;
-        
+
         // If terms share components or are structurally similar
         if (term1.components && term2.components) {
             // Check for component overlap
             const names1 = new Set(term1.components.map(c => c.name));
             const names2 = new Set(term2.components.map(c => c.name));
-            
+
             // If they share at least one component
             for (const name of names1) {
                 if (names2.has(name)) return true;
             }
         }
-        
+
         return false;
     }
 

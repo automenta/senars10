@@ -73,7 +73,7 @@ export class TaskMatch {
         if (this.minConf !== null && task.truth && task.truth.c < this.minConf) {
             return false;
         }
-        
+
         // Check flexible truth matching if specified
         if (this.expectedFreq !== null && this.expectedConf !== null && this.tolerance !== null && task.truth) {
             const freqDiff = Math.abs(task.truth.f - this.expectedFreq);
@@ -82,13 +82,13 @@ export class TaskMatch {
                 return false;
             }
         }
-        
+
         // Check range-based truth matching if specified
-        if (this.minFreq !== null && this.maxFreq !== null && task.truth && 
+        if (this.minFreq !== null && this.maxFreq !== null && task.truth &&
             (task.truth.f < this.minFreq || task.truth.f > this.maxFreq)) {
             return false;
         }
-        if (this.minConf !== null && this.maxConf !== null && task.truth && 
+        if (this.minConf !== null && this.maxConf !== null && task.truth &&
             (task.truth.c < this.minConf || task.truth.c > this.maxConf)) {
             return false;
         }

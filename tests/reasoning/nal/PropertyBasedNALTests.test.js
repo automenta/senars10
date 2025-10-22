@@ -9,7 +9,6 @@ import {Truth} from '../../../src/Truth.js';
 import {TruthFunctions} from '../../../src/reasoning/nal/TruthFunctions.js';
 import {Term, TermType} from '../../../src/term/Term.js';
 import {PatternMatcher} from '../../../src/reasoning/nal/PatternMatcher.js';
-import {TaskMatch, TestNAR} from '../../../src/testing/TestNAR.js';
 
 const truthArb = fc.record({
     f: fc.float({min: 0, max: 1}),
@@ -23,12 +22,12 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
             fc.assert(
                 fc.property(truthArb, truthArb, (t1, t2) => {
                     const result = TruthFunctions.deduction(t1, t2);
-                    
+
                     if (result === null) {
                         // Null is acceptable when inputs are invalid
                         return (t1 === null || t2 === null);
                     }
-                    
+
                     expect(typeof result.frequency).toBe('number');
                     expect(typeof result.confidence).toBe('number');
                     expect(result.frequency).toBeGreaterThanOrEqual(0);
@@ -43,11 +42,11 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
             fc.assert(
                 fc.property(truthArb, truthArb, (t1, t2) => {
                     const result = TruthFunctions.induction(t1, t2);
-                    
+
                     if (result === null) {
                         return (t1 === null || t2 === null);
                     }
-                    
+
                     expect(typeof result.frequency).toBe('number');
                     expect(typeof result.confidence).toBe('number');
                     expect(result.frequency).toBeGreaterThanOrEqual(0);
@@ -62,11 +61,11 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
             fc.assert(
                 fc.property(truthArb, truthArb, (t1, t2) => {
                     const result = TruthFunctions.abduction(t1, t2);
-                    
+
                     if (result === null) {
                         return (t1 === null || t2 === null);
                     }
-                    
+
                     expect(typeof result.frequency).toBe('number');
                     expect(typeof result.confidence).toBe('number');
                     expect(result.frequency).toBeGreaterThanOrEqual(0);
@@ -81,11 +80,11 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
             fc.assert(
                 fc.property(truthArb, truthArb, (t1, t2) => {
                     const result = TruthFunctions.revision(t1, t2);
-                    
+
                     if (result === null) {
                         return (t1 === null || t2 === null);
                     }
-                    
+
                     expect(typeof result.frequency).toBe('number');
                     expect(typeof result.confidence).toBe('number');
                     expect(result.frequency).toBeGreaterThanOrEqual(0);
@@ -100,11 +99,11 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
             fc.assert(
                 fc.property(truthArb, (t) => {
                     const result = TruthFunctions.negation(t);
-                    
+
                     if (result === null) {
                         return t === null;
                     }
-                    
+
                     // Negation should flip frequency: negation of f should be (1-f)
                     expect(result.frequency).toBeCloseTo(1 - t.f, 5);
                     // Confidence should remain roughly the same
@@ -119,13 +118,13 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                     // Running the same operation multiple times should give the same result
                     const result1 = TruthFunctions.deduction(t1, t2);
                     const result2 = TruthFunctions.deduction(t1, t2);
-                    
+
                     if (result1 === null && result2 === null) return true;
                     if (result1 === null || result2 === null) return false;
-                    
+
                     expect(result1.frequency).toBeCloseTo(result2.frequency, 10);
                     expect(result1.confidence).toBeCloseTo(result2.confidence, 10);
-                    
+
                     return true;
                 })
             );
@@ -138,7 +137,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
             return (rng) => {
                 const isCompound = rng() > 0.5;
                 const name = `${namePrefix}_${Math.floor(rng() * 1000)}`;
-                
+
                 if (isCompound) {
                     const operators = ['-->', '<->', '&', '|', '--'];
                     const operator = operators[Math.floor(rng() * operators.length)];
@@ -169,7 +168,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                 fc.record({
                     op: fc.constantFrom('-->', '&', '|', '<->'),
                     components: fc.array(
-                        fc.oneof(atomicTermArb, variableTermArb, tie('nested_compound')), 
+                        fc.oneof(atomicTermArb, variableTermArb, tie('nested_compound')),
                         {minLength: 1, maxLength: 3}
                     )
                 }).map(({op, components}) => {
@@ -179,7 +178,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
             nested_compound: fc.record({
                 op: fc.constantFrom('-->', '&', '|', '<->'),
                 components: fc.array(
-                    fc.oneof(atomicTermArb, variableTermArb), 
+                    fc.oneof(atomicTermArb, variableTermArb),
                     {minLength: 1, maxLength: 2}
                 )
             }).map(({op, components}) => {
@@ -189,24 +188,24 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
 
         test('pattern matching should be deterministic', () => {
             const patternMatcher = new PatternMatcher();
-            
+
             fc.assert(
                 fc.property(compoundTermArb, compoundTermArb, (pattern, term) => {
                     // Running the same unification multiple times should give the same result
                     const result1 = patternMatcher.unify(pattern, term);
                     const result2 = patternMatcher.unify(pattern, term);
-                    
+
                     if (result1 === null && result2 === null) return true;
                     if (result1 === null || result2 === null) return false;
-                    
+
                     // Both results should have the same number of bindings
                     expect(result1.size).toBe(result2.size);
-                    
+
                     // Binding keys should be the same
                     const keys1 = Array.from(result1.keys()).sort();
                     const keys2 = Array.from(result2.keys()).sort();
                     expect(keys1).toEqual(keys2);
-                    
+
                     return true;
                 })
             );
@@ -214,15 +213,15 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
 
         test('variable binding should be consistent', () => {
             const patternMatcher = new PatternMatcher();
-            
+
             fc.assert(
                 fc.property(variableTermArb, atomicTermArb, (varTerm, constTerm) => {
                     // When a variable is bound to a value once, subsequent unifications with same binding should be consistent
                     const initialBindings = new Map([[varTerm.name, constTerm]]);
-                    
+
                     // Try to bind the same variable to the same constant again
                     const result = patternMatcher.unify(varTerm, constTerm, initialBindings);
-                    
+
                     // Should succeed because the binding is consistent
                     return result !== null;
                 })
@@ -231,7 +230,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
 
         test('variable binding should fail with inconsistent bindings', () => {
             const patternMatcher = new PatternMatcher();
-            
+
             fc.assert(
                 fc.property(
                     fc.constantFrom('?X'),
@@ -239,13 +238,13 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                     atomicTermArb,
                     (varName, constTerm1, constTerm2) => {
                         fc.pre(constTerm1.name !== constTerm2.name); // Make sure they're different
-                        
+
                         const varTerm = new Term(TermType.ATOM, varName);
                         const initialBindings = new Map([[varName, constTerm1]]);
-                        
+
                         // Try to bind the same variable to a different constant
                         const result = patternMatcher.unify(varTerm, constTerm2, initialBindings);
-                        
+
                         // Should fail because the binding is inconsistent
                         return result === null;
                     }
@@ -255,12 +254,12 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
 
         test('substitution should preserve structure', () => {
             const patternMatcher = new PatternMatcher();
-            
+
             fc.assert(
                 fc.property(compoundTermArb, (term) => {
                     // Substitution with empty bindings should return the same term structure
                     const substituted = patternMatcher.substitute(term, new Map());
-                    
+
                     // For the purpose of this test, we'll check that the operator and basic structure are preserved
                     if (term.isCompound) {
                         expect(substituted.isCompound).toBe(true);
@@ -269,7 +268,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                     } else {
                         expect(substituted.isAtomic).toBe(term.isAtomic);
                     }
-                    
+
                     return true;
                 })
             );
@@ -287,13 +286,13 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                     (f1, c1, f2, c2) => {
                         const t1 = new Truth(f1, c1);
                         const t2 = new Truth(f2, c2);
-                        
+
                         // Test that operations produce valid results in bounds
                         const deduction = TruthFunctions.deduction(t1, t2);
                         const induction = TruthFunctions.induction(t1, t2);
                         const abduction = TruthFunctions.abduction(t1, t2);
                         const revision = TruthFunctions.revision(t1, t2);
-                        
+
                         // All operations should return valid truth values or null
                         const operations = [deduction, induction, abduction, revision];
                         for (const op of operations) {
@@ -304,7 +303,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                                 expect(op.confidence).toBeLessThanOrEqual(1);
                             }
                         }
-                        
+
                         return true;
                     }
                 )
@@ -322,7 +321,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                         // Double negation should approximately return to original (allowing for floating point precision)
                         expect(Math.abs(negationOfNegation.frequency - t.f)).toBeLessThan(0.001);
                     }
-                    
+
                     // Self-revision should return similar values
                     const selfRevision = TruthFunctions.revision(t, t);
                     if (selfRevision && t) {
@@ -330,7 +329,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                         expect(Math.abs(selfRevision.frequency - t.f)).toBeLessThan(0.01);
                         expect(selfRevision.confidence).toBeGreaterThanOrEqual(t.c);
                     }
-                    
+
                     return true;
                 })
             );
@@ -351,7 +350,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                         const deductionResult = TruthFunctions.deduction(edgeTruth, otherTruth);
                         const inductionResult = TruthFunctions.induction(edgeTruth, otherTruth);
                         const abductionResult = TruthFunctions.abduction(edgeTruth, otherTruth);
-                        
+
                         // All results should be valid truth values or null
                         [deductionResult, inductionResult, abductionResult].forEach(result => {
                             if (result !== null) {
@@ -361,7 +360,7 @@ describe('Property-Based NAL Reasoning Tests - Phase 6 Validation', () => {
                                 expect(result.confidence).toBeLessThanOrEqual(1);
                             }
                         });
-                        
+
                         return true;
                     }
                 )

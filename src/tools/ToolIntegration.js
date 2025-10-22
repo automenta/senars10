@@ -5,7 +5,6 @@
 
 import {ToolEngine} from './ToolEngine.js';
 import {ToolRegistry} from './ToolRegistry.js';
-import {Logger} from '../util/Logger.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 
 /**
@@ -51,23 +50,33 @@ export class ToolIntegration extends BaseComponent {
         }
 
         try {
-            const {FileOperationsTool, CommandExecutorTool, WebAutomationTool, MediaProcessingTool, EmbeddingTool} = 
+            const {FileOperationsTool, CommandExecutorTool, WebAutomationTool, MediaProcessingTool, EmbeddingTool} =
                 await import('./index.js');
 
             const toolsConfig = [
-                {id: 'file-operations', tool: new FileOperationsTool(), category: 'file-operations', 
-                 description: 'File operations including read, write, append, delete, list, and stat'},
-                {id: 'command-executor', tool: new CommandExecutorTool(), category: 'command-execution',
-                 description: 'Safe command execution in sandboxed environment'},
-                {id: 'web-automation', tool: new WebAutomationTool(), category: 'web-automation',
-                 description: 'Web automation including fetch, scrape, and check operations'},
-                {id: 'media-processing', tool: new MediaProcessingTool(), category: 'media-processing',
-                 description: 'Media processing including PDF, image, and text extraction'},
-                {id: 'embedding', tool: new EmbeddingTool(), category: 'embedding',
-                 description: 'Text embedding, similarity, and comparison operations'}
+                {
+                    id: 'file-operations', tool: new FileOperationsTool(), category: 'file-operations',
+                    description: 'File operations including read, write, append, delete, list, and stat'
+                },
+                {
+                    id: 'command-executor', tool: new CommandExecutorTool(), category: 'command-execution',
+                    description: 'Safe command execution in sandboxed environment'
+                },
+                {
+                    id: 'web-automation', tool: new WebAutomationTool(), category: 'web-automation',
+                    description: 'Web automation including fetch, scrape, and check operations'
+                },
+                {
+                    id: 'media-processing', tool: new MediaProcessingTool(), category: 'media-processing',
+                    description: 'Media processing including PDF, image, and text extraction'
+                },
+                {
+                    id: 'embedding', tool: new EmbeddingTool(), category: 'embedding',
+                    description: 'Text embedding, similarity, and comparison operations'
+                }
             ];
 
-            toolsConfig.forEach(({id, tool, category, description}) => 
+            toolsConfig.forEach(({id, tool, category, description}) =>
                 this.registry.registerTool(id, tool, {category, description}));
 
             this.logger.info('Successfully initialized all tools', {

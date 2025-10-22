@@ -1,4 +1,4 @@
-import { BaseComponent } from '../util/BaseComponent.js';
+import {BaseComponent} from '../util/BaseComponent.js';
 
 /**
  * ComponentManager manages the lifecycle of system components
@@ -33,11 +33,11 @@ export class ComponentManager extends BaseComponent {
 
         this._components.set(name, component);
         this._dependencyGraph.set(name, dependencies);
-        this.logDebug(`Registered component: ${name}`, { 
+        this.logDebug(`Registered component: ${name}`, {
             dependencies,
-            totalComponents: this._components.size 
+            totalComponents: this._components.size
         });
-        
+
         return true;
     }
 
@@ -96,7 +96,7 @@ export class ComponentManager extends BaseComponent {
             }
 
             visiting.add(node);
-            
+
             const dependencies = this._dependencyGraph.get(node) || [];
             for (const dependency of dependencies) {
                 if (this._components.has(dependency)) {
@@ -134,8 +134,8 @@ export class ComponentManager extends BaseComponent {
      * @returns {Promise<boolean>} True if all components were initialized successfully
      */
     async initializeAll() {
-        this.logInfo('Initializing all components', { 
-            totalComponents: this._components.size 
+        this.logInfo('Initializing all components', {
+            totalComponents: this._components.size
         });
 
         const startupOrder = this.getStartupOrder();
@@ -146,7 +146,7 @@ export class ComponentManager extends BaseComponent {
             if (!component) continue;
 
             this.logDebug(`Initializing component: ${componentName}`);
-            
+
             try {
                 const success = await component.initialize();
                 if (!success) {
@@ -162,7 +162,7 @@ export class ComponentManager extends BaseComponent {
         }
 
         const success = failedComponents.length === 0;
-        
+
         this.logInfo(`Component initialization complete`, {
             total: startupOrder.length,
             successful: startupOrder.length - failedComponents.length,
@@ -187,8 +187,8 @@ export class ComponentManager extends BaseComponent {
      * @returns {Promise<boolean>} True if all components were started successfully
      */
     async startAll() {
-        this.logInfo('Starting all components', { 
-            totalComponents: this._components.size 
+        this.logInfo('Starting all components', {
+            totalComponents: this._components.size
         });
 
         const startupOrder = this.getStartupOrder();
@@ -199,7 +199,7 @@ export class ComponentManager extends BaseComponent {
             if (!component) continue;
 
             this.logDebug(`Starting component: ${componentName}`);
-            
+
             try {
                 const success = await component.start();
                 if (!success) {
@@ -215,7 +215,7 @@ export class ComponentManager extends BaseComponent {
         }
 
         const success = failedComponents.length === 0;
-        
+
         this.logInfo(`Component start complete`, {
             total: startupOrder.length,
             successful: startupOrder.length - failedComponents.length,
@@ -240,8 +240,8 @@ export class ComponentManager extends BaseComponent {
      * @returns {Promise<boolean>} True if all components were stopped successfully
      */
     async stopAll() {
-        this.logInfo('Stopping all components', { 
-            totalComponents: this._components.size 
+        this.logInfo('Stopping all components', {
+            totalComponents: this._components.size
         });
 
         const shutdownOrder = this.getShutdownOrder();
@@ -252,7 +252,7 @@ export class ComponentManager extends BaseComponent {
             if (!component) continue;
 
             this.logDebug(`Stopping component: ${componentName}`);
-            
+
             try {
                 const success = await component.stop();
                 if (!success) {
@@ -268,7 +268,7 @@ export class ComponentManager extends BaseComponent {
         }
 
         const success = failedComponents.length === 0;
-        
+
         this.logInfo(`Component stop complete`, {
             total: shutdownOrder.length,
             successful: shutdownOrder.length - failedComponents.length,
@@ -293,8 +293,8 @@ export class ComponentManager extends BaseComponent {
      * @returns {Promise<boolean>} True if all components were disposed successfully
      */
     async disposeAll() {
-        this.logInfo('Disposing all components', { 
-            totalComponents: this._components.size 
+        this.logInfo('Disposing all components', {
+            totalComponents: this._components.size
         });
 
         const shutdownOrder = this.getShutdownOrder();
@@ -305,7 +305,7 @@ export class ComponentManager extends BaseComponent {
             if (!component) continue;
 
             this.logDebug(`Disposing component: ${componentName}`);
-            
+
             try {
                 const success = await component.dispose();
                 if (!success) {
@@ -319,7 +319,7 @@ export class ComponentManager extends BaseComponent {
         }
 
         const success = failedComponents.length === 0;
-        
+
         this.logInfo(`Component dispose complete`, {
             total: shutdownOrder.length,
             successful: shutdownOrder.length - failedComponents.length,
@@ -345,7 +345,7 @@ export class ComponentManager extends BaseComponent {
      */
     getComponentsMetrics() {
         const allMetrics = {};
-        
+
         for (const [name, component] of this._components) {
             allMetrics[name] = {
                 isInitialized: component.isInitialized,
@@ -354,7 +354,7 @@ export class ComponentManager extends BaseComponent {
                 metrics: component.getMetrics()
             };
         }
-        
+
         return allMetrics;
     }
 
@@ -364,7 +364,7 @@ export class ComponentManager extends BaseComponent {
      */
     async healthCheck() {
         const healthStatus = {};
-        
+
         for (const [name, component] of this._components) {
             try {
                 // Basic health check - verify component is in expected state
@@ -385,7 +385,7 @@ export class ComponentManager extends BaseComponent {
                 };
             }
         }
-        
+
         return healthStatus;
     }
 }

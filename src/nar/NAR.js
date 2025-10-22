@@ -4,7 +4,6 @@ import {Memory} from '../memory/Memory.js';
 import {TaskManager} from '../task/TaskManager.js';
 import {Cycle} from './Cycle.js';
 import {NarseseParser} from '../parser/NarseseParser.js';
-import {EventBus} from '../util/EventBus.js';
 import {RuleEngine} from '../reasoning/RuleEngine.js';
 import {SyllogisticRule} from '../reasoning/rules/syllogism.js';
 import {ModusPonensRule} from '../reasoning/rules/modusponens.js';
@@ -23,7 +22,7 @@ import {ExplanationService} from '../tools/ExplanationService.js';
 export class NAR extends BaseComponent {
     constructor(config = {}) {
         super(config, 'NAR');
-        
+
         const desiredLmEnabled = config.lm?.enabled === true;
 
         this._config = SystemConfig.from(config);
@@ -56,10 +55,10 @@ export class NAR extends BaseComponent {
         });
 
         // Initialize tool integration if enabled
-        this._toolIntegration = config.tools?.enabled !== false 
-            ? new ToolIntegration(config.tools || {}) 
+        this._toolIntegration = config.tools?.enabled !== false
+            ? new ToolIntegration(config.tools || {})
             : null;
-        
+
         if (this._toolIntegration) {
             this._toolIntegration.connectToReasoningCore(this);
             this._explanationService = new ExplanationService({
@@ -70,9 +69,41 @@ export class NAR extends BaseComponent {
 
         this._isRunning = false;
         this._cycleInterval = null;
-        
+
         // Register all components with the component manager
         this._registerComponents();
+    }
+
+    get config() {
+        return this._config;
+    }
+
+    get memory() {
+        return this._memory;
+    }
+
+    get isRunning() {
+        return this._isRunning;
+    }
+
+    get cycleCount() {
+        return this._cycle.cycleCount;
+    }
+
+    get lm() {
+        return this._lm;
+    }
+
+    get tools() {
+        return this._toolIntegration;
+    }
+
+    get explanationService() {
+        return this._explanationService;
+    }
+
+    get componentManager() {
+        return this._componentManager;
     }
 
     _registerComponents() {
@@ -86,34 +117,25 @@ export class NAR extends BaseComponent {
             isStarted: true,
             isDisposed: false
         });
-        
+
         this._componentManager.registerComponent('memory', this._memory);
         this._componentManager.registerComponent('focus', this._focus, ['memory']);
         this._componentManager.registerComponent('taskManager', this._taskManager, ['memory', 'focus']);
         this._componentManager.registerComponent('ruleEngine', this._ruleEngine);
-        
+
         if (this._lm) {
             this._componentManager.registerComponent('lm', this._lm);
         }
-        
+
         if (this._toolIntegration) {
             this._componentManager.registerComponent('toolIntegration', this._toolIntegration);
             if (this._explanationService) {
                 this._componentManager.registerComponent('explanationService', this._explanationService, ['toolIntegration']);
             }
         }
-        
+
         this._componentManager.registerComponent('cycle', this._cycle, ['memory', 'focus', 'taskManager', 'ruleEngine']);
     }
-
-    get config() { return this._config; }
-    get memory() { return this._memory; }
-    get isRunning() { return this._isRunning; }
-    get cycleCount() { return this._cycle.cycleCount; }
-    get lm() { return this._lm; }
-    get tools() { return this._toolIntegration; }
-    get explanationService() { return this._explanationService; }
-    get componentManager() { return this._componentManager; }
 
     _setupDefaultRules() {
         try {
@@ -173,7 +195,7 @@ export class NAR extends BaseComponent {
 
         // Start all registered components asynchronously but return immediately
         this._startComponentsAsync();
-        
+
         this._isRunning = true;
         this._processPendingTasks();
 
@@ -191,7 +213,7 @@ export class NAR extends BaseComponent {
         this.logInfo('NAR started successfully');
         return true;
     }
-    
+
     async _startComponentsAsync() {
         try {
             const success = await this._componentManager.startAll();
@@ -214,12 +236,12 @@ export class NAR extends BaseComponent {
 
         // Stop all registered components asynchronously but return immediately
         this._stopComponentsAsync();
-        
+
         this._eventBus.emit('system.stopped', {timestamp: Date.now()});
         this.logInfo('NAR stopped successfully');
         return true;
     }
-    
+
     async _stopComponentsAsync() {
         try {
             const success = await this._componentManager.stopAll();
@@ -268,13 +290,18 @@ export class NAR extends BaseComponent {
     }
 
     getBeliefs(queryTerm = null) {
-        return queryTerm 
-            ? this.query(queryTerm) 
+        return queryTerm
+            ? this.query(queryTerm)
             : Array.from(this._memory.getAllConcepts()).flatMap(concept => concept.getTasksByType('BELIEF'));
     }
 
-    getGoals() { return this._taskManager.findTasksByType('GOAL'); }
-    getQuestions() { return this._taskManager.findTasksByType('QUESTION'); }
+    getGoals() {
+        return this._taskManager.findTasksByType('GOAL');
+    }
+
+    getQuestions() {
+        return this._taskManager.findTasksByType('QUESTION');
+    }
 
     reset() {
         this.stop();
@@ -285,8 +312,13 @@ export class NAR extends BaseComponent {
         this.logInfo('NAR reset completed');
     }
 
-    on(eventName, callback) { this._eventBus.on(eventName, callback); }
-    off(eventName, callback) { this._eventBus.off(eventName, callback); }
+    on(eventName, callback) {
+        this._eventBus.on(eventName, callback);
+    }
+
+    off(eventName, callback) {
+        this._eventBus.off(eventName, callback);
+    }
 
     getStats() {
         return {

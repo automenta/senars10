@@ -37,11 +37,22 @@ export class Memory extends BaseComponent {
         this._cyclesSinceConsolidation = 0;
     }
 
-    get config() { return {...this._config}; }
-    get concepts() { return new Map(this._concepts); }
-    get focusConcepts() { return new Set(this._focusConcepts); }
-    get stats() { return {...this._stats}; }
-    
+    get config() {
+        return {...this._config};
+    }
+
+    get concepts() {
+        return new Map(this._concepts);
+    }
+
+    get focusConcepts() {
+        return new Set(this._focusConcepts);
+    }
+
+    get stats() {
+        return {...this._stats};
+    }
+
     getConfigValue(key, defaultVal) {
         return this._config[key] !== undefined ? this._config[key] : defaultVal;
     }
@@ -146,20 +157,20 @@ export class Memory extends BaseComponent {
             const normalizedTaskCount = clamp(concept.totalTasks / 50, 0, 1); // Based on standard task limit
             const activationScore = concept.activation;
             const qualityScore = concept.quality || 0;
-            
+
             // Calculate complexity score with more sophisticated algorithm when termFactory is provided
             const complexityScore = this._calculateConceptComplexityScore(concept, termFactory);
-            
+
             // Calculate diversity score if cognitive diversity is provided
-            const diversityScore = cognitiveDiversity 
-                ? this._calculateConceptDiversityScore(concept, cognitiveDiversity) 
+            const diversityScore = cognitiveDiversity
+                ? this._calculateConceptDiversityScore(concept, cognitiveDiversity)
                 : 0;
 
             // Calculate recency score (how recently the concept was accessed)
             const recencyScore = this._calculateRecencyScore(concept.lastAccessed);
 
             // Calculate composite score with additional factors
-            const compositeScore = 
+            const compositeScore =
                 (activationScore * activationWeight) +
                 (normalizedUseCount * useCountWeight) +
                 (normalizedTaskCount * taskCountWeight) +
@@ -197,12 +208,12 @@ export class Memory extends BaseComponent {
         if (termFactory && concept.term) {
             return Math.min(1, termFactory.getComplexity(concept.term) / 10); // Normalize to 0-1 range
         }
-        
+
         // Otherwise, calculate based on the term structure
         if (concept.term && concept.term.components) {
             // Base complexity on number of components
             const baseComplexity = Math.min(1, concept.term.components.length * 0.3);
-            
+
             // Add additional complexity for nested structures
             let nestedComplexity = 0;
             if (concept.term.components && Array.isArray(concept.term.components)) {
@@ -212,7 +223,7 @@ export class Memory extends BaseComponent {
                     }
                 }
             }
-            
+
             return Math.min(1, baseComplexity + nestedComplexity);
         }
         return 0.1; // Base complexity for simple terms
@@ -246,7 +257,7 @@ export class Memory extends BaseComponent {
         const concepts = this.getAllConcepts();
         const scoredConcepts = concepts.map(concept => {
             const score = this._calculateDetailedConceptScore(concept, scoringOptions);
-            return { concept, score };
+            return {concept, score};
         }).filter(item => item.score >= minScore);
 
         // Sort based on specified criteria
@@ -297,7 +308,7 @@ export class Memory extends BaseComponent {
         }
 
         // Calculate composite score
-        const compositeScore = 
+        const compositeScore =
             (activationScore * activationWeight) +
             (normalizedUseCount * useCountWeight) +
             (normalizedTaskCount * taskCountWeight) +

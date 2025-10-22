@@ -81,16 +81,16 @@ const CONFIG_SCHEMA = Joi.object({
 
 export class SystemConfig {
     constructor(userConfig = {}) {
-        const validationResult = CONFIG_SCHEMA.validate(userConfig, { 
+        const validationResult = CONFIG_SCHEMA.validate(userConfig, {
             stripUnknown: true,
             allowUnknown: false,
-            convert: true 
+            convert: true
         });
-        
+
         if (validationResult.error) {
             throw new Error(`Configuration validation failed: ${validationResult.error.message}`);
         }
-        
+
         this._config = this._deepMerge(DEFAULT_CONFIG, validationResult.value);
         this._frozen = false;
     }
@@ -124,7 +124,7 @@ export class SystemConfig {
 
     set(path, value) {
         if (this._frozen) throw new Error('Configuration is frozen and cannot be modified');
-        
+
         const pathParts = path.split('.');
         const lastKey = pathParts.pop();
         let current = this._config;
@@ -135,33 +135,33 @@ export class SystemConfig {
         }
 
         current[lastKey] = value;
-        
+
         // Validate the entire config after setting a value
-        const validationResult = CONFIG_SCHEMA.validate(this._config, { 
+        const validationResult = CONFIG_SCHEMA.validate(this._config, {
             stripUnknown: true,
             allowUnknown: false,
-            convert: true 
+            convert: true
         });
-        
+
         if (validationResult.error) {
             throw new Error(`Configuration validation failed after setting value: ${validationResult.error.message}`);
         }
-        
+
         return this;
     }
 
     update(updates) {
         const merged = this._deepMerge(this._config, updates);
-        const validationResult = CONFIG_SCHEMA.validate(merged, { 
+        const validationResult = CONFIG_SCHEMA.validate(merged, {
             stripUnknown: true,
             allowUnknown: false,
-            convert: true 
+            convert: true
         });
-        
+
         if (validationResult.error) {
             throw new Error(`Configuration validation failed after update: ${validationResult.error.message}`);
         }
-        
+
         this._config = validationResult.value;
         return this;
     }

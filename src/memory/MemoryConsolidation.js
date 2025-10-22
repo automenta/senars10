@@ -31,7 +31,7 @@ export class MemoryConsolidation extends ConfigurableComponent {
 
         super(defaultConfig);
         this.configure(config);
-        
+
         // Initialize the forgetting policy with configuration
         this.forgettingPolicy = new ForgettingPolicy({
             policyType: this.getConfigValue('forgettingPolicy'),
@@ -83,18 +83,18 @@ export class MemoryConsolidation extends ConfigurableComponent {
             if (concept.activation > this.getConfigValue('activationThreshold')) {
                 // Use the forgetting policy to determine propagation targets and strength
                 const relatedConcepts = this._findRelatedConcepts(concept, memory);
-                
+
                 for (const relatedConcept of relatedConcepts) {
                     // Apply activation propagation based on the configured policy
                     const activationBoost = concept.activation * this.forgettingPolicy.propagationStrength;
                     relatedConcept.boostActivation(activationBoost);
-                    
+
                     // Also propagate other properties that might affect forgetting
                     if (relatedConcept.activation < concept.activation) {
                         // Boost concepts that are less active than source concept
                         relatedConcept.boostActivation(activationBoost * 0.5);
                     }
-                    
+
                     propagated++;
                 }
             }
@@ -102,7 +102,7 @@ export class MemoryConsolidation extends ConfigurableComponent {
 
         return propagated;
     }
-    
+
     /**
      * Alias to maintain compatibility with existing tests
      * @private
@@ -243,43 +243,43 @@ export class MemoryConsolidation extends ConfigurableComponent {
         for (const concept of concepts) {
             // Calculate enhanced decay rate based on multiple factors
             const decayRate = this._calculateEnhancedDecayRate(concept, memory);
-            
+
             // Apply decay to the concept
             concept.applyDecay(decayRate);
-            
+
             // Apply priority decay to tasks within the concept
             this._applyPriorityDecayToTasks(concept, decayRate);
-            
+
             decayed++;
         }
 
         return decayed;
     }
-    
+
     /**
-     * Apply priority decay specifically to tasks within a concept 
+     * Apply priority decay specifically to tasks within a concept
      * This implements more sophisticated priority management
      * @private
      */
     _applyPriorityDecayToTasks(concept, decayRate) {
         // Apply decay to all task priorities within the concept
         const allTasks = concept.getAllTasks();
-        
+
         for (const task of allTasks) {
             // Calculate task-specific decay factors beyond the base decay rate
             const taskDecayRate = this._calculateTaskDecayRate(task, concept, decayRate);
-            
+
             // Apply the decay to the task's priority, ensuring we don't modify frozen objects
             const newPriority = task.budget.priority * (1 - taskDecayRate);
-            
+
             // Ensure priority doesn't go below minimum
             const finalPriority = Math.max(newPriority, this.getConfigValue('minPriorityToKeep'));
-            
+
             // Update the task with the new budget (create new task with updated budget)
             concept.updateTaskBudget(task, {...task.budget, priority: finalPriority});
         }
     }
-    
+
     /**
      * Calculate task-specific decay rate based on various factors
      * @private
@@ -287,7 +287,7 @@ export class MemoryConsolidation extends ConfigurableComponent {
     _calculateTaskDecayRate(task, concept, baseDecayRate) {
         // Base decay rate from concept
         let taskDecayRate = baseDecayRate;
-        
+
         // Factor 1: Task recency factor (recent tasks decay slower)
         const taskAge = Date.now() - task.stamp.creationTime;
         if (taskAge < 60000) { // Less than 1 minute old
@@ -295,7 +295,7 @@ export class MemoryConsolidation extends ConfigurableComponent {
         } else if (taskAge < 300000) { // Less than 5 minutes old
             taskDecayRate *= 0.5; // Slower decay for recent tasks
         }
-        
+
         // Factor 2: Task type factor (goals may decay differently than beliefs)
         switch (task.type) {
             case 'GOAL':
@@ -313,64 +313,64 @@ export class MemoryConsolidation extends ConfigurableComponent {
                 taskDecayRate *= 0.8; // Questions might decay slower to maintain curiosity
                 break;
         }
-        
+
         // Factor 3: Task priority factor (high priority tasks decay slower)
         if (task.budget.priority > 0.8) {
             taskDecayRate *= 0.5; // High priority tasks decay much slower
         } else if (task.budget.priority < 0.2) {
             taskDecayRate *= 1.5; // Low priority tasks decay faster
         }
-        
+
         // Factor 4: Concept context factor (tasks in high activation concepts decay differently)
         if (concept.activation > 0.7) {
             taskDecayRate *= 0.6; // Tasks in high activation concepts decay slower
         } else if (concept.activation < 0.2) {
             taskDecayRate *= 1.3; // Tasks in low activation concepts decay faster
         }
-        
+
         return Math.max(0, Math.min(1, taskDecayRate)); // Clamp between 0 and 1
     }
-    
+
     /**
      * Calculate enhanced decay rate considering multiple factors
      * @private
      */
     _calculateEnhancedDecayRate(concept, memory) {
         let baseRate = this.getConfigValue('decayRate');
-        
+
         // Factor 1: Usage-based decay adjustment
         const usageFactor = this._calculateUsageDecayFactor(concept, memory);
-        
+
         // Factor 2: Activation-based decay adjustment
         const activationFactor = this._calculateActivationDecayFactor(concept, memory);
-        
+
         // Factor 3: Complexity-based decay adjustment
         const complexityFactor = this._calculateComplexityDecayFactor(concept, memory);
-        
+
         // Factor 4: Recency-based decay adjustment
         const recencyFactor = this._calculateRecencyDecayFactor(concept, memory);
-        
+
         // Factor 5: Quality-based decay adjustment
         const qualityFactor = this._calculateQualityDecayFactor(concept, memory);
-        
+
         // Combine all factors with configurable weights
-        const totalFactor = 
-            (usageFactor * 0.25) + 
-            (activationFactor * 0.25) + 
-            (complexityFactor * 0.2) + 
-            (recencyFactor * 0.15) + 
+        const totalFactor =
+            (usageFactor * 0.25) +
+            (activationFactor * 0.25) +
+            (complexityFactor * 0.2) +
+            (recencyFactor * 0.15) +
             (qualityFactor * 0.15);
-        
+
         return baseRate * totalFactor;
     }
-    
+
     /**
      * Calculate decay factor based on usage patterns
      * @private
      */
     _calculateUsageDecayFactor(concept, memory) {
         const avgUseCount = this._getAverageUseCount(memory);
-        
+
         if (concept.useCount < avgUseCount * 0.5) {
             // Concepts used much less than average decay faster
             return 1.5;
@@ -382,14 +382,14 @@ export class MemoryConsolidation extends ConfigurableComponent {
             return 1.0;
         }
     }
-    
+
     /**
      * Calculate decay factor based on activation
      * @private
      */
     _calculateActivationDecayFactor(concept, memory) {
         const avgActivation = this._getAverageActivation(memory);
-        
+
         if (concept.activation < avgActivation * 0.3) {
             // Low activation concepts decay faster
             return 1.8;
@@ -401,7 +401,7 @@ export class MemoryConsolidation extends ConfigurableComponent {
             return 1.0;
         }
     }
-    
+
     /**
      * Calculate decay factor based on term complexity
      * @private
@@ -414,7 +414,7 @@ export class MemoryConsolidation extends ConfigurableComponent {
         }
         return 1.0; // Simple terms get standard decay
     }
-    
+
     /**
      * Calculate decay factor based on recency
      * @private
@@ -422,17 +422,17 @@ export class MemoryConsolidation extends ConfigurableComponent {
     _calculateRecencyDecayFactor(concept, memory) {
         const now = Date.now();
         const age = concept.createdAt ? (now - concept.createdAt) : (now - memory.stats.createdAt); // fallback
-        
+
         // New concepts are protected from decay initially
         if (age < 30000) { // Less than 30 seconds old
             return 0.1; // Very slow decay for new concepts
         } else if (age > 3600000) { // More than 1 hour old
             return 1.2; // Faster decay for old concepts
         }
-        
+
         return 1.0; // Standard decay
     }
-    
+
     /**
      * Calculate decay factor based on quality
      * @private
@@ -444,10 +444,10 @@ export class MemoryConsolidation extends ConfigurableComponent {
         } else if (concept.quality < 0.3) {
             return 1.5; // Low-quality concepts decay faster
         }
-        
+
         return 1.0; // Standard decay
     }
-    
+
     /**
      * Get average use count across all concepts
      * @private
@@ -455,11 +455,11 @@ export class MemoryConsolidation extends ConfigurableComponent {
     _getAverageUseCount(memory) {
         const concepts = memory.getAllConcepts();
         if (concepts.length === 0) return 0;
-        
+
         const total = concepts.reduce((sum, concept) => sum + concept.useCount, 0);
         return total / concepts.length;
     }
-    
+
     /**
      * Get average activation across all concepts
      * @private
@@ -467,7 +467,7 @@ export class MemoryConsolidation extends ConfigurableComponent {
     _getAverageActivation(memory) {
         const concepts = memory.getAllConcepts();
         if (concepts.length === 0) return 0;
-        
+
         const total = concepts.reduce((sum, concept) => sum + concept.activation, 0);
         return total / concepts.length;
     }
@@ -497,7 +497,7 @@ export class MemoryConsolidation extends ConfigurableComponent {
 
         return removed;
     }
-    
+
     /**
      * Evaluate concepts for forgetting based on the configured policy
      * @private
@@ -505,22 +505,22 @@ export class MemoryConsolidation extends ConfigurableComponent {
     _evaluateConceptsForForgetting(memory, currentTime) {
         let evaluated = 0;
         const concepts = memory.getAllConcepts();
-        
+
         for (const concept of concepts) {
             // Mark concept for potential forgetting based on the policy
             concept.forgettingMarked = this.forgettingPolicy.shouldForget(concept, currentTime);
-            
+
             if (concept.forgettingMarked) {
                 // Apply activation propagation before forgetting to preserve important information
                 this.forgettingPolicy.applyActivationPropagation(concept, memory);
             }
-            
+
             evaluated++;
         }
-        
+
         return evaluated;
     }
-    
+
     /**
      * Remove concepts that have been marked for forgetting
      * @private
@@ -528,18 +528,18 @@ export class MemoryConsolidation extends ConfigurableComponent {
     _removeForgettingConcepts(memory) {
         let removed = 0;
         const conceptsToRemove = [];
-        
+
         for (const concept of memory.getAllConcepts()) {
             if (concept.forgettingMarked) {
                 conceptsToRemove.push(concept.term);
             }
         }
-        
+
         for (const term of conceptsToRemove) {
             memory.removeConcept(term);
             removed++;
         }
-        
+
         return removed;
     }
 

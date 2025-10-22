@@ -18,21 +18,21 @@ import {flexible} from './testOrganizer.js';
 export const createInferenceTest = (testName, inputs, expected, tolerance = 0.05, cycles = 2) => {
     it(testName, async () => {
         let testNAR = new TestNAR();
-        
+
         // Add all inputs
         inputs.forEach(([statement, freq, conf]) => {
             testNAR = testNAR.input(statement, freq, conf);
         });
-        
+
         // Run reasoning
         testNAR = testNAR.run(cycles);
-        
+
         // Add flexible expectation
         testNAR = testNAR.expect(
             new TaskMatch(expected.term)
                 .withFlexibleTruth(expected.freq, expected.conf, tolerance)
         );
-        
+
         const result = await testNAR.execute();
         expect(result).toBe(true);
     });
@@ -48,12 +48,12 @@ export const createInferenceTest = (testName, inputs, expected, tolerance = 0.05
 export const createStructuralReasoningTest = (testName, premises, conclusion, tolerance = 0.05) => {
     it(testName, async () => {
         let testNAR = new TestNAR();
-        
+
         // Add premises
         premises.forEach(premise => {
             testNAR = testNAR.input(premise.statement, premise.freq, premise.conf);
         });
-        
+
         // Run test
         const result = await testNAR
             .run(3)
@@ -62,7 +62,7 @@ export const createStructuralReasoningTest = (testName, premises, conclusion, to
                     .withFlexibleTruth(conclusion.freq, conclusion.conf, tolerance)
             )
             .execute();
-        
+
         expect(result).toBe(true);
     });
 };
@@ -76,18 +76,18 @@ export const createStructuralReasoningTest = (testName, premises, conclusion, to
 export const createNegativeReasoningTest = (testName, inputs, conclusionTerm) => {
     it(testName, async () => {
         let testNAR = new TestNAR();
-        
+
         // Add inputs
         inputs.forEach(([statement, freq, conf]) => {
             testNAR = testNAR.input(statement, freq, conf);
         });
-        
+
         // Expect the conclusion NOT to be derived
         const result = await testNAR
             .run(3)
             .expectNot(conclusionTerm)
             .execute();
-        
+
         expect(result).toBe(true);
     });
 };
@@ -103,7 +103,7 @@ export const createNegativeReasoningTest = (testName, inputs, conclusionTerm) =>
 export const createTruthOperationTest = (operationName, operationFunc, inputs, expected, tolerance = 0.05) => {
     it(`${operationName} operation produces expected results`, () => {
         const result = operationFunc(...inputs);
-        
+
         if (typeof expected === 'object' && expected.f !== undefined && expected.c !== undefined) {
             flexible.assertions.expectCloseTo(result.f, expected.f, tolerance, `${operationName} frequency`);
             flexible.assertions.expectCloseTo(result.c, expected.c, tolerance, `${operationName} confidence`);
@@ -124,7 +124,7 @@ export const createPropertyBasedTest = (testName, reasoningSetup, validation) =>
         const testNAR = await reasoningSetup();
         const result = await testNAR.execute();
         expect(result).toBe(true);
-        
+
         // Run additional validation if provided
         if (validation) {
             validation();
@@ -142,7 +142,7 @@ export const createPropertyBasedTest = (testName, reasoningSetup, validation) =>
 export const createReasoningChainTest = (testName, sequence, expectedResults, tolerance = 0.05) => {
     it(testName, async () => {
         let testNAR = new TestNAR();
-        
+
         // Execute each step in the sequence
         for (const step of sequence) {
             if (step.type === 'input') {
@@ -151,7 +151,7 @@ export const createReasoningChainTest = (testName, sequence, expectedResults, to
                 testNAR = testNAR.run(step.cycles || 1);
             }
         }
-        
+
         // Add expectations for each expected result
         for (const expected of expectedResults) {
             testNAR = testNAR.expect(
@@ -159,7 +159,7 @@ export const createReasoningChainTest = (testName, sequence, expectedResults, to
                     .withFlexibleTruth(expected.freq, expected.conf, tolerance)
             );
         }
-        
+
         const result = await testNAR.execute();
         expect(result).toBe(true);
     });
@@ -173,7 +173,7 @@ export const createFlexiblePerformanceTest = (testName, testFn, maxDurationMs = 
         const startTime = Date.now();
         const result = await testFn();
         const duration = Date.now() - startTime;
-        
+
         expect(duration).toBeLessThanOrEqual(maxDurationMs);
         expect(result).toBeDefined();
     });

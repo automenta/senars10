@@ -1,4 +1,3 @@
-import {Logger} from '../util/Logger.js';
 import {Rule} from './Rule.js';
 import {LMRule} from './LMRule.js';
 import {RuleSet} from './RuleSet.js';

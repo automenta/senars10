@@ -1,7 +1,5 @@
-import { Logger } from '../util/Logger.js';
-import { EventBus } from '../util/EventBus.js';
-
-import Joi from 'joi';
+import {Logger} from '../util/Logger.js';
+import {EventBus} from '../util/EventBus.js';
 
 /**
  * Abstract base component that provides common functionality for all system components.
@@ -26,62 +24,14 @@ export class BaseComponent {
         this._started = false;
         this._disposed = false;
         this._startTime = null;
-        
+
         // Validate configuration if schema provided
         if (this._validationSchema) {
             this._validateConfig(config);
         }
-        
+
         // Initialize common metrics
         this._initializeMetrics();
-    }
-
-    /**
-     * Validates configuration against the provided schema
-     * @param {Object} config - Configuration to validate
-     * @returns {Object} - Validated and potentially transformed config
-     */
-    _validateConfig(config) {
-        const schema = typeof this._validationSchema === 'function' 
-            ? this._validationSchema()
-            : this._validationSchema;
-        
-        const validationResult = schema.validate(config, { 
-            stripUnknown: true,
-            allowUnknown: false,
-            convert: true 
-        });
-        
-        if (validationResult.error) {
-            throw new Error(`Configuration validation failed for ${this._name}: ${validationResult.error.message}`);
-        }
-        
-        return validationResult.value;
-    }
-
-    /**
-     * Validates configuration against the provided schema
-     * @param {Object} config - Configuration to validate
-     * @returns {Object} - Validated and potentially transformed config
-     */
-    validateConfig(config = this._config) {
-        if (!this._validationSchema) return config;
-        
-        const schema = typeof this._validationSchema === 'function' 
-            ? this._validationSchema()
-            : this._validationSchema;
-        
-        const validationResult = schema.validate(config, { 
-            stripUnknown: true,
-            allowUnknown: false,
-            convert: true 
-        });
-        
-        if (validationResult.error) {
-            throw new Error(`Configuration validation failed for ${this._name}: ${validationResult.error.message}`);
-        }
-        
-        return validationResult.value;
     }
 
     /**
@@ -165,6 +115,54 @@ export class BaseComponent {
     }
 
     /**
+     * Validates configuration against the provided schema
+     * @param {Object} config - Configuration to validate
+     * @returns {Object} - Validated and potentially transformed config
+     */
+    _validateConfig(config) {
+        const schema = typeof this._validationSchema === 'function'
+            ? this._validationSchema()
+            : this._validationSchema;
+
+        const validationResult = schema.validate(config, {
+            stripUnknown: true,
+            allowUnknown: false,
+            convert: true
+        });
+
+        if (validationResult.error) {
+            throw new Error(`Configuration validation failed for ${this._name}: ${validationResult.error.message}`);
+        }
+
+        return validationResult.value;
+    }
+
+    /**
+     * Validates configuration against the provided schema
+     * @param {Object} config - Configuration to validate
+     * @returns {Object} - Validated and potentially transformed config
+     */
+    validateConfig(config = this._config) {
+        if (!this._validationSchema) return config;
+
+        const schema = typeof this._validationSchema === 'function'
+            ? this._validationSchema()
+            : this._validationSchema;
+
+        const validationResult = schema.validate(config, {
+            stripUnknown: true,
+            allowUnknown: false,
+            convert: true
+        });
+
+        if (validationResult.error) {
+            throw new Error(`Configuration validation failed for ${this._name}: ${validationResult.error.message}`);
+        }
+
+        return validationResult.value;
+    }
+
+    /**
      * Initializes the component
      * @returns {Promise<boolean>} True if initialization was successful
      */
@@ -178,13 +176,13 @@ export class BaseComponent {
             this.logInfo('Initializing component');
             await this._initialize();
             this._initialized = true;
-            
+
             // Emit initialization event
             this._eventBus.emit(`${this._name}.initialized`, {
                 timestamp: Date.now(),
                 component: this._name
             });
-            
+
             this._logger.info('Component initialized successfully');
             this.incrementMetric('initializeCount');
             return true;
@@ -214,14 +212,14 @@ export class BaseComponent {
             this._startTime = Date.now();
             await this._start();
             this._started = true;
-            
+
             // Emit start event
             this._eventBus.emit(`${this._name}.started`, {
                 timestamp: Date.now(),
                 component: this._name,
                 uptime: this.uptime
             });
-            
+
             this.logInfo('Component started successfully');
             this.incrementMetric('startCount');
             return true;
@@ -245,14 +243,14 @@ export class BaseComponent {
             this.logInfo('Stopping component');
             await this._stop();
             this._started = false;
-            
+
             // Emit stop event
             this._eventBus.emit(`${this._name}.stopped`, {
                 timestamp: Date.now(),
                 component: this._name,
                 uptime: this.uptime
             });
-            
+
             this.logInfo('Component stopped successfully');
             this.incrementMetric('stopCount');
             return true;
@@ -274,22 +272,22 @@ export class BaseComponent {
 
         try {
             this.logInfo('Disposing component');
-            
+
             // Stop if running
             if (this._started) {
                 await this.stop();
             }
-            
+
             await this._dispose();
             this._disposed = true;
-            
+
             // Emit dispose event
             this._eventBus.emit(`${this._name}.disposed`, {
                 timestamp: Date.now(),
                 component: this._name,
                 uptime: this.uptime
             });
-            
+
             this.logInfo('Component disposed successfully');
             return true;
         } catch (error) {

@@ -3,7 +3,6 @@
  * @description LM-based explanation service for tool execution results
  */
 
-import {Logger} from '../util/Logger.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 
 /**

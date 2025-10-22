@@ -44,12 +44,12 @@ describe('Flexible Truth Matching Tests', () => {
         // This shows how to use the new flexible assertion utilities
         const actualFreq = 0.718;
         const expectedFreq = 0.72;
-        
+
         // Using the new flexible assertion with 0.01 tolerance (1%)
         expect(() => {
             flexible.assertions.expectCloseTo(actualFreq, expectedFreq, 0.01);
         }).not.toThrow();
-        
+
         // Using range-based assertion
         expect(() => {
             flexible.assertions.expectInRange(actualFreq, 0.70, 0.75);
@@ -75,7 +75,7 @@ describe('Flexible Truth Matching Tests', () => {
             .input('cat --> animal', 0.9, 0.8)
             .input('dog --> animal', 0.85, 0.75)
             .run(2);
-        
+
         // Test with flexible matching to accommodate possible minor variations
         const result = await testNar
             .expect(
@@ -92,7 +92,7 @@ describe('Flexible Test Utilities Integration', () => {
     it('should work with the flexible test configuration', () => {
         const tolerance = flexible.config.getTolerance('truthValues');
         expect(tolerance).toBe(0.01);  // Default tolerance for truth values
-        
+
         const performanceTolerance = flexible.config.getTolerance('performance');
         expect(performanceTolerance).toBe(100);  // Default performance tolerance
     });
@@ -105,7 +105,7 @@ describe('Flexible Test Utilities Integration', () => {
                 setTimeout(() => resolve(true), 50);
             });
         };
-        
+
         const result = await flexible.wrappers.withRetry(testFn, 3, 100);
         expect(result).toBe(true);
     });

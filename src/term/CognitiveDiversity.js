@@ -23,10 +23,10 @@ export class CognitiveDiversity {
         if (!term || !term.name) {
             return;
         }
-        
+
         const complexity = this.termFactory.getComplexity(term);
         this.registeredTerms.set(term.name, complexity);
-        
+
         // Update metrics when adding a new term
         this._updateMetrics();
     }
@@ -56,19 +56,19 @@ export class CognitiveDiversity {
 
         // Calculate complexities for all registered terms
         const complexities = Array.from(this.registeredTerms.values());
-        
+
         // Calculate distribution of complexities
         const distribution = this._calculateComplexityDistribution(complexities);
-        
+
         // Calculate variety (how diverse the complexities are)
         const variety = this._calculateVariety(complexities);
-        
+
         // Calculate average complexity
         const averageComplexity = complexities.reduce((sum, val) => sum + val, 0) / complexities.length;
-        
+
         // Calculate overall diversity score based on variety and average complexity
         const diversityScore = variety * (1 + Math.log(averageComplexity + 1));
-        
+
         this.diversityMetrics = {
             complexityDistribution: distribution,
             diversityScore,
@@ -90,11 +90,11 @@ export class CognitiveDiversity {
      */
     _calculateComplexityDistribution(complexities) {
         const distribution = new Map();
-        
+
         for (const complexity of complexities) {
             distribution.set(complexity, (distribution.get(complexity) || 0) + 1);
         }
-        
+
         return distribution;
     }
 
@@ -103,20 +103,20 @@ export class CognitiveDiversity {
      */
     _calculateVariety(complexities) {
         if (complexities.length === 0) return 0;
-        
+
         // Count occurrences of each complexity value
         const counts = new Map();
         for (const complexity of complexities) {
             counts.set(complexity, (counts.get(complexity) || 0) + 1);
         }
-        
+
         // Calculate entropy (variety)
         let variety = 0;
         for (const count of counts.values()) {
             const probability = count / complexities.length;
             variety -= probability * Math.log2(probability);
         }
-        
+
         return variety;
     }
 
@@ -124,7 +124,7 @@ export class CognitiveDiversity {
      * Get cognitive diversity metrics
      */
     getMetrics() {
-        return { ...this.diversityMetrics };
+        return {...this.diversityMetrics};
     }
 
     /**
@@ -153,14 +153,14 @@ export class CognitiveDiversity {
      */
     suggestDiversityTerm() {
         const currentComplexities = Array.from(this.diversityMetrics.complexityDistribution.keys());
-        
+
         if (currentComplexities.length === 0) {
-            return { suggestedComplexity: 1, reason: 'No terms exist, suggest simple term' };
+            return {suggestedComplexity: 1, reason: 'No terms exist, suggest simple term'};
         }
-        
+
         // Find the gap in complexity values to suggest a new one
         currentComplexities.sort((a, b) => a - b);
-        
+
         // If we have low diversity, suggest something different from the average
         if (this.isLowDiversity()) {
             // Suggest either a very simple or very complex term
@@ -180,7 +180,7 @@ export class CognitiveDiversity {
                 }
             }
         }
-        
+
         // If no gap found, suggest significantly different complexity
         return {
             suggestedComplexity: Math.max(...currentComplexities) + 2,
@@ -202,20 +202,20 @@ export class CognitiveDiversity {
      */
     getDiversityContributors(topN = 5) {
         if (this.registeredTerms.size === 0) return [];
-        
+
         // Calculate how much each registered term contributes to the overall diversity
         const contributions = Array.from(this.registeredTerms.entries()).map(([termName, complexity]) => {
             // Contribution is based on how different this complexity is from the average
             const deviation = Math.abs(complexity - this.diversityMetrics.averageComplexity);
-            return { termName, complexity, contribution: deviation };
+            return {termName, complexity, contribution: deviation};
         });
-        
+
         // Sort by contribution and return top N
         return contributions
             .sort((a, b) => b.contribution - a.contribution)
             .slice(0, topN);
     }
-    
+
     /**
      * Evaluate diversity metrics for a specific term
      */
@@ -230,22 +230,22 @@ export class CognitiveDiversity {
         const termComplexity = this.termFactory.getComplexity(term);
         const currentAvg = this.diversityMetrics.averageComplexity;
         const currentVariety = this.diversityMetrics.variety;
-        
+
         // Calculate how much this term would contribute to diversity
         const complexityDistanceFromAvg = Math.abs(termComplexity - currentAvg);
         const diversityImpact = complexityDistanceFromAvg / (currentAvg || 1);
-        
+
         // Calculate normalization factor based on current diversity
         // If diversity is low, boost the factor to encourage variety
         const normalizationFactor = currentVariety < 1 ? 1.5 : 1;
-        
+
         return {
             diversityImpact,
             normalizationFactor,
             contribution: complexityDistanceFromAvg
         };
     }
-    
+
     /**
      * Clear all registered terms and reset metrics
      */

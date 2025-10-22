@@ -27,15 +27,15 @@ export class TermFactory {
         }
 
         const {operator, components} = this._normalizeTermData(data);
-        
+
         // Advanced canonicalization with proper commutativity and normalization
         const normalizedComponents = this._canonicalizeComponents(operator, components);
         const name = this._buildCanonicalName(operator, normalizedComponents);
-        
+
         // Check if term is already cached
         let term = this._cache.get(name);
         const currentTime = Date.now();
-        
+
         if (term) {
             this._cacheHits++;
             // Update access time for LRU
@@ -43,42 +43,42 @@ export class TermFactory {
         } else {
             this._cacheMisses++;
             term = this._createAndCache(operator, normalizedComponents, name);
-            
+
             // Update access time for the new term
             this._accessTime.set(name, currentTime);
-            
+
             // Evict entries using LRU if cache is too large
             this._evictLRUEntries();
         }
-        
+
         // Calculate and cache complexity metrics
         this._calculateComplexityMetrics(term, normalizedComponents);
-        
+
         // Register for cognitive diversity calculations
         this._cognitiveDiversity.registerTerm(term);
-        
+
         return term;
     }
 
     _getOrCreateAtomic(name) {
         let term = this._cache.get(name);
         const currentTime = Date.now();
-        
+
         if (!term) {
             term = this._createAndCache(null, [], name);
             // Atomic terms have complexity of 1
             this._complexityCache.set(name, 1);
-            
+
             // Update access time for the new term
             this._accessTime.set(name, currentTime);
-            
+
             // Evict entries using LRU if cache is too large
             this._evictLRUEntries();
         } else {
             // Update access time for existing term
             this._accessTime.set(name, currentTime);
         }
-        
+
         return term;
     }
 
@@ -120,7 +120,7 @@ export class TermFactory {
             if (COMMUTATIVE_OPERATORS.has(operator)) {
                 normalizedComponents = this._normalizeCommutative(normalizedComponents);
             }
-            
+
             // Handle nested operators with same precedence
             normalizedComponents = this._handleNestedOperators(operator, normalizedComponents);
         }
@@ -171,7 +171,7 @@ export class TermFactory {
         // 5. Compare by name
         return termA.name.localeCompare(termB.name);
     }
-    
+
     /**
      * Compare terms alphabetically by name for standard commutative operators
      */
@@ -186,14 +186,14 @@ export class TermFactory {
         if (!term || !term.components || term.components.length === 0) {
             return 1; // Atomic terms have depth 1
         }
-        
+
         let maxDepth = 1;
         for (const comp of term.components) {
             if (comp && comp.components && comp.components.length > 0) {
                 maxDepth = Math.max(maxDepth, 1 + this._getStructuralComplexity(comp));
             }
         }
-        
+
         return maxDepth;
     }
 
@@ -202,9 +202,9 @@ export class TermFactory {
      */
     _canonicalizeComponents(operator, components) {
         if (!operator) return components; // Atomic terms don't need canonicalization
-        
+
         let canonicalComponents = [...components];
-        
+
         // Special handling for operators with specific canonicalization rules
         if (operator === '<->' || operator === '<=>') { // Equivalence operators
             // For equivalence, arrange terms in a consistent order
@@ -217,7 +217,7 @@ export class TermFactory {
             canonicalComponents = this._removeRedundancy(canonicalComponents);
             canonicalComponents = this._normalizeCommutative(canonicalComponents);
         }
-        
+
         return canonicalComponents;
     }
 
@@ -230,21 +230,21 @@ export class TermFactory {
         if (components.length < 2) {
             return components; // Return as-is if not enough components for equivalence
         }
-        
+
         // Only handle the first 2 components, which is the standard form
-        const validComponents = components.length > 2 ? 
+        const validComponents = components.length > 2 ?
             components.slice(0, 2) : components;
-        
+
         // Sort components by structural complexity, putting more complex terms first
         // If equal complexity, sort alphabetically by name
         return validComponents.sort((a, b) => {
             const complexityA = this._getStructuralComplexity(a);
             const complexityB = this._getStructuralComplexity(b);
-            
+
             if (complexityA !== complexityB) {
                 return complexityB - complexityA; // More complex first
             }
-            
+
             return a.name.localeCompare(b.name);
         });
     }
@@ -258,11 +258,11 @@ export class TermFactory {
         if (components.length < 2) {
             return components; // Return as-is if not enough components for implication
         }
-        
+
         // Only handle the first 2 components, which is the standard form
-        const validComponents = components.length > 2 ? 
+        const validComponents = components.length > 2 ?
             components.slice(0, 2) : components;
-        
+
         // Don't reorder components for implication as order matters (subject --> predicate)
         return validComponents;
     }
@@ -274,10 +274,10 @@ export class TermFactory {
             if (!c || typeof c.name !== 'string') {
                 throw new Error('TermFactory._removeRedundancy: component must have a name property');
             }
-            
+
             // Create a unique identifier based on the term's structural properties
             const uniqueId = this._getTermUniqueId(c);
-            
+
             return seen.has(uniqueId) ? false : !!(seen.add(uniqueId));
         });
     }
@@ -290,7 +290,7 @@ export class TermFactory {
             // For atomic terms, use the name directly
             return term.name;
         }
-        
+
         // For compound terms, create a structural hash
         const componentsHash = term.components.map(c => this._getTermUniqueId(c)).sort().join('|');
         return `${term.operator}_${componentsHash}`;
@@ -329,13 +329,13 @@ export class TermFactory {
             // Already handled by _flatten
             return components;
         }
-        
+
         // For commutative operators, order is handled in _normalizeCommutative
         // Don't re-sort here to avoid conflicts with canonical ordering
         if (COMMUTATIVE_OPERATORS.has(operator)) {
             return components;
         }
-        
+
         // For non-commutative operators, preserve original order
         return components;
     }
@@ -345,23 +345,23 @@ export class TermFactory {
      */
     _calculateComplexityMetrics(term, components) {
         if (!term) return 0;
-        
+
         let complexity = 1; // Base complexity for the term itself
-        
+
         if (components && components.length > 0) {
             // Add complexity based on number of components
             complexity += components.length;
-            
+
             // Add complexity based on nested terms
             for (const comp of components) {
                 complexity += this.getComplexity(comp) || 0;
             }
         }
-        
+
         this._complexityCache.set(term.name, complexity);
         return complexity;
     }
-    
+
     /**
      * Evict entries from cache using LRU (Least Recently Used) strategy
      * @private
@@ -370,18 +370,18 @@ export class TermFactory {
         if (this._cache.size <= this._maxCacheSize) {
             return; // No eviction needed
         }
-        
+
         // Find the oldest accessed term to evict
         let oldestKey = null;
         let oldestTime = Infinity;
-        
+
         for (const [key, accessTime] of this._accessTime.entries()) {
             if (accessTime < oldestTime) {
                 oldestTime = accessTime;
                 oldestKey = key;
             }
         }
-        
+
         // Remove the oldest entry if found
         if (oldestKey) {
             this._cache.delete(oldestKey);
@@ -389,7 +389,7 @@ export class TermFactory {
             this._complexityCache.delete(oldestKey); // Also remove from complexity cache
             this._cognitiveDiversity.unregisterTerm(oldestKey); // Unregister from cognitive diversity
         }
-        
+
         // Continue evicting until cache is within size limit
         if (this._cache.size > this._maxCacheSize) {
             this._evictLRUEntries(); // Recursively evict if still over the limit
@@ -430,10 +430,10 @@ export class TermFactory {
      * Get statistics about the factory
      */
     getStats() {
-        const cacheHitRate = this._cacheMisses + this._cacheHits > 0 
-            ? this._cacheHits / (this._cacheMisses + this._cacheHits) 
+        const cacheHitRate = this._cacheMisses + this._cacheHits > 0
+            ? this._cacheHits / (this._cacheMisses + this._cacheHits)
             : 0;
-            
+
         return {
             cacheSize: this._cache.size,
             complexityCacheSize: this._complexityCache.size,
@@ -460,17 +460,17 @@ export class TermFactory {
      */
     createWithDiversity(data, diversityFactor = 0.1) {
         const term = this.create(data);
-        
+
         // Calculate cognitive diversity impact
         const complexity = this.getComplexity(term);
         const diversityMetrics = this._cognitiveDiversity.evaluateDiversity(term);
-        
+
         // Adjust based on diversity factor to promote variety in term types
         const diversityScore = complexity * (1 + diversityFactor) * diversityMetrics.normalizationFactor;
-        
-        return { 
-            term, 
-            diversityScore, 
+
+        return {
+            term,
+            diversityScore,
             complexity,
             cognitiveDiversity: diversityMetrics
         };
@@ -484,7 +484,7 @@ export class TermFactory {
         return entries
             .sort((a, b) => b[1] - a[1])  // Sort by complexity descending
             .slice(0, limit)
-            .map(([name, complexity]) => ({ name, complexity }));
+            .map(([name, complexity]) => ({name, complexity}));
     }
 
     /**
@@ -495,7 +495,7 @@ export class TermFactory {
         return entries
             .sort((a, b) => a[1] - b[1])  // Sort by complexity ascending
             .slice(0, limit)
-            .map(([name, complexity]) => ({ name, complexity }));
+            .map(([name, complexity]) => ({name, complexity}));
     }
 
     /**
@@ -503,20 +503,20 @@ export class TermFactory {
      */
     getAverageComplexity() {
         if (this._complexityCache.size === 0) return 0;
-        
+
         const totalComplexity = Array.from(this._complexityCache.values())
             .reduce((sum, complexity) => sum + complexity, 0);
-        
+
         return totalComplexity / this._complexityCache.size;
     }
-    
+
     /**
      * Get cognitive diversity metrics for the current terms
      */
     getCognitiveDiversityMetrics() {
         return this._cognitiveDiversity.getMetrics();
     }
-    
+
     /**
      * Add computational complexity metrics for cognitive diversity calculations
      */

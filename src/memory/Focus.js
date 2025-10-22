@@ -255,24 +255,24 @@ class FocusSet {
 
         // Calculate composite scores for each task
         const scoredTasks = taskEntries.map(entry => {
-            const { task, priority, addedAt } = entry;
-            
+            const {task, priority, addedAt} = entry;
+
             // Calculate activation score (based on priority)
             const activationScore = priority;
-            
+
             // Calculate complexity score (based on term complexity, if available)
             const complexityScore = this._calculateTaskComplexityScore(task);
-            
+
             // Calculate recency score (more recent tasks get higher scores)
             const recencyScore = this._calculateRecencyScore(addedAt);
-            
+
             // Calculate composite score
-            const compositeScore = 
+            const compositeScore =
                 (priority * priorityWeight) +
                 (activationScore * activationWeight) +
                 (complexityScore * complexityWeight) +
                 (recencyScore * recencyWeight);
-            
+
             return {
                 task,
                 priority,

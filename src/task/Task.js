@@ -6,9 +6,15 @@ const PUNCTUATION_TO_TYPE = Object.freeze({'.': 'BELIEF', '!': 'GOAL', '?': 'QUE
 const TYPE_TO_PUNCTUATION = Object.freeze({'BELIEF': '.', 'GOAL': '!', 'QUESTION': '?'});
 
 export class Task {
-    constructor({term, punctuation = '.', truth = null, budget = {priority: 0.5, durability: 0.5, quality: 0.5}, stamp = null}) {
+    constructor({
+                    term,
+                    punctuation = '.',
+                    truth = null,
+                    budget = {priority: 0.5, durability: 0.5, quality: 0.5},
+                    stamp = null
+                }) {
         if (!(term instanceof Term)) throw new Error('Task must be initialized with a valid Term object.');
-        
+
         this.term = term;
         this.type = PUNCTUATION_TO_TYPE[punctuation] || 'BELIEF';
         this.truth = this._createTruth(truth);
@@ -17,12 +23,12 @@ export class Task {
         Object.freeze(this);
     }
 
-    _createTruth(truth) {
-        return truth instanceof Truth ? truth : (truth ? new Truth(truth.f, truth.c) : null);
-    }
-
     get punctuation() {
         return TYPE_TO_PUNCTUATION[this.type];
+    }
+
+    _createTruth(truth) {
+        return truth instanceof Truth ? truth : (truth ? new Truth(truth.f, truth.c) : null);
     }
 
     clone(overrides = {}) {

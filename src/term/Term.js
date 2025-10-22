@@ -15,28 +15,54 @@ export class Term {
         this._complexity = this._calculateComplexity();
         this._id = type === TermType.ATOM ? name : `${operator}_${name}`;
         this._hash = Term.hash(this._id);
-        
+
         return freeze(this);
     }
 
-    _calculateComplexity() {
-        return this._type === TermType.ATOM 
-            ? 1 
-            : 1 + this._components.reduce((sum, c) => sum + (c?.complexity || 0), 0);
+    get type() {
+        return this._type;
     }
 
-    get type() { return this._type; }
-    get name() { return this._name; }
-    get operator() { return this._operator; }
-    get components() { return this._components; }
-    get complexity() { return this._complexity; }
-    get hash() { return this._hash; }
-    get id() { return this._id; }
-    get isAtomic() { return this._type === TermType.ATOM; }
-    get isCompound() { return this._type === TermType.COMPOUND; }
+    get name() {
+        return this._name;
+    }
+
+    get operator() {
+        return this._operator;
+    }
+
+    get components() {
+        return this._components;
+    }
+
+    get complexity() {
+        return this._complexity;
+    }
+
+    get hash() {
+        return this._hash;
+    }
+
+    get id() {
+        return this._id;
+    }
+
+    get isAtomic() {
+        return this._type === TermType.ATOM;
+    }
+
+    get isCompound() {
+        return this._type === TermType.COMPOUND;
+    }
 
     static hash(str) {
         return crypto.createHash('sha256').update(str).digest('hex');
+    }
+
+    _calculateComplexity() {
+        return this._type === TermType.ATOM
+            ? 1
+            : 1 + this._components.reduce((sum, c) => sum + (c?.complexity || 0), 0);
     }
 
     /**
@@ -49,11 +75,11 @@ export class Term {
         if (this._type !== other._type) return false;
         if (this._operator !== other._operator) return false;
         if (this._name !== other._name) return false;
-        
+
         // For compound terms, recursively compare components
         if (this._type === TermType.COMPOUND) {
             if (this._components.length !== other._components.length) return false;
-            
+
             // For commutative operators, order doesn't matter
             if (this._isCommutativeOperator()) {
                 return this._componentsMatch(other._components);
@@ -64,10 +90,10 @@ export class Term {
                 }
             }
         }
-        
+
         return true;
     }
-    
+
     /**
      * Check if the operator is commutative
      * @returns {boolean} - True if operator is commutative
@@ -76,7 +102,7 @@ export class Term {
         const commutativeOps = new Set(['&', '|', '+', '*', '<->', '<=>']);
         return commutativeOps.has(this._operator);
     }
-    
+
     /**
      * Check if components match, considering commutativity
      * @param {Array} otherComponents - Components to match against
@@ -84,17 +110,17 @@ export class Term {
      */
     _componentsMatch(otherComponents) {
         if (this._components.length !== otherComponents.length) return false;
-        
+
         const thisSorted = [...this._components].sort((a, b) => this._compareTerms(a, b));
         const otherSorted = [...otherComponents].sort((a, b) => this._compareTerms(a, b));
-        
+
         for (let i = 0; i < thisSorted.length; i++) {
             if (!thisSorted[i].equals(otherSorted[i])) return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * Compare two terms for sorting purposes
      * @param {Term} a - First term

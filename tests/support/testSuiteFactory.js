@@ -6,8 +6,8 @@
  * Abstract, Modularized, Parameterized with Terse syntax, Few comments: rely on self-documenting code
  */
 
-import {StandardTestSuites, FlexibleTestPatterns, NARTestSuites, ParameterizedTestPatterns} from './consolidatedTestSuites.js';
-import {truthAssertions, taskAssertions, memoryAssertions, flexibleAssertions} from './baseTestUtils.js';
+import {FlexibleTestPatterns, ParameterizedTestPatterns, StandardTestSuites} from './consolidatedTestSuites.js';
+import {flexibleAssertions, memoryAssertions, taskAssertions, truthAssertions} from './baseTestUtils.js';
 import {T} from './enhancedTestSuites.js';
 
 /**
@@ -202,7 +202,14 @@ export const TestSuiteFactory = {
 };
 
 // Export for convenience
-export const {createDataModelSuite, createTaskRelatedSuite, createTruthRelatedSuite, createMemoryRelatedSuite, createParameterizedSuite, createAgileSuite} = TestSuiteFactory;
+export const {
+    createDataModelSuite,
+    createTaskRelatedSuite,
+    createTruthRelatedSuite,
+    createMemoryRelatedSuite,
+    createParameterizedSuite,
+    createAgileSuite
+} = TestSuiteFactory;
 
 // Default export
 export default TestSuiteFactory;
