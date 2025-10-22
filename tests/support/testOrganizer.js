@@ -15,6 +15,7 @@ import * as generalSuites from './generalTestSuites.js';
 import * as consolidatedSuites from './consolidatedTestSuites.js';
 import * as enhancedSuites from './enhancedTestSuites.js';
 import * as testSuiteFactory from './testSuiteFactory.js';
+import * as flexibleUtils from './flexibleTestUtils.js';
 
 /**
  * Consolidated test utilities organized by functionality
@@ -66,6 +67,14 @@ const TestOrganizer = {
         comprehensive: baseUtils.comprehensiveTestSuites
     },
 
+    // Flexible test utilities for agile development
+    flexible: {
+        assertions: flexibleUtils.flexibleAssertions,
+        truth: flexibleUtils.flexibleTruthUtils,
+        config: flexibleUtils.flexibleTestConfig,
+        wrappers: flexibleUtils.flexibleTestWrappers
+    },
+
     // Common helper functions
     helpers: {
         waitForCondition: baseUtils.waitForCondition,
@@ -83,6 +92,7 @@ export const {
     nar,
     factories: testFactories,  // Rename to avoid conflict
     suites,
+    flexible,  // Export the new flexible utilities
     helpers
 } = TestOrganizer;
 
@@ -90,6 +100,8 @@ export const {
 export {TestOrganizer};
 
 // Export everything individually for backward compatibility
+// Note: Be careful of conflicts when using star exports
+// The flexibleAssertions from baseTestUtils and flexibleTestUtils conflict
 export * from './baseTestUtils.js';
 export * from './narTestSetup.js';
 export * from './factories.js';
@@ -99,6 +111,11 @@ export * from './consolidatedTestSuites.js';
 export * from './enhancedTestSuites.js';
 export * from './agileRobustnessUtils.js';
 export * from './testSuiteFactory.js';
+// Don't star-export flexibleTestUtils to avoid conflicts, export individually where needed
+// export * from './flexibleTestUtils.js';
+
+// Export flexible utilities individually to avoid conflicts
+export { flexibleAssertions, flexibleTruthUtils, flexibleTestConfig, flexibleTestWrappers, default as flexibleTestUtils } from './flexibleTestUtils.js';
 
 /**
  * Fluent test API for more readable and expressive tests

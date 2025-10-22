@@ -11,7 +11,12 @@ export class TaskMatch {
         this.termFilter = term || null;
         this.punctuationFilter = null;
         this.minFreq = null;
+        this.maxFreq = null;
         this.minConf = null;
+        this.maxConf = null;
+        this.expectedFreq = null;
+        this.expectedConf = null;
+        this.tolerance = null;
     }
 
     withPunctuation(punctuation) {
@@ -22,6 +27,20 @@ export class TaskMatch {
     withTruth(minFrequency, minConfidence) {
         this.minFreq = minFrequency;
         this.minConf = minConfidence;
+        return this;
+    }
+
+    /**
+     * Add flexible truth matching with tolerance
+     * @param {number} expectedFrequency - Expected frequency value
+     * @param {number} expectedConfidence - Expected confidence value
+     * @param {number} tolerance - Tolerance for matching (e.g., 0.01 for 1% tolerance)
+     * @returns {TaskMatch} - Returns this for method chaining
+     */
+    withFlexibleTruth(expectedFrequency, expectedConfidence, tolerance) {
+        this.expectedFreq = expectedFrequency;
+        this.expectedConf = expectedConfidence;
+        this.tolerance = tolerance;
         return this;
     }
 
@@ -52,6 +71,25 @@ export class TaskMatch {
             return false;
         }
         if (this.minConf !== null && task.truth && task.truth.c < this.minConf) {
+            return false;
+        }
+        
+        // Check flexible truth matching if specified
+        if (this.expectedFreq !== null && this.expectedConf !== null && this.tolerance !== null && task.truth) {
+            const freqDiff = Math.abs(task.truth.f - this.expectedFreq);
+            const confDiff = Math.abs(task.truth.c - this.expectedConf);
+            if (freqDiff > this.tolerance || confDiff > this.tolerance) {
+                return false;
+            }
+        }
+        
+        // Check range-based truth matching if specified
+        if (this.minFreq !== null && this.maxFreq !== null && task.truth && 
+            (task.truth.f < this.minFreq || task.truth.f > this.maxFreq)) {
+            return false;
+        }
+        if (this.minConf !== null && this.maxConf !== null && task.truth && 
+            (task.truth.c < this.minConf || task.truth.c > this.maxConf)) {
             return false;
         }
 

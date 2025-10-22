@@ -14,3 +14,4 @@ export * from './narTestSetup.js';
 export * from './factories.js';
 export * from './commonTestSuites.js';
 export * from './generalTestSuites.js';
+export * from './flexibleTestUtils.js';
