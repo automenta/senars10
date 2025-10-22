@@ -94,47 +94,21 @@ export class PatternMatcher {
      * Unify commutative operators where order doesn't matter
      * @private
      */
-    _unifyCommutative(pattern, term, bindings, options) {
+    _unifyCommutative(pattern, term, bindings) {
         // A simple approach: try the ordered matching (pattern[i] with term[i])
-        // Since this is commutative, the order of matching might vary.
-        // For simplicity, try the first matching approach that works
+        // For commutative operators, the order of matching may vary but for basic cases
+        // the ordered approach should work
         if (pattern.components.length !== term.components.length) {
             return false;
         }
 
         // Use the same approach as regular unification but with the same bindings object
         for (let i = 0; i < pattern.components.length; i++) {
-            if (!this._unifyTerms(pattern.components[i], term.components[i], bindings, options)) {
+            if (!this._unifyTerms(pattern.components[i], term.components[i], bindings)) {
                 return false;
             }
         }
         return true;
-    }
-
-    /**
-     * Handle complex variable patterns (like function applications with variables)
-     * @private
-     */
-    _unifyComplexVariable(pattern, term, bindings) {
-        // For now, treat as regular unification but in the future can handle
-        // more complex patterns like ?f(x, y) matching add(1, 2)
-        if (pattern.isCompound && pattern.components.length > 0) {
-            const firstComponent = pattern.components[0];
-            if (this._isVariable(firstComponent)) {
-                // This could be something like ?f(x, y) matching add(1, 2)
-                const varName = firstComponent.name;
-                if (bindings.has(varName)) {
-                    // Variable already bound, check consistency
-                    const boundTerm = bindings.get(varName);
-                    if (!this._termsEqual(boundTerm, term, bindings)) return false;
-                } else {
-                    // Bind the variable to the entire term
-                    bindings.set(varName, term);
-                }
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -178,17 +152,6 @@ export class PatternMatcher {
     }
 
     /**
-     * Check if a pattern is a complex variable pattern
-     * @param {Term} pattern - The pattern to check
-     * @param {Term} term - The term to match against
-     * @returns {boolean} - Whether it's a complex variable pattern
-     */
-    _isComplexVariablePattern(pattern, term) {
-        // This would check for patterns like ?f(x, y) or other complex variable structures
-        return pattern.isCompound && this._isVariable(pattern.components[0]);
-    }
-
-    /**
      * Check if an operator is commutative
      * @param {string} operator - The operator to check
      * @returns {boolean} - Whether the operator is commutative
@@ -220,26 +183,5 @@ export class PatternMatcher {
         
         // Fallback to string representation
         return t1.toString() === t2.toString();
-    }
-
-    /**
-     * Unify commutative operators where order doesn't matter
-     * @private
-     */
-    _unifyCommutative(pattern, term, bindings) {
-        // A simple approach: try the ordered matching (pattern[i] with term[i])
-        // For commutative operators, the order of matching may vary but for basic cases
-        // the ordered approach should work
-        if (pattern.components.length !== term.components.length) {
-            return false;
-        }
-
-        // Use the same approach as regular unification but with the same bindings object
-        for (let i = 0; i < pattern.components.length; i++) {
-            if (!this._unifyTerms(pattern.components[i], term.components[i], bindings)) {
-                return false;
-            }
-        }
-        return true;
     }
 }
