@@ -30,270 +30,181 @@ The existing system features:
 
 ## 3. Strategic Enhancement Roadmap
 
-### Phase 1: Component Architecture Consolidation
-*Goal: Refine core architecture for enhanced elegance and consistency*
+### Phase 1: Architectural Consolidation & Evaluation Foundations
+*Goal: Refine core architecture, establish the foundational elements for an advanced term evaluation system, and introduce associative memory layers.*
 
 - **1.1. Component Lifecycle Unification:**
-    - [ ] Standardize component initialization, startup, and shutdown patterns
-    - [ ] Implement unified configuration schema with validation against JOI
-    - [ ] Create abstract base components with common metrics and logging
-    - [ ] Consolidate duplicate functionality across component implementations
+    - [ ] Standardize component initialization, startup, and shutdown patterns.
+    - [ ] Implement a unified configuration schema with validation.
 
-- **1.2. Term System Optimization:**
-    - [ ] Implement advanced term canonicalization, normalization with proper commutativity handling
-    - [ ] Optimize term factory caching with a **capacity limit** to obey AIKR.
-    - [ ] Add computational complexity metrics for cognitive diversity calculations
-    - [ ] Enhance term equality and comparison for structural correctness
+- **1.2. Term System Expansion for Evaluation:**
+    - [ ] Implement advanced term canonicalization and normalization.
+    - [ ] Upgrade the term factory cache to be **capacity-limited** to obey AIKR.
+    - [ ] **Introduce Core Evaluation Primitives:**
+        - [ ] Add the **`=`** (Equals) operator: a 2-ary, commutative, bidirectional operator distinct from `<=>` and `<->`.
+        - [ ] Add the **`^`** (Operation) operator for applying **`Functor`**s to arguments (0-ary to n-ary).
+        - [ ] Add special system atoms for boolean logic: **`True`**, **`False`**, **`Null`**.
+    - [ ] **Update Parser** to support shorthand notation for operations (e.g., `f(x,y)` as `f ^ (*,x,y)`).
 
-- **1.3. Memory Architecture Refinement:**
-    - [ ] Optimize focus set selection algorithms with composite scoring
-    - [ ] Implement configurable forgetting policies with activation propagation
-    - [ ] Enhance memory indexing strategies for different term types
-    - [ ] Improve consolidation algorithms with better priority decay mechanisms
+- **1.3. Associative Memory Architecture (`Layer`s):**
+    - [ ] Design and implement an abstract, pluggable **`Layer`** interface for associative links, supporting dynamic implementations and per-link data.
+    - [ ] Implement the **`TermLayer`** as a concrete **`Layer`** (akin to NARS `TermLink`s), using a capacity-limited **`Bag`** of prioritized references for AIKR compliance.
 
-- **1.4. Associative Memory Architecture (`Layer`s):**
-    - [ ] Design and implement an abstract, pluggable `Layer` interface for associative links, allowing for dynamic implementations and per-link data.
-    - [ ] Implement the `TermLayer` as a concrete `Layer` (similar to NARS `TermLink`s), using a capacity-limited `Bag` of prioritized references for AIKR compliance.
+- **1.4. Functor Framework:**
+    - [ ] Design and implement a system for registering **`Functor`**s (atomic operations) and their associated evaluation logic.
 
 ### Acceptance Criteria for Phase 1:
-- [ ] All components follow consistent lifecycle and configuration patterns.
-- [ ] Term operations demonstrate improved performance and correctness, with capacity-limited caches.
-- [ ] The abstract `Layer` and concrete `TermLayer` are implemented, providing a foundation for associative memory.
-- [ ] Configuration validation prevents invalid system states.
+- [ ] Core architecture is consolidated with consistent lifecycle and configuration patterns.
+- [ ] Term system is expanded to include the **`=`**, **`^`**, **`True`**, **`False`**, and **`Null`** primitives.
+- [ ] Parser correctly handles shorthand operation notation.
+- [ ] The **`Functor`** registration system is in place.
+- [ ] The abstract **`Layer`** and concrete **`TermLayer`** are implemented and tested.
 
 ---
 
-### Current Status & Immediate Focus: Phase 2
-
-An analysis of the current implementation reveals the following readiness level and critical gaps, positioning **Phase 2 as the next priority.**
-
-**Readiness Level: 60%**
-
-#### ❌ Missing Components
-
-1.  **Complete NAL Rule Set**: Only 2 rules implemented (Modus Ponens, Syllogism). Missing conversion, exemplification, comparison, negation, etc. No higher-order reasoning rules.
-2.  **Advanced Reasoning Features**: No sophisticated pattern matching strategies. No complex variable binding beyond basic '?X' convention. No conflict resolution between reasoning outputs.
-3.  **Optimization Infrastructure**: No rule caching/memoization system. No performance-based rule prioritization. No pattern matching indexing strategies.
-
-#### Critical Gaps to Address:
-
-1.  **Expand Core NAL Rules (Priority 1)**: Need 15+ additional rules beyond current 2.
-2.  **Implement Performance Optimizations (Priority 2)**: Add winnowing, caching, indexing.
-3.  **Enhance Validation Framework (Priority 3)**: Add rule correctness checking.
-
-#### Phase 2 Implementation Readiness:
-
--   **Architecture**: ✅ Ready - Extensible rule system exists
--   **Foundation**: ✅ Ready - Core operations work
--   **Integration**: 🟡 Partially Ready - Basic hybrid reasoning works
--   **Performance**: ❌ Not Ready - Missing optimization strategies
--   **Completeness**: ❌ Not Ready - Missing 80%+ of required rules
-
-**Next Step:** Begin implementation of Phase 2, focusing on the priorities identified above.
-
----
-
-### Phase 2: NAL Rule Expansion & Reasoning Enhancement
-*Goal: Address critical gaps by implementing a comprehensive NAL rule set and sophisticated reasoning optimizations.*
+### Phase 2: NAL Expansion & Core Evaluation Engine
+*Goal: Implement a comprehensive NAL rule set, activate the core evaluation engine, and introduce sophisticated reasoning optimizations.*
 
 - **2.1. Expand Core NAL Rules (Priority 1):**
-    - [ ] **Syllogistic and Conditional Rules:**
-        - [x] Modus Ponens (already present)
-        - [x] Syllogism (already present)
-        - [ ] Modus Tollens
-        - [ ] Hypothetical Syllogism
-    - [ ] **Conversion and Contraposition:**
-        - [ ] Conversion
-        - [ ] Contraposition
-    - [ ] **Comparison and Analogy:**
-        - [ ] Analogy (structural and semantic)
-        - [ ] Comparison (similarity and difference)
-    - [ ] **Set-theoretic and Higher-Order Rules:**
-        - [ ] Exemplification and Generalization
-        - [ ] Intersection and Union
-        - [ ] Negation and Double Negation
-    - [ ] **Temporal and Causal Rules:**
-        - [ ] Temporal Inference (e.g., before, after)
-        - [ ] Causal Inference (e.g., causes, effects)
-    - [ ] **Advanced Pattern Matching:**
-        - [ ] Implement support for set-theoretic matching in patterns.
-        - [ ] Enhance variable binding to handle restricted and dependent variables.
+    - [ ] Implement a comprehensive set of NAL rules (syllogistic, conditional, conversion, comparison, set-theoretic, temporal, etc.).
+    - [ ] Enhance pattern matching to support complex and dependent variable binding.
 
-- **2.2. Implement Performance Optimizations (Priority 2):**
-    - [ ] **Rule Caching and Memoization:**
-        - [ ] Implement a **capacity-limited** memoization decorator for `NALRule._apply` to cache results for identical premises, ensuring AIKR compliance.
-        - [ ] Develop a **capacity-limited** caching strategy for frequently used rules to reduce lookup times.
-    - [ ] **Performance-based Rule Prioritization:**
-        - [ ] Implement a priority queue for rule selection based on a combination of static priority and dynamic performance metrics (e.g., execution time, success rate).
-        - [ ] Introduce a "winnowing" process to filter out less relevant rules before the main selection process.
-    - [ ] **Pattern Matching Indexing:**
-        - [ ] Create an indexing mechanism for terms in memory to speed up pattern matching.
-        - [ ] Optimize the `_unifyPatterns` method for common cases.
+- **2.2. Implement Core Evaluation Engine (Priority 2):**
+    - [ ] Develop the core evaluation logic for **`^`** (Operation) terms within a given context, including variable substitution. This provides the foundation for Phase 3's back-solving.
+    - [ ] **Implement a Core `Functor` Library:**
+        - [ ] Add a library of essential **`Functor`**s, including basic arithmetic (`add`, `subtract`) and boolean logic (`and`, `or`, `not`).
+    - [ ] **Implement Graceful Failure Handling & Boolean Reduction:**
+        - [ ] Implement cascading reductions for logical operators (Conjunction, Disjunction, Implication) using the **`True`**, **`False`**, and **`Null`** atoms.
+        - [ ] Ensure **`Null`** acts as a short-circuiting "poison pill" in reductions (e.g., `(&, Null, x) => Null`).
+        - [ ] Implement specific reductions like `(--, False) => True` and `(&, False, x) => False`.
 
-- **2.3. Enhance Validation and Hybrid Reasoning Synergy (Priority 3):**
-    - [ ] **Rule Validation and Testing:**
-        - [ ] Create a comprehensive suite of unit tests for each new NAL rule.
-        - [ ] Develop a validation framework to check for logical consistency between rules.
-    - [ ] **Hybrid Reasoning Coordination:**
-        - [ ] Implement a sophisticated conflict resolution mechanism that considers the truth values and sources of conflicting conclusions.
-        - [ ] Design the system to **combine, cooperate, and synergize** NAL and LM reasoning pathways, rather than merely switching between them.
-        - [ ] Enhance reasoning gap detection to allow for more targeted, synergistic application of LM and NAL rules.
+- **2.3. Implement Performance Optimizations (Priority 3):**
+    - [ ] Implement **capacity-limited** memoization and caching for NAL rules to ensure AIKR compliance.
+    - [ ] Implement a performance-based priority queue for rule selection ("winnowing").
+    - [ ] Create a term indexing mechanism in memory for faster pattern matching.
+
+- **2.4. Enhance Validation & Hybrid Reasoning Synergy:**
+    - [ ] Create a comprehensive unit test suite for all new NAL rules and evaluation/reduction logic.
+    - [ ] Implement synergistic reasoning pathways where NAL and LM outputs can feed into each other to refine results or generate new premises.
+    - [ ] Implement sophisticated conflict resolution that weighs evidence from different reasoning sources.
 
 ### Acceptance Criteria for Phase 2:
-- [ ] At least 15 new NAL rules are implemented, tested, and integrated into the reasoning engine.
-- [ ] The reasoning engine demonstrates measurable improvement from capacity-limited optimization features.
+- [ ] A comprehensive NAL rule set is implemented and tested.
+- [ ] The core evaluation engine can execute **`Functor`**s and perform boolean reductions correctly.
+- [ ] The reasoning engine demonstrates measurable performance improvements from optimizations.
 - [ ] The hybrid reasoning system demonstrates effective synergy between NAL and LM reasoning.
-- [ ] The validation framework prevents the introduction of inconsistent or incorrect rules.
 
 ---
 
-### Phase 3: Meta-Cognition & Self-Optimization
-*Goal: Implement sophisticated self-monitoring and adaptive capabilities*
+### Phase 3: Meta-Cognition & Advanced Evaluation (Back-Solving)
+*Goal: Implement self-monitoring, integrate associative memory, and introduce advanced back-solving to achieve Prolog-like capabilities.*
 
 - **3.1. Self-Optimizing Component:**
-    - [ ] Implement `Self` component with system-wide monitoring capabilities
-    - [ ] Create adaptive parameter tuning based on performance metrics
-    - [ ] Develop anomaly detection for reasoning failures and inconsistencies
-    - [ ] Add predictive optimization based on usage patterns
+    - [ ] Implement a `Self` component with system-wide monitoring and adaptive parameter tuning.
+    - [ ] Develop anomaly detection and predictive optimization based on performance metrics.
 
-- **3.2. Meta-Cognitive Reasoning:**
-    - [ ] Implement reasoning about reasoning (RBR) capabilities
-    - [ ] Add introspection APIs for real-time system state examination
-    - [ ] Create self-reflective reasoning patterns for system improvement
-    - [ ] Develop capability assessment and self-correction mechanisms
+- **3.2. Advanced Evaluation: Back-Solving:**
+    - [ ] Enhance the evaluation engine to support **back-solving** for variables in Operation terms (e.g., solving for `?x` in `add(1, ?x) = 3`).
+    - [ ] Implement this for key **`Functor`**s, such as arithmetic operations, to achieve capabilities similar to Prolog and MeTTa.
 
-- **3.3. Dynamic Configuration:**
-    - [ ] Implement runtime configuration updates with validation
-    - [ ] Add configuration presets for different use cases and performance profiles
-    - [ ] Create configuration optimization based on workload analysis
-    - [ ] Develop configuration rollback for system stability
+- **3.3. Associative Reasoning Integration:**
+    - [ ] Integrate the **`TermLayer`** into the reasoning cycle for associative premise selection, allowing the system to find relevant knowledge more efficiently.
+
+- **3.4. Meta-Cognitive Reasoning:**
+    - [ ] Implement reasoning about reasoning (RBR) capabilities.
+    - [ ] Add introspection APIs for real-time system state examination.
 
 ### Acceptance Criteria for Phase 3:
-- [ ] Self-optimization component demonstrates measurable performance improvements
-- [ ] Meta-cognitive capabilities enable system awareness and self-correction
-- [ ] Dynamic configuration maintains system stability during updates
-- [ ] Anomaly detection and correction mechanisms improve system reliability
+- [ ] The evaluation engine supports back-solving for key **`Functor`**s.
+- [ ] The **`TermLayer`** is actively used in the reasoning cycle, improving performance or capabilities.
+- [ ] The self-optimization component demonstrates measurable performance improvements.
+- [ ] Meta-cognitive capabilities enable system awareness and self-correction.
 
 ---
 
 ### Phase 4: Advanced Tool Integration & Multi-Modal Reasoning
-*Goal: Expand tool ecosystem with enhanced safety and cross-modal capabilities*
+*Goal: Expand the tool ecosystem, synergize tools with internal evaluation, and integrate multi-modal reasoning via embedding layers.*
 
 - **4.1. Advanced Tool Framework:**
-    - [ ] Implement sophisticated tool discovery with safety validation
-    - [ ] Add execution sandboxing with resource limits and access controls
-    - [ ] Create tool chaining and workflow orchestration capabilities
-    - [ ] Implement tool result validation and consistency checking
+    - [ ] Implement sophisticated tool discovery, sandboxing, and workflow orchestration.
+    - [ ] **Synergize Tools and Functors:** Bridge the external tool framework with the internal **`Functor`** evaluation system, allowing them to interoperate securely.
 
 - **4.2. Multi-Modal & Embedding Integration:**
-    - [ ] **Embedding `Layer` Implementation:**
-        - [ ] Implement the `EmbeddingLayer` as a concrete `Layer` for semantic similarity reasoning.
-        - [ ] Associate each `EmbeddingLayer` with a specific LM embedding model, allowing for multiple, separate layers to support different models.
-        - [ ] Implement a priority-based, fixed-capacity "Pending Work Queue" `Bag` for asynchronous embedding computation. This I/O-bound LM call must run in a separate thread to prevent blocking CPU-bound reasoning.
+    - [ ] **`EmbeddingLayer` Implementation:**
+        - [ ] Implement the **`EmbeddingLayer`** as a concrete **`Layer`** for semantic similarity reasoning.
+        - [ ] Associate each **`EmbeddingLayer`** with a specific LM embedding model, allowing multiple layers to support different models.
+        - [ ] Implement a priority-based, fixed-capacity "Pending Work Queue" **`Bag`** for asynchronous embedding computation. This I/O-bound LM call must run in a separate thread to prevent blocking CPU-bound reasoning.
         - [ ] Ensure the system is **progressive**: it must use available embedding data without assuming or requiring that embeddings are fully computed.
         - [ ] Implement a **capacity-limited LRU cache** for computed embeddings, with persistence to disk for reuse.
         - [ ] This feature adapts and enhances the `embeddingRef` concept from `v8/`.
-    - [ ] **Other Multi-Modal Tools:**
-        - [ ] Add multimedia processing tools (PDF, image, audio processing).
-        - [ ] Implement cross-modal reasoning between different data types.
-        - [ ] Create multi-modal query processing capabilities.
-
-- **4.3. Tool Intelligence:**
-    - [ ] Implement intelligent tool selection based on task requirements
-    - [ ] Add tool execution result explanation and summarization
-    - [ ] Create tool usage pattern analysis for optimization
-    - [ ] Develop tool failure prediction and mitigation strategies
+    - [ ] Add other multimedia processing tools and cross-modal reasoning capabilities.
 
 ### Acceptance Criteria for Phase 4:
-- [ ] The `EmbeddingLayer` is fully implemented, providing asynchronous, progressive, and persistent semantic reasoning capabilities.
-- [ ] Tool framework demonstrates safe execution with comprehensive validation.
+- [ ] The **`EmbeddingLayer`** is fully implemented, providing asynchronous, progressive, and persistent semantic reasoning.
+- [ ] The tool framework and internal **`Functor`** system can interoperate.
 - [ ] Multi-modal reasoning capabilities process diverse data types effectively.
 
 ---
 
 ### Phase 5: Interface Enhancement & User Experience
-*Goal: Develop sophisticated interfaces that showcase system capabilities*
+*Goal: Develop sophisticated interfaces that showcase the system's advanced reasoning and evaluation capabilities.*
 
 - **5.1. Comprehensive Web UI:**
-    - [ ] Create interactive visualization of reasoning processes and memory structures
-    - [ ] Implement real-time monitoring dashboards with performance metrics
-    - [ ] Add debugging and tracing tools for reasoning pathway analysis
-    - [ ] Include concept mapping and relationship visualization
+    - [ ] Create interactive visualizations for reasoning processes, memory structures, and **evaluation traces**.
+    - [ ] Implement real-time monitoring dashboards.
 
 - **5.2. Enhanced REPL & TUI:**
-    - [ ] Implement advanced REPL with command history and auto-completion
-    - [ ] Add visualization commands for memory and reasoning trace exploration
-    - [ ] Create session management with state persistence
-    - [ ] Implement batch processing capabilities for complex operations
+    - [ ] Implement advanced REPL with command history, auto-completion, and session management.
+    - [ ] Add commands for triggering and debugging **term evaluation** and **back-solving**.
 
 - **5.3. API & Integration Layer:**
     - [ ] Develop a comprehensive **WebSocket API** for streaming real-time event notifications and interaction.
     - [ ] Implement agent interfaces for autonomous operation.
-    - [ ] Add extensive plugin APIs for extensibility.
 
 ### Acceptance Criteria for Phase 5:
-- [ ] Web UI provides comprehensive insight into system operation and reasoning.
-- [ ] TUI/REPL offers intuitive and powerful user interaction capabilities.
-- [ ] The WebSocket API supports robust, real-time external integration.
-- [ ] All interfaces maintain accessibility and performance standards.
+- [ ] Interfaces provide comprehensive insight into system operation, including evaluation and back-solving.
+- [ ] The **WebSocket API** supports robust, real-time external integration.
 
 ---
 
 ### Phase 6: Validation & Performance Excellence
-*Goal: Ensure system reliability, performance, and correctness at scale*
+*Goal: Ensure system reliability, performance, and correctness at scale through rigorous testing.*
 
 - **6.1. Comprehensive Testing Strategy:**
-    - [ ] Implement property-based testing for all core data structures (Term, Truth, Task)
-    - [ ] Create extensive integration tests for hybrid reasoning workflows
-    - [ ] Develop end-to-end demonstrations for key system capabilities
-    - [ ] Add performance regression testing with automated benchmarks
+    - [ ] Implement property-based testing for all core data structures, **boolean reduction logic**, and **`Functor`** evaluation.
+    - [ ] Create extensive integration tests for hybrid reasoning and **complex evaluation workflows (including back-solving)**.
+    - [ ] Add performance regression testing and automated benchmarks.
 
-- **6.2. Quality Validation:**
-    - [ ] Conduct comprehensive load testing under various usage scenarios
-    - [ ] Perform security validation and vulnerability assessment
-    - [ ] Execute fault injection testing for system resilience
-    - [ ] Validate architectural boundaries and component interfaces
-
-- **6.3. Performance Optimization:**
-    - [ ] Profile and optimize critical reasoning paths for scale
-    - [ ] Implement and verify advanced **capacity-limited** caching strategies for terms, rules, and inferences to ensure AIKR compliance.
-    - [ ] Optimize memory management with intelligent garbage collection
-    - [ ] Enhance parallel processing capabilities for rule application
+- **6.2. Quality Validation & Performance Optimization:**
+    - [ ] Conduct comprehensive load testing, security validation, and fault injection testing.
+    - [ ] Profile and optimize critical reasoning and **evaluation paths** for scale.
+    - [ ] Implement and verify advanced **capacity-limited** caching strategies for all system caches.
 
 ### Acceptance Criteria for Phase 6:
-- [ ] Property-based tests verify correctness of all core operations.
+- [ ] Property-based tests verify correctness of all core operations, including evaluation.
 - [ ] Integration tests validate complete system functionality under load.
-- [ ] Performance benchmarks demonstrate scalability and efficiency, including cache performance.
-- [ ] System exhibits robustness under failure conditions and stress.
+- [ ] Performance benchmarks demonstrate scalability and efficiency.
 
 ---
 
 ### Phase 7: Production Excellence & Ecosystem Development
-*Goal: Achieve production-readiness with comprehensive deployment and maintenance*
+*Goal: Achieve production-readiness with comprehensive deployment, documentation, and maintenance.*
 
 - **7.1. Deployment & Operations:**
-    - [ ] Create containerized deployment with optimized Docker configuration
-    - [ ] Implement comprehensive monitoring, alerting, and observability
-    - [ ] Develop automated backup, recovery, and disaster recovery procedures
-    - [ ] Create production deployment automation with blue-green strategies
+    - [ ] Create containerized deployment with comprehensive monitoring, alerting, and observability.
+    - [ ] Develop automated backup, recovery, and deployment procedures.
 
 - **7.2. Documentation & Ecosystem:**
-    - [ ] Document all APIs, components, and integration patterns comprehensively
-    - [ ] Create user guides, tutorials, and advanced usage examples
-    - [ ] Implement automated documentation generation from code
-    - [ ] Establish maintenance and update procedures with versioning
+    - [ ] Document all APIs, components, **`Functor`**s, and integration patterns comprehensively.
+    - [ ] Create user guides, tutorials, and advanced usage examples for the **evaluation system**.
 
 - **7.3. Security & Compliance:**
-    - [ ] Implement comprehensive input sanitization and validation
-    - [ ] Add authentication, authorization, and access control mechanisms
-    - [ ] Conduct security audit with penetration testing
-    - [ ] Establish compliance with relevant standards and regulations
+    - [ ] Implement comprehensive security measures, including input sanitization, access control, and auditing.
 
 ### Acceptance Criteria for Phase 7:
-- [ ] System deploys reliably in containerized environments with monitoring
-- [ ] Documentation enables effective system usage and extension
-- [ ] Security measures protect against various threat vectors
-- [ ] Production readiness includes automated deployment and recovery
+- [ ] System deploys reliably in containerized environments with monitoring.
+- [ ] Documentation enables effective system usage, extension, and understanding of its evaluation capabilities.
+- [ ] Security measures protect against various threat vectors.
 
 ## 4. Implementation Strategy: Technical Excellence
 
@@ -306,4 +217,4 @@ This plan emphasizes:
 
 ## 5. Conclusion: Path to Advanced Intelligence
 
-This enhanced development plan provides a focused roadmap for elevating the already sophisticated SeNARS v10 implementation to new levels of capability, elegance, and production-readiness. Each phase builds on the strong foundation while delivering measurable improvements in intelligence, performance, and usability. The plan balances advanced functionality with architectural coherence, ensuring the system remains maintainable and reliable as it expands in capability.
+This enhanced development plan provides a focused roadmap for elevating the already sophisticated SeNARS v10 implementation to new levels of capability, elegance, and production-readiness. By integrating a powerful term evaluation system, the project is well-positioned to achieve its goal of supporting advanced, flexible reasoning akin to systems like Prolog and OpenCog Hyperon MeTTa. Each phase builds on the strong foundation while delivering measurable improvements in intelligence, performance, and usability.
