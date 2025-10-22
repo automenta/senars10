@@ -16,6 +16,7 @@ import * as consolidatedSuites from './consolidatedTestSuites.js';
 import * as enhancedSuites from './enhancedTestSuites.js';
 import * as testSuiteFactory from './testSuiteFactory.js';
 import * as flexibleUtils from './flexibleTestUtils.js';
+import * as templateFactory from './TestTemplateFactory.js';
 
 /**
  * Consolidated test utilities organized by functionality
@@ -75,6 +76,12 @@ const TestOrganizer = {
         wrappers: flexibleUtils.flexibleTestWrappers
     },
 
+    // Test templates for standardized, flexible testing
+    templates: {
+        factory: templateFactory.TestTemplateFactory,
+        ...templateFactory
+    },
+
     // Common helper functions
     helpers: {
         waitForCondition: baseUtils.waitForCondition,
@@ -93,6 +100,7 @@ export const {
     factories: testFactories,  // Rename to avoid conflict
     suites,
     flexible,  // Export the new flexible utilities
+    templates,  // Export the new template utilities
     helpers
 } = TestOrganizer;
 
@@ -116,6 +124,7 @@ export * from './testSuiteFactory.js';
 
 // Export flexible utilities individually to avoid conflicts
 export { flexibleAssertions, flexibleTruthUtils, flexibleTestConfig, flexibleTestWrappers, default as flexibleTestUtils } from './flexibleTestUtils.js';
+export { TestTemplateFactory, default as testTemplateFactory } from './TestTemplateFactory.js';
 
 /**
  * Fluent test API for more readable and expressive tests
