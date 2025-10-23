@@ -1,10 +1,12 @@
 import {Term} from '../term/Term.js';
+import {TermFactory} from '../term/TermFactory.js';
 import {ConcreteFunctor, FunctorRegistry} from './Functor.js';
-import {isNull, SYSTEM_ATOMS} from './SystemAtoms.js';
+import {isNull, isTrue, isFalse, SYSTEM_ATOMS} from './SystemAtoms.js';
 
 export class OperationEvaluationEngine {
-    constructor(functorRegistry = null) {
+    constructor(functorRegistry = null, termFactory = null) {
         this.functorRegistry = functorRegistry || new FunctorRegistry();
+        this.termFactory = termFactory || new TermFactory();
         this._initializeDefaultFunctors();
     }
 
@@ -17,23 +19,267 @@ export class OperationEvaluationEngine {
     }
 
     _initializeArithmeticFunctors() {
-        this.addFunctor('add', (a, b) => a + b, {arity: 2, isCommutative: true});
-        this.addFunctor('subtract', (a, b) => a - b, {arity: 2, isCommutative: false});
-        this.addFunctor('multiply', (a, b) => a * b, {arity: 2, isCommutative: true});
-        this.addFunctor('divide', (a, b) => b !== 0 ? a / b : null, {arity: 2, isCommutative: false});
+        this.addFunctor('add', this._vectorAwareAdd.bind(this), {arity: 2, isCommutative: true});
+        this.addFunctor('subtract', this._vectorAwareSubtract.bind(this), {arity: 2, isCommutative: false});
+        this.addFunctor('multiply', this._vectorAwareMultiply.bind(this), {arity: 2, isCommutative: true});
+        this.addFunctor('divide', this._vectorAwareDivide.bind(this), {arity: 2, isCommutative: false});
+        this.addFunctor('cmp', this._compare.bind(this), {arity: 2});
         this.addFunctor('equals', (a, b) => a === b ? SYSTEM_ATOMS.True : SYSTEM_ATOMS.False, {arity: 2});
     }
 
+    _vectorAwareAdd(a, b) {
+        // Check if either argument is a vector (array)
+        if (Array.isArray(a) && Array.isArray(b)) {
+            // Vector addition: (1,2) + (3,4) = (4,6)
+            if (a.length !== b.length) return null; // Cannot add vectors of different lengths
+            return a.map((val, i) => val + b[i]);
+        } else if (Array.isArray(a) && typeof b === 'number') {
+            // Scalar addition to vector: (1,2) + 3 = (4,5)
+            return a.map(val => val + b);
+        } else if (Array.isArray(b) && typeof a === 'number') {
+            // Scalar addition to vector: 3 + (1,2) = (4,5)
+            return b.map(val => val + a);
+        } else {
+            // Regular number addition
+            return a + b;
+        }
+    }
+
+    _vectorAwareSubtract(a, b) {
+        if (Array.isArray(a) && Array.isArray(b)) {
+            // Vector subtraction: (4,6) - (3,4) = (1,2)
+            if (a.length !== b.length) return null; // Cannot subtract vectors of different lengths
+            return a.map((val, i) => val - b[i]);
+        } else if (Array.isArray(a) && typeof b === 'number') {
+            // Scalar subtraction from vector: (4,6) - 3 = (1,3)
+            return a.map(val => val - b);
+        } else if (Array.isArray(b) && typeof a === 'number') {
+            // Scalar vector from number: 5 - (1,2) = (4,3)
+            return b.map(val => a - val);
+        } else {
+            // Regular number subtraction
+            return a - b;
+        }
+    }
+
+    _vectorAwareMultiply(a, b) {
+        if (Array.isArray(a) && Array.isArray(b)) {
+            // Element-wise vector multiplication: (1,2) * (3,4) = (3,8)
+            if (a.length !== b.length) return null; // Cannot multiply vectors of different lengths
+            return a.map((val, i) => val * b[i]);
+        } else if (Array.isArray(a) && typeof b === 'number') {
+            // Scalar multiplication: (2,3) * 2 = (4,6)
+            return a.map(val => val * b);
+        } else if (Array.isArray(b) && typeof a === 'number') {
+            // Scalar multiplication: 2 * (2,3) = (4,6)
+            return b.map(val => val * a);
+        } else {
+            // Regular number multiplication
+            return a * b;
+        }
+    }
+
+    _vectorAwareDivide(a, b) {
+        if (Array.isArray(a) && Array.isArray(b)) {
+            // Element-wise vector division: (4,6) / (2,3) = (2,2)
+            if (a.length !== b.length) return null; // Cannot divide vectors of different lengths
+            return a.map((val, i) => b[i] !== 0 ? val / b[i] : null);
+        } else if (Array.isArray(a) && typeof b === 'number') {
+            // Scalar division of vector: (4,6) / 2 = (2,3)
+            return a.map(val => b !== 0 ? val / b : null);
+        } else if (Array.isArray(b) && typeof a === 'number') {
+            // Division of number by vector: 6 / (2,3) = (3,2)
+            return b.map(val => val !== 0 ? a / val : null);
+        } else {
+            // Regular number division
+            return b !== 0 ? a / b : null;
+        }
+    }
+
+    _compare(a, b) {
+        if (typeof a === 'number' && typeof b === 'number') {
+            if (a < b) return -1;
+            if (a > b) return 1;
+            return 0;
+        }
+        // For non-numbers, return appropriate comparison or null
+        return null;
+    }
+
     async evaluate(operationTerm, context, variableBindings = new Map()) {
-        if (!operationTerm.isCompound || operationTerm.operator !== '^') {
+        if (!operationTerm.isCompound) {
             return this._evaluateNonOperation(operationTerm, context, variableBindings);
         }
 
-        if (operationTerm.components.length !== 2) {
-            return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format');
+        // Handle unified operators that can be both structural and functional based on argument types
+        if (['&', '|', '==>', '<=>'].includes(operationTerm.operator)) {
+            return this._evaluateUnifiedOperator(operationTerm, context, variableBindings);
         }
 
-        return this._evaluateOperation(operationTerm, variableBindings);
+        // Handle operation operator (^) normally
+        if (operationTerm.operator === '^') {
+            if (operationTerm.components.length !== 2) {
+                return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format');
+            }
+            return this._evaluateOperation(operationTerm, variableBindings);
+        }
+
+        // Handle equality operator (=)
+        if (operationTerm.operator === '=') {
+            return this._evaluateEquality(operationTerm, context, variableBindings);
+        }
+
+        return this._evaluateNonOperation(operationTerm, context, variableBindings);
+    }
+
+    // Evaluate unified operators that can serve both structural and functional purposes
+    async _evaluateUnifiedOperator(operationTerm, context, variableBindings) {
+        // Check if all arguments are Truth values or Boolean atoms
+        const isFunctionalEvaluation = this._areAllBooleanValues(operationTerm.components, variableBindings);
+        
+        if (isFunctionalEvaluation) {
+            // Perform functional evaluation
+            switch (operationTerm.operator) {
+                case '&':
+                    return this._evaluateAndFunction(operationTerm, variableBindings);
+                case '|':
+                    return this._evaluateOrFunction(operationTerm, variableBindings);
+                case '==>':
+                    return this._evaluateImplicationFunction(operationTerm, variableBindings);
+                case '<=>':
+                    return this._evaluateEquivalenceFunction(operationTerm, variableBindings);
+                default:
+                    return this._evaluateNonOperation(operationTerm, context, variableBindings);
+            }
+        } else {
+            // Create structural compound (the traditional NAL behavior)
+            return this._evaluateNonOperation(operationTerm, context, variableBindings);
+        }
+    }
+
+    // Check if all components are Truth values or Boolean atoms
+    _areAllBooleanValues(components, variableBindings) {
+        for (const comp of components) {
+            const boundComp = this._substituteVariables(comp, variableBindings);
+            if (!isTrue(boundComp) && !isFalse(boundComp) && !isNull(boundComp)) {
+                // Check if it's a Truth value (frequency and confidence)
+                if (typeof boundComp === 'object' && boundComp.frequency !== undefined && boundComp.confidence !== undefined) {
+                    continue; // This is a Truth value
+                }
+                // It's not a boolean/Truth value, so we can't do functional evaluation
+                return false;
+            }
+        }
+        return true;
+    }
+
+    _evaluateAndFunction(operationTerm, variableBindings) {
+        const components = operationTerm.components.map(comp => this._substituteVariables(comp, variableBindings));
+        const values = components.map(comp => this._termToValue(comp));
+
+        // Boolean AND evaluation: if any component is False, return False; if all are True, return True; otherwise return original term
+        if (values.some(val => val === false)) {
+            return this._createResult(SYSTEM_ATOMS.False, true, 'Boolean AND evaluation: contains False');
+        }
+
+        if (values.every(val => val === true)) {
+            return this._createResult(SYSTEM_ATOMS.True, true, 'Boolean AND evaluation: all True');
+        }
+
+        // If we have mixed values or non-boolean values, return null
+        return this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean AND evaluation: cannot determine');
+    }
+
+    _evaluateOrFunction(operationTerm, variableBindings) {
+        const components = operationTerm.components.map(comp => this._substituteVariables(comp, variableBindings));
+        const values = components.map(comp => this._termToValue(comp));
+
+        // Boolean OR evaluation: if any component is True, return True; if all are False, return False
+        if (values.some(val => val === true)) {
+            return this._createResult(SYSTEM_ATOMS.True, true, 'Boolean OR evaluation: contains True');
+        }
+
+        if (values.every(val => val === false)) {
+            return this._createResult(SYSTEM_ATOMS.False, true, 'Boolean OR evaluation: all False');
+        }
+
+        // If we have mixed values or non-boolean values, return null
+        return this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean OR evaluation: cannot determine');
+    }
+
+    _evaluateImplicationFunction(operationTerm, variableBindings) {
+        if (operationTerm.components.length !== 2) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Implication requires exactly 2 arguments');
+        }
+
+        const [antecedent, consequent] = operationTerm.components.map(comp => this._substituteVariables(comp, variableBindings));
+        const antVal = this._termToValue(antecedent);
+        const consVal = this._termToValue(consequent);
+
+        // Boolean implication: not A OR B
+        if (antVal === true && consVal === false) {
+            return this._createResult(SYSTEM_ATOMS.False, true, 'Boolean implication: true => false = false');
+        }
+
+        if (antVal === false || consVal === true) {
+            return this._createResult(SYSTEM_ATOMS.True, true, 'Boolean implication: false => X or X => true = true');
+        }
+
+        // If we have non-boolean values, return null
+        return this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean implication: cannot determine with non-boolean values');
+    }
+
+    _evaluateEquivalenceFunction(operationTerm, variableBindings) {
+        if (operationTerm.components.length !== 2) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Equivalence requires exactly 2 arguments');
+        }
+
+        const [left, right] = operationTerm.components.map(comp => this._substituteVariables(comp, variableBindings));
+        const leftVal = this._termToValue(left);
+        const rightVal = this._termToValue(right);
+
+        // Boolean equivalence: A iff B
+        if (leftVal === rightVal) {
+            return this._createResult(SYSTEM_ATOMS.True, true, 'Boolean equivalence: values are equal');
+        }
+
+        return this._createResult(SYSTEM_ATOMS.False, true, 'Boolean equivalence: values are different');
+    }
+
+    // Enhanced equality evaluation that supports bidirectional evaluation
+    async _evaluateEquality(operationTerm, context, variableBindings) {
+        if (operationTerm.components.length !== 2) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Equality requires exactly 2 arguments');
+        }
+
+        const [left, right] = operationTerm.components;
+        
+        // Check for variable bindings in both directions
+        const leftBound = this._substituteVariables(left, variableBindings);
+        const rightBound = this._substituteVariables(right, variableBindings);
+
+        // If both are atomic values, compare them directly
+        if (leftBound.isAtomic && rightBound.isAtomic) {
+            const leftVal = this._termToValue(leftBound);
+            const rightVal = this._termToValue(rightBound);
+            
+            // For simple values, return True/False
+            if (leftVal === rightVal) {
+                return this._createResult(SYSTEM_ATOMS.True, true, 'Equality: atomic values match');
+            } else {
+                return this._createResult(SYSTEM_ATOMS.False, true, 'Equality: atomic values do not match');
+            }
+        }
+
+        // For compound structures, do more complex matching
+        const bindings = this._matchAndBindVariables(leftBound, rightBound, variableBindings);
+        if (bindings) {
+            // If successful matching occurred, return True
+            return this._createResult(SYSTEM_ATOMS.True, true, 'Equality: structures match', {bindings});
+        }
+
+        // If no match found, return False
+        return this._createResult(SYSTEM_ATOMS.False, false, 'Equality: structures do not match');
     }
 
     async _evaluateOperation(operationTerm, variableBindings) {
@@ -70,7 +316,7 @@ export class OperationEvaluationEngine {
             }
 
             const result = functor.call(...argValues);
-            const resultTerm = this._valueToTerm(result);
+            const resultTerm = this._valueToTerm(result, this.termFactory);
 
             if (isNull(resultTerm)) {
                 return this._createResult(resultTerm, false, 'Operation resulted in Null (poison pill)');
@@ -145,16 +391,39 @@ export class OperationEvaluationEngine {
             return isNaN(numValue) ? name : numValue;
         }
 
+        // Handle Product terms as numeric vectors: (*,1,2) and shorthand (1,2)
+        if (term.operator === ',') {
+            const vectorValues = [];
+            for (const comp of term.components) {
+                const compValue = this._termToValue(comp);
+                if (typeof compValue !== 'number') {
+                    // If any component is not a number, return as term
+                    return term;
+                }
+                vectorValues.push(compValue);
+            }
+            // Return as an array (vector)
+            return vectorValues;
+        }
+
         return term;
     }
 
-    _valueToTerm(value) {
+    _valueToTerm(value, termFactory = null) {
         if (value === null) return SYSTEM_ATOMS.Null;
         if (typeof value === 'boolean') return value ? SYSTEM_ATOMS.True : SYSTEM_ATOMS.False;
 
         if (typeof value === 'number') {
             if (isNaN(value)) return SYSTEM_ATOMS.Null;
             return this._createTermWithErrorHandling('atom', value.toString());
+        }
+
+        // Handle arrays (vectors) by creating Product terms: [1,2] becomes (1,2)
+        if (Array.isArray(value)) {
+            // Use the TermFactory to create a compound term with comma operator
+            const factory = termFactory || new TermFactory();
+            const components = value.map(v => this._valueToTerm(v, factory));
+            return factory.create({operator: ',', components});
         }
 
         if (typeof value === 'string' && ['True', 'False', 'Null'].includes(value)) {
@@ -167,7 +436,8 @@ export class OperationEvaluationEngine {
 
     _createTermWithErrorHandling(type, name) {
         try {
-            return new Term(type, name, [name]);
+            // Use the TermFactory to create the term properly
+            return this.termFactory.create({name, components: [name]});
         } catch (error) {
             console.error(`Error creating term: ${error.message}`);
             return SYSTEM_ATOMS.Null;
@@ -177,6 +447,7 @@ export class OperationEvaluationEngine {
     async solveEquation(leftTerm, rightTerm, variableName, context, variableBindings = new Map()) {
         // Handle equality operator (=) for back-solving
         if (leftTerm.isCompound && leftTerm.operator === '=') {
+            // For equality, we pass the equality term as left, and null as right (since right is already part of the equality)
             return this._solveEqualityEquation(leftTerm, rightTerm, variableName, variableBindings);
         }
 
@@ -192,24 +463,50 @@ export class OperationEvaluationEngine {
         return this._createResult(SYSTEM_ATOMS.Null, false, 'No back-solving pattern matched');
     }
 
+    // Enhanced method to solve equality equations and return all variable bindings
+    async solveEquality(equalityTerm, variableBindings = new Map()) {
+        if (!equalityTerm.isCompound || equalityTerm.operator !== '=' || equalityTerm.components.length !== 2) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid equality format');
+        }
+
+        const [leftSide, rightSide] = equalityTerm.components;
+        
+        // Get all variable bindings from matching the two sides
+        const bindings = this._matchAndBindVariables(leftSide, rightSide, variableBindings);
+        if (bindings) {
+            return this._createResult(null, true, 'Equality solved', {bindings});
+        }
+
+        return this._createResult(SYSTEM_ATOMS.Null, false, 'Could not solve equality');
+    }
+
     _solveEqualityEquation(equalityTerm, targetTerm, variableName, variableBindings) {
         if (!equalityTerm.isCompound || equalityTerm.operator !== '=' || equalityTerm.components.length !== 2) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid equality format for equation solving');
         }
 
         const [leftSide, rightSide] = equalityTerm.components;
-
-        // Check if variable is on the left side of the equality
+        
+        // Check for direct variable assignment in left side
         if (leftSide.name?.startsWith('?') && leftSide.name === variableName) {
+            // If left side is the variable being solved for, return the right side
             return this._createResult(rightSide, true, 'Variable found on left side of equality', {solvedVariable: variableName});
         }
 
-        // Check if variable is on the right side of the equality
+        // Check for direct variable assignment in right side
         if (rightSide.name?.startsWith('?') && rightSide.name === variableName) {
+            // If right side is the variable being solved for, return the left side
             return this._createResult(leftSide, true, 'Variable found on right side of equality', {solvedVariable: variableName});
         }
 
-        // Check if variable is within a compound term on either side
+        // Perform bidirectional matching and variable binding
+        const bindings = this._matchAndBindVariables(leftSide, rightSide, variableBindings);
+        if (bindings && bindings.has(variableName)) {
+            const boundValue = bindings.get(variableName);
+            return this._createResult(boundValue, true, 'Variable found through bidirectional matching', {solvedVariable: variableName});
+        }
+
+        // Check if variable is within a compound term on either side and solve recursively
         if (this._containsVariable(leftSide, variableName)) {
             // If left side is an operation with the variable, move right side to the other side of equation
             if (leftSide.operator === '^') {
@@ -225,6 +522,73 @@ export class OperationEvaluationEngine {
         }
 
         return this._createResult(SYSTEM_ATOMS.Null, false, 'Target variable not found in equality expression');
+    }
+
+    // Enhanced method to match and bind variables in compound structures
+    _matchAndBindVariables(leftTerm, rightTerm, variableBindings) {
+        // This handles cases like (?x, ?y) = (3, 4) → bindings ?x=3, ?y=4
+        // or (f(?x), g(?y)) = (f(3), g(5)) → ?x=3, ?y=5
+        // or (a, ?x, c) = (a, b, c) → ?x=b
+        
+        const newBindings = new Map(variableBindings);
+
+        // If both terms are compound with same operator
+        if (leftTerm.isCompound && rightTerm.isCompound && leftTerm.operator === rightTerm.operator) {
+            if (leftTerm.components.length !== rightTerm.components.length) {
+                // Cannot match terms with different numbers of components
+                return null;
+            }
+
+            // Recursively match each component
+            for (let i = 0; i < leftTerm.components.length; i++) {
+                const leftComp = leftTerm.components[i];
+                const rightComp = rightTerm.components[i];
+                
+                if (leftComp.name?.startsWith('?')) {
+                    // Left component is a variable, bind it to the right component
+                    newBindings.set(leftComp.name, rightComp);
+                } else if (rightComp.name?.startsWith('?')) {
+                    // Right component is a variable, bind it to the left component
+                    newBindings.set(rightComp.name, leftComp);
+                } else if (leftComp.isCompound && rightComp.isCompound) {
+                    // Both components are compound, recursively match them
+                    const subBindings = this._matchAndBindVariables(leftComp, rightComp, newBindings);
+                    if (subBindings) {
+                        // Merge the sub-bindings into our current bindings
+                        for (const [varName, value] of subBindings) {
+                            newBindings.set(varName, value);
+                        }
+                    } else {
+                        // Sub-match failed, return null
+                        return null;
+                    }
+                } else if (leftComp.name !== rightComp.name) {
+                    // Atomic terms don't match, return null
+                    return null;
+                }
+            }
+            
+            return newBindings;
+        }
+        
+        // If one term is a variable and the other is not
+        if (leftTerm.name?.startsWith('?') && !rightTerm.name?.startsWith('?')) {
+            newBindings.set(leftTerm.name, rightTerm);
+            return newBindings;
+        }
+        
+        if (rightTerm.name?.startsWith('?') && !leftTerm.name?.startsWith('?')) {
+            newBindings.set(rightTerm.name, leftTerm);
+            return newBindings;
+        }
+        
+        // If both are atomic and equal
+        if (leftTerm.name === rightTerm.name) {
+            return newBindings;
+        }
+        
+        // No match found
+        return null;
     }
 
     _containsVariable(term, variableName) {
@@ -311,7 +675,7 @@ export class OperationEvaluationEngine {
         }
 
         if (success && solvedValue !== null) {
-            const resultTerm = this._valueToTerm(solvedValue);
+            const resultTerm = this._valueToTerm(solvedValue, this.termFactory);
             return this._createResult(resultTerm, true, null, {
                 solvedVariable: args[variableIndex].name,
                 solvedValue

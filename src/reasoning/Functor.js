@@ -124,4 +124,83 @@ export class FunctorRegistry {
         this.functors.clear();
         this.aliases.clear();
     }
+
+    // Enhanced registration method with configuration options
+    registerFunctor(name, execute, config = {}) {
+        const functor = new ConcreteFunctor(name, execute, config);
+        
+        if (this.functors.has(name)) {
+            console.warn(`Functor ${name} is already registered, replacing it.`);
+        }
+        
+        this.functors.set(name, functor);
+        
+        return functor;
+    }
+
+    // Dynamic registration method for use at runtime
+    registerFunctorDynamic(name, execute, config = {}) {
+        return this.registerFunctor(name, execute, {
+            arity: config.arity || 2,
+            isCommutative: config.isCommutative || false,
+            isAssociative: config.isAssociative || false,
+            description: config.description || 'Dynamic functor',
+            ...config
+        });
+    }
+
+    // Get functor properties
+    getFunctorProperties(name) {
+        const functor = this.get(name);
+        if (!functor) return null;
+        
+        return {
+            name: functor.name,
+            arity: functor.arity,
+            isCommutative: functor.isCommutative,
+            isAssociative: functor.isAssociative,
+            config: functor.config
+        };
+    }
+
+    // Check if a functor has specific properties
+    hasProperty(name, property) {
+        const functor = this.get(name);
+        if (!functor) return false;
+        
+        switch(property) {
+            case 'commutative':
+                return functor.isCommutative;
+            case 'associative':
+                return functor.isAssociative;
+            default:
+                return functor.config[property] === true;
+        }
+    }
+
+    // Get all functors with a specific property
+    getFunctorsWithProperty(property) {
+        const result = [];
+        
+        for (const [name, functor] of this.functors.entries()) {
+            let hasProp = false;
+            switch(property) {
+                case 'commutative':
+                    hasProp = functor.isCommutative;
+                    break;
+                case 'associative':
+                    hasProp = functor.isAssociative;
+                    break;
+                default:
+                    hasProp = functor.config[property] === true;
+                    break;
+            }
+            
+            if (hasProp) {
+                result.push({name, functor});
+            }
+        }
+        
+        return result;
+    }
 }
