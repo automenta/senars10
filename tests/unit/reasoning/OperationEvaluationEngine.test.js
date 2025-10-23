@@ -234,6 +234,39 @@ describe('OperationEvaluationEngine', () => {
     expect(result.solvedVariable).toBe('?x');
   });
 
+  test('should solve equality equation with variable on left side', async () => {
+    const leftTerm = termFactory.create({ operator: '=', components: ['?x', '5'] });
+    const rightTerm = termFactory.create('True');
+    
+    const result = await engine.solveEquation(leftTerm, rightTerm, '?x');
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('5');
+  });
+
+  test('should solve equality equation with variable on right side', async () => {
+    const leftTerm = termFactory.create({ operator: '=', components: ['3', '?y'] });
+    const rightTerm = termFactory.create('True');
+    
+    const result = await engine.solveEquation(leftTerm, rightTerm, '?y');
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('3');
+  });
+
+  test('should solve operation equation within equality', async () => {
+    const equalityTerm = termFactory.create({ 
+      operator: '=', 
+      components: [
+        { operator: '^', components: ['add', { operator: ',', components: ['2', '?x'] }] },
+        '5'
+      ]
+    });
+    const rightTerm = termFactory.create('True');
+    
+    const result = await engine.solveEquation(equalityTerm, rightTerm, '?x');
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('3');
+  });
+
   test('should handle functor with string return value', async () => {
     engine.addFunctor('echo', (x) => `echo: ${x}`, { arity: 1 });
     const opTerm = termFactory.create({ operator: '^', components: [

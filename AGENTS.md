@@ -16,3 +16,5 @@
 - Purpose: professional, not explanatory/educational
 
 - Unit testing: avoid Mocks; test objects directly.
+
+- Do not modify `v8/` and `v9/` - these previous versions are for reference, ideas, and inspiration.

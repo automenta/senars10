@@ -175,6 +175,12 @@ export class OperationEvaluationEngine {
     }
 
     async solveEquation(leftTerm, rightTerm, variableName, context, variableBindings = new Map()) {
+        // Handle equality operator (=) for back-solving
+        if (leftTerm.isCompound && leftTerm.operator === '=') {
+            return this._solveEqualityEquation(leftTerm, rightTerm, variableName, variableBindings);
+        }
+        
+        // Handle operation operator (^) for back-solving
         if (leftTerm.isCompound && leftTerm.operator === '^') {
             return this._solveOperationEquation(leftTerm, rightTerm, variableName, variableBindings);
         }
@@ -184,6 +190,55 @@ export class OperationEvaluationEngine {
         }
         
         return this._createResult(SYSTEM_ATOMS.Null, false, 'No back-solving pattern matched');
+    }
+    
+    _solveEqualityEquation(equalityTerm, targetTerm, variableName, variableBindings) {
+        if (!equalityTerm.isCompound || equalityTerm.operator !== '=' || equalityTerm.components.length !== 2) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid equality format for equation solving');
+        }
+        
+        const [leftSide, rightSide] = equalityTerm.components;
+        
+        // Check if variable is on the left side of the equality
+        if (leftSide.name?.startsWith('?') && leftSide.name === variableName) {
+            return this._createResult(rightSide, true, 'Variable found on left side of equality', { solvedVariable: variableName });
+        }
+        
+        // Check if variable is on the right side of the equality
+        if (rightSide.name?.startsWith('?') && rightSide.name === variableName) {
+            return this._createResult(leftSide, true, 'Variable found on right side of equality', { solvedVariable: variableName });
+        }
+        
+        // Check if variable is within a compound term on either side
+        if (this._containsVariable(leftSide, variableName)) {
+            // If left side is an operation with the variable, move right side to the other side of equation
+            if (leftSide.operator === '^') {
+                return this._solveOperationEquation(leftSide, rightSide, variableName, variableBindings);
+            }
+        }
+        
+        if (this._containsVariable(rightSide, variableName)) {
+            // If right side is an operation with the variable, move left side to the other side of equation
+            if (rightSide.operator === '^') {
+                return this._solveOperationEquation(rightSide, leftSide, variableName, variableBindings);
+            }
+        }
+        
+        return this._createResult(SYSTEM_ATOMS.Null, false, 'Target variable not found in equality expression');
+    }
+    
+    _containsVariable(term, variableName) {
+        if (!term) return false;
+        
+        if (term.name?.startsWith('?') && term.name === variableName) {
+            return true;
+        }
+        
+        if (term.isCompound && term.components) {
+            return term.components.some(comp => this._containsVariable(comp, variableName));
+        }
+        
+        return false;
     }
     
     _solveOperationEquation(operationTerm, targetTerm, variableName, variableBindings) {
