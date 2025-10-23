@@ -1,7 +1,8 @@
 import {BaseComponent} from '../util/BaseComponent.js';
+import {OperationEvaluationEngine} from '../reasoning/OperationEvaluationEngine.js';
 
 export class Cycle extends BaseComponent {
-    constructor({memory, focus, ruleEngine, taskManager, config, reasoningStrategy, termFactory}) {
+    constructor({memory, focus, ruleEngine, taskManager, config, reasoningStrategy, termFactory, nar}) {
         super(config, 'Cycle');
         this._memory = memory;
         this._focus = focus;
@@ -10,6 +11,10 @@ export class Cycle extends BaseComponent {
         this._config = config;
         this._reasoningStrategy = reasoningStrategy;
         this._termFactory = termFactory;
+        this._nar = nar;  // Store reference to the NAR instance to access TermLayer
+
+        // Initialize Operation Evaluation Engine for back-solving and complex operations
+        this._operationEvaluationEngine = new OperationEvaluationEngine(this._ruleEngine.getFunctorRegistry());
 
         this._cycleCount = 0;
         this._isRunning = false;
@@ -20,6 +25,10 @@ export class Cycle extends BaseComponent {
             averageCycleTime: 0,
             createdAt: Date.now()
         };
+    }
+
+    get operationEvaluationEngine() {
+        return this._operationEvaluationEngine;
     }
 
     get cycleCount() {
@@ -61,7 +70,13 @@ export class Cycle extends BaseComponent {
             [...focusTasks, ...memoryTasks].forEach(task => {
                 taskMap.set(task.stamp.id, task);
             });
-            const allTasks = Array.from(taskMap.values());
+            let allTasks = Array.from(taskMap.values());
+
+            // Add associative premise selection using TermLayer
+            // If the nar instance has a TermLayer, get related terms to enhance reasoning
+            if (this._nar && this._nar.termLayer) {
+                allTasks = await this._enhanceTasksWithAssociativeLinks(allTasks, this._nar.termLayer);
+            }
 
             const newInferences = await this._reasoningStrategy.execute(
                 this._memory,
@@ -89,6 +104,37 @@ export class Cycle extends BaseComponent {
         } finally {
             this._isRunning = false;
         }
+    }
+
+    /**
+     * Enhance tasks with associative links from the TermLayer to improve reasoning
+     */
+    async _enhanceTasksWithAssociativeLinks(tasks, termLayer) {
+        if (!tasks || tasks.length === 0 || !termLayer) {
+            return tasks;
+        }
+
+        // For each task, get associated terms from the TermLayer
+        const enhancedTasks = new Set([...tasks]); // Use a set to avoid duplicates
+
+        for (const task of tasks) {
+            // Get associated terms related to the task's term
+            const associatedTerms = termLayer.get(task.term);
+            
+            // Add tasks related to these associated terms to the task list
+            for (const assoc of associatedTerms) {
+                if (assoc.target && assoc.target.name) {
+                    // Look up the concept in memory that corresponds to the associated term
+                    const concept = this._memory.getConcept(this._termFactory.create(assoc.target.name));
+                    if (concept && concept.getAllTasks) {
+                        const relatedTasks = concept.getAllTasks();
+                        relatedTasks.forEach(t => enhancedTasks.add(t));
+                    }
+                }
+            }
+        }
+
+        return Array.from(enhancedTasks);
     }
 
     _updateMemoryWithInferences(inferences, currentTime) {

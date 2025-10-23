@@ -18,6 +18,9 @@ import {Task} from '../task/Task.js';
 import {Truth} from '../Truth.js';
 import {ToolIntegration} from '../tools/ToolIntegration.js';
 import {ExplanationService} from '../tools/ExplanationService.js';
+import {MetricsMonitor} from '../reasoning/MetricsMonitor.js';
+import {TermLayer} from '../memory/TermLayer.js';
+import {ReasoningAboutReasoning} from '../reasoning/ReasoningAboutReasoning.js';
 
 export class NAR extends BaseComponent {
     constructor(config = {}) {
@@ -51,7 +54,8 @@ export class NAR extends BaseComponent {
             taskManager: this._taskManager,
             config: this._config.get('cycle'),
             reasoningStrategy: reasoningStrategy,
-            termFactory: this._termFactory
+            termFactory: this._termFactory,
+            nar: this  // Pass the NAR instance to the cycle for TermLayer access
         });
 
         // Initialize tool integration if enabled
@@ -66,6 +70,25 @@ export class NAR extends BaseComponent {
                 ...config.tools?.explanation
             });
         }
+        
+        // Initialize MetricsMonitor for self-optimization
+        this._metricsMonitor = new MetricsMonitor({
+            eventBus: this._eventBus,
+            nar: this,
+            ...config.metricsMonitor
+        });
+
+        // Initialize TermLayer for associative reasoning
+        const termLayerConfig = {
+            capacity: config.termLayer?.capacity || 1000, // Default capacity for AIKR compliance
+            ...config.termLayer
+        };
+        this._termLayer = new TermLayer(termLayerConfig);
+
+        // Initialize ReasoningAboutReasoning component for meta-cognitive reasoning
+        this._reasoningAboutReasoning = new ReasoningAboutReasoning(this, {
+            ...config.reasoningAboutReasoning
+        });
 
         this._isRunning = false;
         this._cycleInterval = null;
@@ -135,6 +158,15 @@ export class NAR extends BaseComponent {
         }
 
         this._componentManager.registerComponent('cycle', this._cycle, ['memory', 'focus', 'taskManager', 'ruleEngine']);
+        
+        // Register MetricsMonitor for self-optimization
+        this._componentManager.registerComponent('metricsMonitor', this._metricsMonitor);
+        
+        // Register TermLayer for associative reasoning
+        this._componentManager.registerComponent('termLayer', this._termLayer);
+        
+        // Register ReasoningAboutReasoning for meta-cognitive reasoning
+        this._componentManager.registerComponent('reasoningAboutReasoning', this._reasoningAboutReasoning);
     }
 
     _setupDefaultRules() {
@@ -388,6 +420,125 @@ export class NAR extends BaseComponent {
             return true;
         }
         return false;
+    }
+    
+    /**
+     * Get the MetricsMonitor instance
+     */
+    get metricsMonitor() {
+        return this._metricsMonitor;
+    }
+    
+    /**
+     * Get current metrics from the MetricsMonitor
+     */
+    getMetrics() {
+        return this._metricsMonitor ? this._metricsMonitor.getMetricsSnapshot() : null;
+    }
+    
+    /**
+     * Perform manual self-optimization
+     */
+    performSelfOptimization() {
+        if (this._metricsMonitor) {
+            this._metricsMonitor._performSelfOptimization();
+        }
+    }
+    
+    /**
+     * Solve an equation for a variable
+     */
+    async solveEquation(leftTerm, rightTerm, variableName, context = null) {
+        // We need to create an evaluation engine to solve the equation
+        // For now, we'll use the existing rule engine's context or create a simple one
+        const evaluationContext = context || {
+            memory: this._memory,
+            termFactory: this._termFactory
+        };
+        
+        // Use the Cycle's operation evaluation engine if available
+        if (this._cycle && this._cycle.operationEvaluationEngine) {
+            return await this._cycle.operationEvaluationEngine.solveEquation(
+                leftTerm, 
+                rightTerm, 
+                variableName, 
+                evaluationContext
+            );
+        }
+        
+        // If no operation evaluation engine is directly available on the cycle,
+        // we'll need to create one or use the rule engine's associated components
+        // This is a simplified approach - in a full implementation, the NAR would
+        // have direct access to the OperationEvaluationEngine
+        return { 
+            result: SYSTEM_ATOMS.Null, 
+            success: false, 
+            message: 'No operation evaluation engine available' 
+        };
+    }
+
+    /**
+     * Get the TermLayer instance for associative reasoning
+     */
+    get termLayer() {
+        return this._termLayer;
+    }
+
+    /**
+     * Get the ReasoningAboutReasoning instance for meta-cognitive reasoning
+     */
+    get reasoningAboutReasoning() {
+        return this._reasoningAboutReasoning;
+    }
+
+    /**
+     * Get current reasoning state for introspection
+     */
+    getReasoningState() {
+        if (this._reasoningAboutReasoning) {
+            return this._reasoningAboutReasoning.getReasoningState();
+        }
+        return null;
+    }
+
+    /**
+     * Perform meta-cognitive reasoning about the system's state
+     */
+    async performMetaCognitiveReasoning() {
+        if (this._reasoningAboutReasoning) {
+            return await this._reasoningAboutReasoning.performMetaCognitiveReasoning();
+        }
+        return null;
+    }
+
+    /**
+     * Perform system self-correction based on meta-cognitive analysis
+     */
+    async performSelfCorrection() {
+        if (this._reasoningAboutReasoning) {
+            return await this._reasoningAboutReasoning.performSelfCorrection();
+        }
+        return null;
+    }
+
+    /**
+     * Query the system's reasoning state for specific information
+     */
+    querySystemState(query) {
+        if (this._reasoningAboutReasoning) {
+            return this._reasoningAboutReasoning.querySystemState(query);
+        }
+        return null;
+    }
+
+    /**
+     * Get the reasoning trace for introspection
+     */
+    getReasoningTrace() {
+        if (this._reasoningAboutReasoning) {
+            return this._reasoningAboutReasoning.getReasoningTrace();
+        }
+        return [];
     }
 
     _ensureToolIntegration() {
