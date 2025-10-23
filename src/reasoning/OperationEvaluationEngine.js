@@ -2,11 +2,16 @@ import {Term} from '../term/Term.js';
 import {TermFactory} from '../term/TermFactory.js';
 import {ConcreteFunctor, FunctorRegistry} from './Functor.js';
 import {isNull, isTrue, isFalse, SYSTEM_ATOMS} from './SystemAtoms.js';
+import {VectorOperations} from './VectorOperations.js';
+import {EqualitySolver} from './EqualitySolver.js';
+import {UnifiedOperatorEvaluator} from './UnifiedOperatorEvaluator.js';
 
 export class OperationEvaluationEngine {
     constructor(functorRegistry = null, termFactory = null) {
         this.functorRegistry = functorRegistry || new FunctorRegistry();
         this.termFactory = termFactory || new TermFactory();
+        this.equalitySolver = new EqualitySolver(this.termFactory);
+        this.unifiedEvaluator = new UnifiedOperatorEvaluator();
         this._initializeDefaultFunctors();
     }
 
@@ -19,12 +24,11 @@ export class OperationEvaluationEngine {
     }
 
     _initializeArithmeticFunctors() {
-        this.addFunctor('add', this._vectorAwareAdd.bind(this), {arity: 2, isCommutative: true});
-        this.addFunctor('subtract', this._vectorAwareSubtract.bind(this), {arity: 2, isCommutative: false});
-        this.addFunctor('multiply', this._vectorAwareMultiply.bind(this), {arity: 2, isCommutative: true});
-        this.addFunctor('divide', this._vectorAwareDivide.bind(this), {arity: 2, isCommutative: false});
-        this.addFunctor('cmp', this._compare.bind(this), {arity: 2});
-        this.addFunctor('equals', (a, b) => a === b ? SYSTEM_ATOMS.True : SYSTEM_ATOMS.False, {arity: 2});
+        this.addFunctor('add', VectorOperations.add, {arity: 2, isCommutative: true});
+        this.addFunctor('subtract', VectorOperations.subtract, {arity: 2, isCommutative: false});
+        this.addFunctor('multiply', VectorOperations.multiply, {arity: 2, isCommutative: true});
+        this.addFunctor('divide', VectorOperations.divide, {arity: 2, isCommutative: false});
+        this.addFunctor('cmp', VectorOperations.compare, {arity: 2});
     }
 
     _vectorAwareAdd(a, b) {

@@ -17,7 +17,7 @@ describe('OperationEvaluationEngine', () => {
         expect(engine.functorRegistry.has('subtract')).toBe(true);
         expect(engine.functorRegistry.has('multiply')).toBe(true);
         expect(engine.functorRegistry.has('divide')).toBe(true);
-        expect(engine.functorRegistry.has('equals')).toBe(true);
+        expect(engine.functorRegistry.has('cmp')).toBe(true);
     });
 
     test('should evaluate addition operation', async () => {
@@ -310,31 +310,7 @@ describe('OperationEvaluationEngine', () => {
         expect(result.result.name).toBe('echo: hello');
     });
 
-    test('should handle equals functor', async () => {
-        const opTerm = termFactory.create({
-            operator: '^', components: [
-                'equals',
-                {operator: ',', components: ['5', '5']}
-            ]
-        });
 
-        const result = await engine.evaluate(opTerm);
-        expect(result.success).toBe(true);
-        expect(result.result.name).toBe('True');
-    });
-
-    test('should handle equals functor with different values', async () => {
-        const opTerm = termFactory.create({
-            operator: '^', components: [
-                'equals',
-                {operator: ',', components: ['5', '3']}
-            ]
-        });
-
-        const result = await engine.evaluate(opTerm);
-        expect(result.success).toBe(true);
-        expect(result.result.name).toBe('False');
-    });
 
     test('should handle nested compound term evaluation', async () => {
         const bindings = new Map();
