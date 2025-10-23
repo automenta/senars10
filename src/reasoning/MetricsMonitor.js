@@ -27,53 +27,60 @@ export class MetricsMonitor {
     if (!this.eventBus || !this.nar) return;
 
     this.eventBus.on('rule.executed', (data) => this._recordRuleExecution(data));
-    this.eventBus.on('task.input', () => { this.metrics.taskStats.inputCount++; });
+    this.eventBus.on('task.input', () => this.metrics.taskStats.inputCount++);
     this.eventBus.on('task.processed', (data) => {
       this.metrics.taskStats.processedCount++;
       if (data.success) this.metrics.taskStats.successCount++;
     });
     this.eventBus.on('cycle.completed', (data) => this._recordCycleMetrics(data));
-    this.eventBus.on('cache.hit', (data) => this._recordCacheHit(data));
-    this.eventBus.on('cache.miss', (data) => this._recordCacheMiss(data));
+    this.eventBus.on('cache.hit', (data) => this._updateCacheStats(data, 'hit'));
+    this.eventBus.on('cache.miss', (data) => this._updateCacheStats(data, 'miss'));
   }
 
   _recordRuleExecution(data) {
+    if (!data?.ruleId) return;
+    
     const { ruleId, success, executionTime } = data;
-    if (!ruleId) return;
-
-    if (!this.metrics.ruleExecutions.has(ruleId)) {
-      this.metrics.ruleExecutions.set(ruleId, { totalExecutions: 0, successfulExecutions: 0, totalExecutionTime: 0 });
-    }
-
-    const ruleMetrics = this.metrics.ruleExecutions.get(ruleId);
+    const ruleMetrics = this._ensureRuleMetrics(ruleId);
+    
     ruleMetrics.totalExecutions++;
     if (success) ruleMetrics.successfulExecutions++;
-
+    
     if (executionTime !== undefined) {
       ruleMetrics.totalExecutionTime += executionTime;
-      
-      if (!this.metrics.executionTimes.has(ruleId)) {
-        this.metrics.executionTimes.set(ruleId, { count: 0, totalTime: 0, averageTime: 0 });
-      }
-      
-      const execMetrics = this.metrics.executionTimes.get(ruleId);
-      execMetrics.count++;
-      execMetrics.totalTime += executionTime;
-      execMetrics.averageTime = execMetrics.totalTime / execMetrics.count;
+      this._updateExecutionTime(ruleId, executionTime);
     }
 
     this.metrics.ruleSuccessRates.set(ruleId, ruleMetrics.successfulExecutions / ruleMetrics.totalExecutions);
   }
+  
+  _ensureRuleMetrics(ruleId) {
+    if (!this.metrics.ruleExecutions.has(ruleId)) {
+      this.metrics.ruleExecutions.set(ruleId, { totalExecutions: 0, successfulExecutions: 0, totalExecutionTime: 0 });
+    }
+    return this.metrics.ruleExecutions.get(ruleId);
+  }
+
+  _updateExecutionTime(ruleId, executionTime) {
+    if (!this.metrics.executionTimes.has(ruleId)) {
+      this.metrics.executionTimes.set(ruleId, { count: 0, totalTime: 0, averageTime: 0 });
+    }
+    
+    const execMetrics = this.metrics.executionTimes.get(ruleId);
+    execMetrics.count++;
+    execMetrics.totalTime += executionTime;
+    execMetrics.averageTime = execMetrics.totalTime / execMetrics.count;
+  }
 
   _recordCycleMetrics(data) {
+    if (!data?.duration) return;
+    
     this.metrics.cycleStats.count++;
-    if (data.duration) {
-      this.metrics.cycleStats.totalDuration += data.duration;
-      this.metrics.cycleStats.averageDuration = this.metrics.cycleStats.totalDuration / this.metrics.cycleStats.count;
-    }
+    this.metrics.cycleStats.totalDuration += data.duration;
+    this.metrics.cycleStats.averageDuration = this.metrics.cycleStats.totalDuration / this.metrics.cycleStats.count;
   }
 
-  _recordCacheHit(data) {
+  _updateCacheStats(data, type) {
     const { cacheName, duration } = data || {};
     if (!cacheName) return;
 
@@ -82,20 +89,7 @@ export class MetricsMonitor {
     }
 
     const cacheMetrics = this.metrics.cacheStats.get(cacheName);
-    cacheMetrics.hits++;
-    if (duration !== undefined) cacheMetrics.totalTime += duration;
-  }
-
-  _recordCacheMiss(data) {
-    const { cacheName, duration } = data || {};
-    if (!cacheName) return;
-
-    if (!this.metrics.cacheStats.has(cacheName)) {
-      this.metrics.cacheStats.set(cacheName, { hits: 0, misses: 0, totalTime: 0 });
-    }
-
-    const cacheMetrics = this.metrics.cacheStats.get(cacheName);
-    cacheMetrics.misses++;
+    type === 'hit' ? cacheMetrics.hits++ : cacheMetrics.misses++;
     if (duration !== undefined) cacheMetrics.totalTime += duration;
   }
 
@@ -110,21 +104,17 @@ export class MetricsMonitor {
     try {
       this._adjustRulePriorities();
       
-      if (this.eventBus) {
-        this.eventBus.emit('optimization.performed', {
-          timestamp: Date.now(),
-          optimizationType: 'rulePriorityAdjustment',
-          metricsSnapshot: this.getMetricsSnapshot()
-        });
-      }
+      this.eventBus?.emit('optimization.performed', {
+        timestamp: Date.now(),
+        optimizationType: 'rulePriorityAdjustment',
+        metricsSnapshot: this.getMetricsSnapshot()
+      });
     } catch (error) {
       console.error('Error during self-optimization:', error);
-      if (this.eventBus) {
-        this.eventBus.emit('optimization.error', {
-          error: error.message,
-          timestamp: Date.now()
-        });
-      }
+      this.eventBus?.emit('optimization.error', {
+        error: error.message,
+        timestamp: Date.now()
+      });
     }
   }
 
@@ -132,13 +122,12 @@ export class MetricsMonitor {
     if (!this.nar || !this.nar._ruleEngine) return;
     const ruleEngine = this.nar._ruleEngine;
     
-    for (const [ruleId, metrics] of this.metrics.ruleSuccessRates.entries()) {
+    for (const [ruleId, successRate] of this.metrics.ruleSuccessRates.entries()) {
       const rule = this._findRuleById(ruleEngine, ruleId);
       if (!rule) continue;
 
       const execMetrics = this.metrics.executionTimes.get(ruleId);
-      const avgExecutionTime = execMetrics ? execMetrics.averageTime : 0;
-      const successRate = metrics;
+      const avgExecutionTime = execMetrics?.averageTime || 0;
       const performanceScore = this._calculatePerformanceScore(successRate, avgExecutionTime);
       
       this._adjustRulePriority(rule, performanceScore);
@@ -161,24 +150,22 @@ export class MetricsMonitor {
   }
 
   _adjustRulePriority(rule, performanceScore) {
-    if (rule.withPriority) {
-      const newPriority = this._mapPerformanceScoreToPriority(performanceScore);
-      const newRule = rule.withPriority(newPriority);
-      
-      if (this.nar && this.nar._ruleEngine) {
-        this.nar._ruleEngine._rules.set(rule.id, newRule);
-      }
-      
-      if (this.eventBus) {
-        this.eventBus.emit('rule.priority.adjusted', {
-          ruleId: rule.id,
-          oldPriority: rule.priority,
-          newPriority,
-          performanceScore,
-          timestamp: Date.now()
-        });
-      }
+    if (!rule.withPriority) return;
+    
+    const newPriority = this._mapPerformanceScoreToPriority(performanceScore);
+    const newRule = rule.withPriority(newPriority);
+    
+    if (this.nar && this.nar._ruleEngine) {
+      this.nar._ruleEngine._rules.set(rule.id, newRule);
     }
+    
+    this.eventBus?.emit('rule.priority.adjusted', {
+      ruleId: rule.id,
+      oldPriority: rule.priority,
+      newPriority,
+      performanceScore,
+      timestamp: Date.now()
+    });
   }
   
   _mapPerformanceScoreToPriority(score) {

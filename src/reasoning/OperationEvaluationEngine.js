@@ -36,7 +36,7 @@ export class OperationEvaluationEngine {
         return this._evaluateOperation(operationTerm, variableBindings);
     }
     
-    _evaluateOperation(operationTerm, variableBindings) {
+    async _evaluateOperation(operationTerm, variableBindings) {
         const [functionTerm, argsTerm] = operationTerm.components;
         
         const functionName = this._resolveFunctionName(functionTerm, variableBindings);
@@ -52,7 +52,23 @@ export class OperationEvaluationEngine {
         }
 
         try {
-            const argValues = args.map(arg => this._termToValue(arg));
+            // Convert arguments to values, but ensure all compound terms are evaluated first
+            const argValues = [];
+            for (const arg of args) {
+                let processedArg = arg;
+                
+                // If argument is a compound operation term, try to evaluate it first
+                if (processedArg.isCompound && processedArg.operator === '^') {
+                    const evalResult = await this.evaluate(processedArg, null, variableBindings);
+                    if (!evalResult.success || isNull(evalResult.result)) {
+                        return this._createResult(SYSTEM_ATOMS.Null, false, `Failed to evaluate nested operation in argument: ${processedArg.toString()}`);
+                    }
+                    processedArg = evalResult.result;
+                }
+                
+                argValues.push(this._termToValue(processedArg));
+            }
+
             const result = functor.call(...argValues);
             const resultTerm = this._valueToTerm(result);
 
@@ -68,10 +84,10 @@ export class OperationEvaluationEngine {
     }
 
     _resolveFunctionName(functionTerm, variableBindings) {
-        if (functionTerm.name?.startsWith('?')) {
-            return variableBindings.get(functionTerm.name)?.name || null;
-        }
-        return functionTerm.name || functionTerm.toString();
+        const boundTerm = variableBindings.get(functionTerm.name);
+        return functionTerm.name?.startsWith('?') 
+            ? boundTerm?.name || null 
+            : functionTerm.name || functionTerm.toString();
     }
 
     _extractArguments(argsTerm, variableBindings) {
@@ -91,7 +107,9 @@ export class OperationEvaluationEngine {
 
     _evaluateNonOperation(term, context, variableBindings) {
         const substitutedTerm = this._substituteVariables(term, variableBindings);
-        const message = substitutedTerm.isCompound ? 'Non-operation compound term, no evaluation performed' : undefined;
+        const message = substitutedTerm.isCompound 
+            ? 'Non-operation compound term, no evaluation performed' 
+            : undefined;
         return this._createResult(substitutedTerm, true, message);
     }
 
@@ -195,6 +213,18 @@ export class OperationEvaluationEngine {
     
     _solveArithmeticEquation(functionName, args, variableIndex, targetValue) {
         const argValues = args.map(arg => this._termToValue(arg));
+        
+        // Check if target value is valid for equation solving
+        if (targetValue === null || typeof targetValue !== 'number') {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Target value must be a number for arithmetic equation solving');
+        }
+        
+        // Check if the non-variable argument is a number
+        const otherValue = argValues[1 - variableIndex];
+        if (typeof otherValue !== 'number') {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Non-variable argument must be a number for arithmetic equation solving');
+        }
+        
         let solvedValue = null;
         let success = false;
         let message = null;
@@ -203,75 +233,19 @@ export class OperationEvaluationEngine {
             case 'add':
                 // If we have add(a, x) = target, then x = target - a
                 // If we have add(x, b) = target, then x = target - b
-                const otherAddValue = argValues[1 - variableIndex];
-                if (typeof otherAddValue === 'number') {
-                    solvedValue = targetValue - otherAddValue;
-                    success = true;
-                } else {
-                    message = 'Other argument is not a number, cannot solve';
-                }
+                ({ solvedValue, success, message } = this._solveAddEquation(otherValue, targetValue));
                 break;
                 
             case 'subtract':
-                if (variableIndex === 0) {
-                    // If we have subtract(x, b) = target, then x = target + b
-                    const subSecondValue = argValues[1];
-                    if (typeof subSecondValue === 'number') {
-                        solvedValue = targetValue + subSecondValue;
-                        success = true;
-                    } else {
-                        message = 'Second argument is not a number, cannot solve';
-                    }
-                } else {
-                    // If we have subtract(a, x) = target, then x = a - target
-                    const subFirstValue = argValues[0];
-                    if (typeof subFirstValue === 'number') {
-                        solvedValue = subFirstValue - targetValue;
-                        success = true;
-                    } else {
-                        message = 'First argument is not a number, cannot solve';
-                    }
-                }
+                ({ solvedValue, success, message } = this._solveSubtractEquation(variableIndex, argValues, targetValue));
                 break;
                 
             case 'multiply':
-                // If we have multiply(a, x) = target, then x = target / a
-                // If we have multiply(x, b) = target, then x = target / b
-                const otherMultValue = argValues[1 - variableIndex];
-                if (typeof otherMultValue === 'number' && otherMultValue !== 0) {
-                    solvedValue = targetValue / otherMultValue;
-                    success = true;
-                } else if (otherMultValue === 0) {
-                    message = 'Cannot divide by zero';
-                } else {
-                    message = 'Other argument is not a number, cannot solve';
-                }
+                ({ solvedValue, success, message } = this._solveMultiplyEquation(otherValue, targetValue));
                 break;
                 
             case 'divide':
-                if (variableIndex === 0) {
-                    // If we have divide(x, b) = target, then x = target * b
-                    const divSecondValue = argValues[1];
-                    if (typeof divSecondValue === 'number') {
-                        solvedValue = targetValue * divSecondValue;
-                        success = true;
-                    } else {
-                        message = 'Second argument is not a number, cannot solve';
-                    }
-                } else {
-                    // If we have divide(a, x) = target, then x = a / target
-                    if (targetValue !== 0) {
-                        const divFirstValue = argValues[0];
-                        if (typeof divFirstValue === 'number') {
-                            solvedValue = divFirstValue / targetValue;
-                            success = true;
-                        } else {
-                            message = 'First argument is not a number, cannot solve';
-                        }
-                    } else {
-                        message = 'Cannot divide by target value of zero';
-                    }
-                }
+                ({ solvedValue, success, message } = this._solveDivideEquation(variableIndex, argValues, targetValue));
                 break;
                 
             default:
@@ -288,6 +262,56 @@ export class OperationEvaluationEngine {
             return this._createResult(SYSTEM_ATOMS.Null, false, message || 'Could not solve equation');
         }
     }
+    
+    _solveAddEquation(otherValue, targetValue) {
+        if (typeof otherValue === 'number') {
+            return { solvedValue: targetValue - otherValue, success: true, message: null };
+        }
+        return { solvedValue: null, success: false, message: 'Other argument is not a number, cannot solve' };
+    }
+    
+    _solveSubtractEquation(variableIndex, argValues, targetValue) {
+        const [firstValue, secondValue] = argValues;
+        
+        if (variableIndex === 0) {
+            // If we have subtract(x, b) = target, then x = target + b
+            return typeof secondValue === 'number'
+                ? { solvedValue: targetValue + secondValue, success: true, message: null }
+                : { solvedValue: null, success: false, message: 'Second argument is not a number, cannot solve' };
+        } else {
+            // If we have subtract(a, x) = target, then x = a - target
+            return typeof firstValue === 'number'
+                ? { solvedValue: firstValue - targetValue, success: true, message: null }
+                : { solvedValue: null, success: false, message: 'First argument is not a number, cannot solve' };
+        }
+    }
+    
+    _solveMultiplyEquation(otherValue, targetValue) {
+        if (typeof otherValue === 'number' && otherValue !== 0) {
+            return { solvedValue: targetValue / otherValue, success: true, message: null };
+        } else if (otherValue === 0) {
+            return { solvedValue: null, success: false, message: 'Cannot divide by zero' };
+        }
+        return { solvedValue: null, success: false, message: 'Other argument is not a number, cannot solve' };
+    }
+    
+    _solveDivideEquation(variableIndex, argValues, targetValue) {
+        const [firstValue, secondValue] = argValues;
+        
+        if (variableIndex === 0) {
+            // If we have divide(x, b) = target, then x = target * b
+            return typeof secondValue === 'number'
+                ? { solvedValue: targetValue * secondValue, success: true, message: null }
+                : { solvedValue: null, success: false, message: 'Second argument is not a number, cannot solve' };
+        } else {
+            // If we have divide(a, x) = target, then x = a / target
+            return targetValue !== 0
+                ? (typeof firstValue === 'number'
+                    ? { solvedValue: firstValue / targetValue, success: true, message: null }
+                    : { solvedValue: null, success: false, message: 'First argument is not a number, cannot solve' })
+                : { solvedValue: null, success: false, message: 'Cannot divide by target value of zero' };
+        }
+    }
 
     _createResult(result, success, message, additionalData = {}) {
         return { result, success, message, ...additionalData };
@@ -295,6 +319,7 @@ export class OperationEvaluationEngine {
 
     addFunctor(name, execute, config = {}) {
         const functor = new ConcreteFunctor(name, execute, config);
+        // The third parameter to register is aliases
         return this.functorRegistry.register(name, functor, []);
     }
 
