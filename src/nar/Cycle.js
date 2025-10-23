@@ -11,11 +11,9 @@ export class Cycle extends BaseComponent {
         this._config = config;
         this._reasoningStrategy = reasoningStrategy;
         this._termFactory = termFactory;
-        this._nar = nar;  // Store reference to the NAR instance to access TermLayer
+        this._nar = nar;
 
-        // Initialize Operation Evaluation Engine for back-solving and complex operations
-        this._operationEvaluationEngine = new OperationEvaluationEngine(this._ruleEngine.getFunctorRegistry());
-
+        this._operationEvaluationEngine = new OperationEvaluationEngine();
         this._cycleCount = 0;
         this._isRunning = false;
         this._stats = {
@@ -48,33 +46,18 @@ export class Cycle extends BaseComponent {
         this._isRunning = true;
 
         try {
-            // Process any pending tasks first
             this._taskManager.processPendingTasks(cycleStartTime);
-
-            // Consolidate memory (decay, promotion, forgetting)
             this._memory.consolidate(cycleStartTime);
 
-            // The reasoning strategy is now responsible for selecting tasks and applying rules.
-            // We pass it the full context it needs to do its job.
-            // For backward compatibility and proper reasoning, we need to pass focus tasks too
             const focusTasks = this._focus.getTasks(this._config.focusTaskLimit || 10);
-
-            // In addition to focus tasks, we should also consider tasks from memory for multi-premise reasoning
-            // Get all tasks from all concepts in memory
             const allConcepts = this._memory.getAllConcepts();
             const memoryTasks = allConcepts.flatMap(c => c.getAllTasks ? c.getAllTasks() : []);
 
-            // Combine focus tasks with memory tasks for comprehensive reasoning
-            // Use a Set to avoid duplicates based on task stamp IDs
             const taskMap = new Map();
-            [...focusTasks, ...memoryTasks].forEach(task => {
-                taskMap.set(task.stamp.id, task);
-            });
+            [...focusTasks, ...memoryTasks].forEach(task => taskMap.set(task.stamp.id, task));
             let allTasks = Array.from(taskMap.values());
 
-            // Add associative premise selection using TermLayer
-            // If the nar instance has a TermLayer, get related terms to enhance reasoning
-            if (this._nar && this._nar.termLayer) {
+            if (this._nar?.termLayer) {
                 allTasks = await this._enhanceTasksWithAssociativeLinks(allTasks, this._nar.termLayer);
             }
 
@@ -82,13 +65,10 @@ export class Cycle extends BaseComponent {
                 this._memory,
                 this._ruleEngine.rules,
                 this._termFactory,
-                allTasks  // Pass combined tasks for multi-premise reasoning
+                allTasks
             );
 
-            // Update memory with new inferences
             this._updateMemoryWithInferences(newInferences, cycleStartTime);
-
-            // Update cycle statistics
             this._updateCycleStats(cycleStartTime);
 
             return {
@@ -106,29 +86,19 @@ export class Cycle extends BaseComponent {
         }
     }
 
-    /**
-     * Enhance tasks with associative links from the TermLayer to improve reasoning
-     */
     async _enhanceTasksWithAssociativeLinks(tasks, termLayer) {
-        if (!tasks || tasks.length === 0 || !termLayer) {
-            return tasks;
-        }
+        if (!tasks?.length || !termLayer) return tasks;
 
-        // For each task, get associated terms from the TermLayer
-        const enhancedTasks = new Set([...tasks]); // Use a set to avoid duplicates
+        const enhancedTasks = new Set(tasks);
 
         for (const task of tasks) {
-            // Get associated terms related to the task's term
             const associatedTerms = termLayer.get(task.term);
             
-            // Add tasks related to these associated terms to the task list
             for (const assoc of associatedTerms) {
-                if (assoc.target && assoc.target.name) {
-                    // Look up the concept in memory that corresponds to the associated term
+                if (assoc.target?.name) {
                     const concept = this._memory.getConcept(this._termFactory.create(assoc.target.name));
-                    if (concept && concept.getAllTasks) {
-                        const relatedTasks = concept.getAllTasks();
-                        relatedTasks.forEach(t => enhancedTasks.add(t));
+                    if (concept?.getAllTasks) {
+                        concept.getAllTasks().forEach(t => enhancedTasks.add(t));
                     }
                 }
             }

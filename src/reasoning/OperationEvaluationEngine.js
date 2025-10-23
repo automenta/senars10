@@ -1,6 +1,6 @@
 import {Term} from '../term/Term.js';
-import {FunctorRegistry} from './Functor.js';
-import {SYSTEM_ATOMS, isNull, isTrue, isFalse} from './SystemAtoms.js';
+import {FunctorRegistry, ConcreteFunctor} from './Functor.js';
+import {SYSTEM_ATOMS, isNull} from './SystemAtoms.js';
 
 export class OperationEvaluationEngine {
     constructor(functorRegistry = null) {
@@ -13,12 +13,10 @@ export class OperationEvaluationEngine {
             this.functorRegistry.register(name, () => SYSTEM_ATOMS[name], { arity: 0 });
         });
         
-        // Register basic arithmetic functors for back-solving
         this._initializeArithmeticFunctors();
     }
     
     _initializeArithmeticFunctors() {
-        // Register arithmetic functors
         this.addFunctor('add', (a, b) => a + b, { arity: 2, isCommutative: true });
         this.addFunctor('subtract', (a, b) => a - b, { arity: 2, isCommutative: false });
         this.addFunctor('multiply', (a, b) => a * b, { arity: 2, isCommutative: true });
@@ -70,29 +68,22 @@ export class OperationEvaluationEngine {
     }
 
     _resolveFunctionName(functionTerm, variableBindings) {
-        if (functionTerm.name && functionTerm.name.startsWith('?')) {
-            return variableBindings.has(functionTerm.name) 
-                ? variableBindings.get(functionTerm.name).name 
-                : null;
+        if (functionTerm.name?.startsWith('?')) {
+            return variableBindings.get(functionTerm.name)?.name || null;
         }
         return functionTerm.name || functionTerm.toString();
     }
 
     _extractArguments(argsTerm, variableBindings) {
         if (!argsTerm.isCompound || argsTerm.operator !== ',') {
-            if (argsTerm.name === '*' || argsTerm.name === '?*') {
-                return []; // No arguments
-            }
+            if (['*', '?*'].includes(argsTerm.name)) return [];
             return [this._substituteVariables(argsTerm, variableBindings)];
         }
-
         return this._extractCompoundArguments(argsTerm, variableBindings);
     }
     
     _extractCompoundArguments(argsTerm, variableBindings) {
-        let startIndex = (argsTerm.components[0] && 
-                         (argsTerm.components[0].name === '*' || argsTerm.components[0].name === '?*')) ? 1 : 0;
-        
+        const startIndex = (argsTerm.components[0]?.name === '*' || argsTerm.components[0]?.name === '?*') ? 1 : 0;
         return argsTerm.components
             .slice(startIndex)
             .map(comp => this._substituteVariables(comp, variableBindings));
@@ -100,18 +91,15 @@ export class OperationEvaluationEngine {
 
     _evaluateNonOperation(term, context, variableBindings) {
         const substitutedTerm = this._substituteVariables(term, variableBindings);
-        const message = substitutedTerm.isCompound 
-            ? 'Non-operation compound term, no evaluation performed' 
-            : undefined;
-
+        const message = substitutedTerm.isCompound ? 'Non-operation compound term, no evaluation performed' : undefined;
         return this._createResult(substitutedTerm, true, message);
     }
 
     _substituteVariables(term, bindings) {
         if (!term) return term;
 
-        if (term.name && typeof term.name === 'string' && term.name.startsWith('?')) {
-            return bindings.has(term.name) ? bindings.get(term.name) : term;
+        if (term.name?.startsWith('?')) {
+            return bindings.get(term.name) ?? term;
         }
 
         if (term.isCompound) {
@@ -126,14 +114,14 @@ export class OperationEvaluationEngine {
     _termToValue(term) {
         if (!term) return null;
 
-        const termName = term.name;
-        if (termName === 'True') return true;
-        if (termName === 'False') return false;
-        if (termName === 'Null') return null;
+        const { name } = term;
+        if (name === 'True') return true;
+        if (name === 'False') return false;
+        if (name === 'Null') return null;
 
         if (term.isAtomic) {
-            const numValue = Number(termName);
-            return isNaN(numValue) ? termName : numValue;
+            const numValue = Number(name);
+            return isNaN(numValue) ? name : numValue;
         }
 
         return term;
@@ -148,9 +136,8 @@ export class OperationEvaluationEngine {
             return this._createTermWithErrorHandling('atom', value.toString());
         }
         
-        if (typeof value === 'string') {
-            if (['True', 'False', 'Null'].includes(value)) return SYSTEM_ATOMS[value];
-            return this._createTermWithErrorHandling('atom', value);
+        if (typeof value === 'string' && ['True', 'False', 'Null'].includes(value)) {
+            return SYSTEM_ATOMS[value];
         }
         
         if (value instanceof Term) return value;
@@ -166,28 +153,18 @@ export class OperationEvaluationEngine {
         }
     }
 
-    /**
-     * Solve equations by back-solving for variables in operation terms
-     * For example: solve for ?x in add(1, ?x) = 3
-     */
     async solveEquation(leftTerm, rightTerm, variableName, context, variableBindings = new Map()) {
-        // Check if leftTerm is an operation we can back-solve
         if (leftTerm.isCompound && leftTerm.operator === '^') {
             return this._solveOperationEquation(leftTerm, rightTerm, variableName, variableBindings);
         }
         
-        // If leftTerm is a variable and matches the target variable, return the right term
-        if (leftTerm.name && leftTerm.name.startsWith('?') && leftTerm.name === variableName) {
+        if (leftTerm.name?.startsWith('?') && leftTerm.name === variableName) {
             return this._createResult(rightTerm, true, 'Direct variable assignment', { solvedVariable: variableName });
         }
         
-        // For other cases, return null indicating no solution found
         return this._createResult(SYSTEM_ATOMS.Null, false, 'No back-solving pattern matched');
     }
     
-    /**
-     * Solve equations where the left side is an operation containing a variable
-     */
     _solveOperationEquation(operationTerm, targetTerm, variableName, variableBindings) {
         if (!operationTerm.isCompound || operationTerm.operator !== '^' || operationTerm.components.length !== 2) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format for equation solving');
@@ -199,131 +176,117 @@ export class OperationEvaluationEngine {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Unbound variable in function position');
         }
         
-        // Get the target value from the right side of the equation
         const targetValue = this._termToValue(targetTerm);
         if (targetValue === null) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Target value cannot be determined');
         }
         
-        // Extract arguments, which may contain the variable we're solving for
         const args = this._extractArguments(argsTerm, variableBindings);
-        
-        // Check if the variable appears in the arguments and solve accordingly
         const variableIndex = args.findIndex(arg => 
-            arg.name && arg.name.startsWith('?') && arg.name === variableName
+            arg.name?.startsWith('?') && arg.name === variableName
         );
         
         if (variableIndex === -1) {
-            // Variable not in this operation, no solution possible here
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Target variable not found in operation arguments');
         }
         
-        // For now, implement basic arithmetic back-solving
         return this._solveArithmeticEquation(functionName, args, variableIndex, targetValue);
     }
     
-    /**
-     * Solve simple arithmetic equations for a variable
-     */
     _solveArithmeticEquation(functionName, args, variableIndex, targetValue) {
-        // Convert argument values, keeping track of which is the unknown variable
         const argValues = args.map(arg => this._termToValue(arg));
-        
-        // Calculate the value of the unknown variable based on the operation
         let solvedValue = null;
         let success = false;
         let message = null;
         
-        if (functionName === 'add') {
-            // If we have add(a, x) = target, then x = target - a
-            // If we have add(x, b) = target, then x = target - b
-            const otherValue = argValues[1 - variableIndex]; // The other argument (not the variable)
-            if (typeof otherValue === 'number') {
-                solvedValue = targetValue - otherValue;
-                success = true;
-            } else {
-                message = 'Other argument is not a number, cannot solve';
-            }
-        } 
-        else if (functionName === 'subtract') {
-            if (variableIndex === 0) {
-                // If we have subtract(x, b) = target, then x = target + b
-                const otherValue = argValues[1]; // The second argument (b)
-                if (typeof otherValue === 'number') {
-                    solvedValue = targetValue + otherValue;
+        switch (functionName) {
+            case 'add':
+                // If we have add(a, x) = target, then x = target - a
+                // If we have add(x, b) = target, then x = target - b
+                const otherAddValue = argValues[1 - variableIndex];
+                if (typeof otherAddValue === 'number') {
+                    solvedValue = targetValue - otherAddValue;
                     success = true;
                 } else {
-                    message = 'Second argument is not a number, cannot solve';
+                    message = 'Other argument is not a number, cannot solve';
                 }
-            } else {
-                // If we have subtract(a, x) = target, then x = a - target
-                const otherValue = argValues[0]; // The first argument (a)
-                if (typeof otherValue === 'number') {
-                    solvedValue = otherValue - targetValue;
-                    success = true;
+                break;
+                
+            case 'subtract':
+                if (variableIndex === 0) {
+                    // If we have subtract(x, b) = target, then x = target + b
+                    const subSecondValue = argValues[1];
+                    if (typeof subSecondValue === 'number') {
+                        solvedValue = targetValue + subSecondValue;
+                        success = true;
+                    } else {
+                        message = 'Second argument is not a number, cannot solve';
+                    }
                 } else {
-                    message = 'First argument is not a number, cannot solve';
-                }
-            }
-        }
-        else if (functionName === 'multiply') {
-            // If we have multiply(a, x) = target, then x = target / a
-            // If we have multiply(x, b) = target, then x = target / b
-            const otherValue = argValues[1 - variableIndex]; // The other argument (not the variable)
-            if (typeof otherValue === 'number' && otherValue !== 0) {
-                solvedValue = targetValue / otherValue;
-                success = true;
-            } else if (otherValue === 0) {
-                message = 'Cannot divide by zero';
-            } else {
-                message = 'Other argument is not a number, cannot solve';
-            }
-        }
-        else if (functionName === 'divide') {
-            if (variableIndex === 0) {
-                // If we have divide(x, b) = target, then x = target * b
-                const otherValue = argValues[1]; // The second argument (b)
-                if (typeof otherValue === 'number') {
-                    solvedValue = targetValue * otherValue;
-                    success = true;
-                } else {
-                    message = 'Second argument is not a number, cannot solve';
-                }
-            } else {
-                // If we have divide(a, x) = target, then x = a / target
-                if (targetValue !== 0) {
-                    const otherValue = argValues[0]; // The first argument (a)
-                    if (typeof otherValue === 'number') {
-                        solvedValue = otherValue / targetValue;
+                    // If we have subtract(a, x) = target, then x = a - target
+                    const subFirstValue = argValues[0];
+                    if (typeof subFirstValue === 'number') {
+                        solvedValue = subFirstValue - targetValue;
                         success = true;
                     } else {
                         message = 'First argument is not a number, cannot solve';
                     }
-                } else {
-                    message = 'Cannot divide by target value of zero';
                 }
-            }
-        }
-        else {
-            message = `Back-solving not implemented for functor: ${functionName}`;
+                break;
+                
+            case 'multiply':
+                // If we have multiply(a, x) = target, then x = target / a
+                // If we have multiply(x, b) = target, then x = target / b
+                const otherMultValue = argValues[1 - variableIndex];
+                if (typeof otherMultValue === 'number' && otherMultValue !== 0) {
+                    solvedValue = targetValue / otherMultValue;
+                    success = true;
+                } else if (otherMultValue === 0) {
+                    message = 'Cannot divide by zero';
+                } else {
+                    message = 'Other argument is not a number, cannot solve';
+                }
+                break;
+                
+            case 'divide':
+                if (variableIndex === 0) {
+                    // If we have divide(x, b) = target, then x = target * b
+                    const divSecondValue = argValues[1];
+                    if (typeof divSecondValue === 'number') {
+                        solvedValue = targetValue * divSecondValue;
+                        success = true;
+                    } else {
+                        message = 'Second argument is not a number, cannot solve';
+                    }
+                } else {
+                    // If we have divide(a, x) = target, then x = a / target
+                    if (targetValue !== 0) {
+                        const divFirstValue = argValues[0];
+                        if (typeof divFirstValue === 'number') {
+                            solvedValue = divFirstValue / targetValue;
+                            success = true;
+                        } else {
+                            message = 'First argument is not a number, cannot solve';
+                        }
+                    } else {
+                        message = 'Cannot divide by target value of zero';
+                    }
+                }
+                break;
+                
+            default:
+                message = `Back-solving not implemented for functor: ${functionName}`;
         }
         
         if (success && solvedValue !== null) {
             const resultTerm = this._valueToTerm(solvedValue);
             return this._createResult(resultTerm, true, null, { 
                 solvedVariable: args[variableIndex].name,
-                solvedValue: solvedValue
+                solvedValue
             });
         } else {
             return this._createResult(SYSTEM_ATOMS.Null, false, message || 'Could not solve equation');
         }
-    }
-
-    /**
-     * Check if a term is a variable (starts with ?)
-     */
-    _isVariable(term) {
-        return term && term.name && typeof term.name === 'string' && term.name.startsWith('?');
     }
 
     _createResult(result, success, message, additionalData = {}) {
@@ -331,11 +294,11 @@ export class OperationEvaluationEngine {
     }
 
     addFunctor(name, execute, config = {}) {
-        return this.functorRegistry.register(name, execute, config);
+        const functor = new ConcreteFunctor(name, execute, config);
+        return this.functorRegistry.register(name, functor, []);
     }
 
     getFunctorRegistry() {
         return this.functorRegistry;
     }
-}
 }

@@ -159,14 +159,9 @@ export class NAR extends BaseComponent {
 
         this._componentManager.registerComponent('cycle', this._cycle, ['memory', 'focus', 'taskManager', 'ruleEngine']);
         
-        // Register MetricsMonitor for self-optimization
-        this._componentManager.registerComponent('metricsMonitor', this._metricsMonitor);
-        
-        // Register TermLayer for associative reasoning
-        this._componentManager.registerComponent('termLayer', this._termLayer);
-        
-        // Register ReasoningAboutReasoning for meta-cognitive reasoning
-        this._componentManager.registerComponent('reasoningAboutReasoning', this._reasoningAboutReasoning);
+        // MetricsMonitor, TermLayer, and ReasoningAboutReasoning are features that don't follow
+        // the ComponentManager lifecycle interface, so they're not registered with it.
+        // They're initialized directly in the constructor and managed separately.
     }
 
     _setupDefaultRules() {

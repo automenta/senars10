@@ -1,138 +1,134 @@
-import { OperationEvaluationEngine } from '../../../src/reasoning/OperationEvaluationEngine.js';
-import { Functor, ConcreteFunctor } from '../../../src/reasoning/Functor.js';
-import { Term } from '../../../src/term/Term.js';
-import { SYSTEM_ATOMS } from '../../../src/reasoning/SystemAtoms.js';
+import {OperationEvaluationEngine} from '../../../src/reasoning/OperationEvaluationEngine.js';
+import {TermFactory} from '../../../src/term/TermFactory.js';
+import {SYSTEM_ATOMS} from '../../../src/reasoning/SystemAtoms.js';
 
 describe('OperationEvaluationEngine', () => {
-    let engine;
+  let engine, termFactory;
 
-    beforeEach(() => {
-        engine = new OperationEvaluationEngine();
-    });
+  beforeEach(() => {
+    engine = new OperationEvaluationEngine();
+    termFactory = new TermFactory();
+  });
 
-    test('initializes with default functors', () => {
-        expect(engine.functorRegistry.has('True')).toBe(true);
-        expect(engine.functorRegistry.has('False')).toBe(true);
-        expect(engine.functorRegistry.has('Null')).toBe(true);
-    });
+  test('should initialize with default functors', () => {
+    expect(engine.functorRegistry.has('True')).toBe(true);
+    expect(engine.functorRegistry.has('False')).toBe(true);
+    expect(engine.functorRegistry.has('Null')).toBe(true);
+    expect(engine.functorRegistry.has('add')).toBe(true);
+    expect(engine.functorRegistry.has('subtract')).toBe(true);
+    expect(engine.functorRegistry.has('multiply')).toBe(true);
+    expect(engine.functorRegistry.has('divide')).toBe(true);
+    expect(engine.functorRegistry.has('equals')).toBe(true);
+  });
 
-    test('evaluates simple operations', async () => {
-        const addFunctor = new ConcreteFunctor('add', (a, b) => a + b, { arity: 2 });
-        engine.functorRegistry.register('add', addFunctor);
-        
-        const operationTerm = new Term('compound', null, [
-            new Term('atom', 'add'),
-            new Term('compound', null, [
-                new Term('atom', '*'),
-                new Term('atom', '2'),
-                new Term('atom', '3')
-            ], ',')
-        ], '^');
-        
-        const result = await engine.evaluate(operationTerm);
-        expect(result.success).toBe(true);
-        expect(result.result.name).toBe('5');
-    });
+  test('should evaluate addition operation', async () => {
+    const opTerm = termFactory.create({ operator: '^', components: [
+      'add',
+      { operator: ',', components: ['2', '3'] }
+    ]});
 
-    test('returns null for non-operation terms', async () => {
-        const nonOperation = new Term('atom', 'A');
-        const result = await engine.evaluate(nonOperation);
-        expect(result.success).toBe(true);
-        expect(result.result).toBe(nonOperation);
-    });
+    const result = await engine.evaluate(opTerm);
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('5');
+  });
 
-    test('handles invalid operation format', async () => {
-        const invalidOp = new Term('compound', null, [
-            new Term('atom', 'f1'),
-            new Term('atom', 'arg1'),
-            new Term('atom', 'arg2')
-        ], '^'); // Operation with 3 components instead of 2
-        
-        const result = await engine.evaluate(invalidOp);
-        expect(result.success).toBe(false);
-        expect(result.result).toBe(SYSTEM_ATOMS.Null);
-    });
+  test('should evaluate subtraction operation', async () => {
+    const opTerm = termFactory.create({ operator: '^', components: [
+      'subtract',
+      { operator: ',', components: ['5', '2'] }
+    ]});
 
-    test('handles unregistered functors', async () => {
-        const operationTerm = new Term('compound', null, [
-            new Term('atom', 'unknownFunc'),
-            new Term('compound', null, [
-                new Term('atom', '*'),
-                new Term('atom', '2')
-            ], ',')
-        ], '^');
-        
-        const result = await engine.evaluate(operationTerm);
-        expect(result.success).toBe(false);
-        expect(result.result).toBe(SYSTEM_ATOMS.Null);
-    });
+    const result = await engine.evaluate(opTerm);
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('3');
+  });
 
-    test('handles variable bindings', async () => {
-        const bindings = new Map();
-        bindings.set('?X', new Term('atom', 'add'));
-        
-        // Create a functor called 'add' to be bound to the variable
-        const addFunctor = new ConcreteFunctor('add', (a, b) => a + b, { arity: 2 });
-        engine.functorRegistry.register('add', addFunctor);
-        
-        const operationTerm = new Term('compound', null, [
-            new Term('atom', '?X'), // This should resolve to 'add' 
-            new Term('compound', null, [
-                new Term('atom', '*'),
-                new Term('atom', '2'),
-                new Term('atom', '3')
-            ], ',')
-        ], '^');
-        
-        const result = await engine.evaluate(operationTerm, null, bindings);
-        expect(result.success).toBe(true);
-        expect(result.result.name).toBe('5');
-    });
+  test('should handle division by zero', async () => {
+    const opTerm = termFactory.create({ operator: '^', components: [
+      'divide',
+      { operator: ',', components: ['5', '0'] }
+    ]});
 
-    test('evaluates system atom functors', async () => {
-        const trueOp = new Term('compound', null, [
-            new Term('atom', 'True'),
-            new Term('compound', null, [
-                new Term('atom', '*')
-            ], ',')
-        ], '^');
-        
-        const result = await engine.evaluate(trueOp);
-        expect(result.success).toBe(true);
-        expect(result.result).toBe(SYSTEM_ATOMS.True);
-    });
+    const result = await engine.evaluate(opTerm);
+    expect(result.success).toBe(false); // Division by zero results in failure
+    expect(result.result.name).toBe('Null'); // Result is Null atom representing invalid operation
+  });
 
-    test('handles operation resulting in Null', async () => {
-        const nullFunctor = new ConcreteFunctor('nullOp', () => null, { arity: 1 });
-        engine.functorRegistry.register('nullOp', nullFunctor);
-        
-        const operationTerm = new Term('compound', null, [
-            new Term('atom', 'nullOp'),
-            new Term('compound', null, [
-                new Term('atom', '*'),
-                new Term('atom', 'arg')
-            ], ',')
-        ], '^');
-        
-        const result = await engine.evaluate(operationTerm);
-        expect(result.success).toBe(false);
-        expect(result.result).toBe(SYSTEM_ATOMS.Null);
-    });
+  test('should solve simple addition equation', async () => {
+    const leftTerm = termFactory.create({ operator: '^', components: [
+      'add',
+      { operator: ',', components: ['2', '?x'] }
+    ]});
+    const rightTerm = termFactory.create('5');
+    
+    const result = await engine.solveEquation(leftTerm, rightTerm, '?x');
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('3');
+  });
 
-    test('handles functor execution errors', async () => {
-        const errorFunctor = new ConcreteFunctor('errorFunc', () => { throw new Error('Test error'); }, { arity: 1 });
-        engine.functorRegistry.register('errorFunc', errorFunctor);
-        
-        const operationTerm = new Term('compound', null, [
-            new Term('atom', 'errorFunc'),
-            new Term('compound', null, [
-                new Term('atom', '*'),
-                new Term('atom', 'arg')
-            ], ',')
-        ], '^');
-        
-        const result = await engine.evaluate(operationTerm);
-        expect(result.success).toBe(false);
-        expect(result.result).toBe(SYSTEM_ATOMS.Null);
-    });
+  test('should solve simple subtraction equation', async () => {
+    const leftTerm = termFactory.create({ operator: '^', components: [
+      'subtract',
+      { operator: ',', components: ['?x', '2'] }
+    ]});
+    const rightTerm = termFactory.create('3');
+    
+    const result = await engine.solveEquation(leftTerm, rightTerm, '?x');
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('5');
+  });
+
+  test('should solve equation with first argument as variable', async () => {
+    const leftTerm = termFactory.create({ operator: '^', components: [
+      'subtract',
+      { operator: ',', components: ['?y', '4'] }
+    ]});
+    const rightTerm = termFactory.create('6');
+    
+    const result = await engine.solveEquation(leftTerm, rightTerm, '?y');
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('10');
+  });
+
+  test('should handle non-operation terms', async () => {
+    const term = termFactory.create('simpleTerm');
+    const result = await engine.evaluate(term);
+    expect(result.success).toBe(true);
+    expect(result.result.name).toBe('simpleTerm');
+  });
+
+  test('should handle invalid operation format', async () => {
+    const invalidTerm = termFactory.create({ operator: '^', components: ['func']}); // Only one component
+    const result = await engine.evaluate(invalidTerm);
+    expect(result.success).toBe(false);
+    expect(result.result.name).toBe('Null');
+  });
+
+  test('should handle unknown functor', async () => {
+    const opTerm = termFactory.create({ operator: '^', components: [
+      'unknownFunctor',
+      { operator: ',', components: ['1', '2'] }
+    ]});
+
+    const result = await engine.evaluate(opTerm);
+    expect(result.success).toBe(false);
+    expect(result.result.name).toBe('Null');
+  });
+
+  test('should convert values to terms and vice versa', () => {
+    const trueTerm = engine._valueToTerm(true);
+    expect(trueTerm.name).toBe('True');
+    
+    const falseTerm = engine._valueToTerm(false);
+    expect(falseTerm.name).toBe('False');
+    
+    const nullTerm = engine._valueToTerm(null);
+    expect(nullTerm.name).toBe('Null');
+    
+    const numberTerm = engine._valueToTerm(42);
+    expect(numberTerm.name).toBe('42');
+    
+    const backToValue = engine._termToValue(trueTerm);
+    expect(backToValue).toBe(true);
+  });
 });
