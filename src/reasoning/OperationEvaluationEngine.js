@@ -4,14 +4,13 @@ import {ConcreteFunctor, FunctorRegistry} from './Functor.js';
 import {isNull, isTrue, isFalse, SYSTEM_ATOMS} from './SystemAtoms.js';
 import {VectorOperations} from './VectorOperations.js';
 import {EqualitySolver} from './EqualitySolver.js';
-import {UnifiedOperatorEvaluator} from './UnifiedOperatorEvaluator.js';
+import {TermType} from './TermType.js';
 
 export class OperationEvaluationEngine {
     constructor(functorRegistry = null, termFactory = null) {
         this.functorRegistry = functorRegistry || new FunctorRegistry();
         this.termFactory = termFactory || new TermFactory();
         this.equalitySolver = new EqualitySolver(this.termFactory);
-        this.unifiedEvaluator = new UnifiedOperatorEvaluator();
         this._initializeDefaultFunctors();
     }
 
@@ -33,79 +32,6 @@ export class OperationEvaluationEngine {
 
     _vectorAwareAdd(a, b) {
         // Check if either argument is a vector (array)
-        if (Array.isArray(a) && Array.isArray(b)) {
-            // Vector addition: (1,2) + (3,4) = (4,6)
-            if (a.length !== b.length) return null; // Cannot add vectors of different lengths
-            return a.map((val, i) => val + b[i]);
-        } else if (Array.isArray(a) && typeof b === 'number') {
-            // Scalar addition to vector: (1,2) + 3 = (4,5)
-            return a.map(val => val + b);
-        } else if (Array.isArray(b) && typeof a === 'number') {
-            // Scalar addition to vector: 3 + (1,2) = (4,5)
-            return b.map(val => val + a);
-        } else {
-            // Regular number addition
-            return a + b;
-        }
-    }
-
-    _vectorAwareSubtract(a, b) {
-        if (Array.isArray(a) && Array.isArray(b)) {
-            // Vector subtraction: (4,6) - (3,4) = (1,2)
-            if (a.length !== b.length) return null; // Cannot subtract vectors of different lengths
-            return a.map((val, i) => val - b[i]);
-        } else if (Array.isArray(a) && typeof b === 'number') {
-            // Scalar subtraction from vector: (4,6) - 3 = (1,3)
-            return a.map(val => val - b);
-        } else if (Array.isArray(b) && typeof a === 'number') {
-            // Scalar vector from number: 5 - (1,2) = (4,3)
-            return b.map(val => a - val);
-        } else {
-            // Regular number subtraction
-            return a - b;
-        }
-    }
-
-    _vectorAwareMultiply(a, b) {
-        if (Array.isArray(a) && Array.isArray(b)) {
-            // Element-wise vector multiplication: (1,2) * (3,4) = (3,8)
-            if (a.length !== b.length) return null; // Cannot multiply vectors of different lengths
-            return a.map((val, i) => val * b[i]);
-        } else if (Array.isArray(a) && typeof b === 'number') {
-            // Scalar multiplication: (2,3) * 2 = (4,6)
-            return a.map(val => val * b);
-        } else if (Array.isArray(b) && typeof a === 'number') {
-            // Scalar multiplication: 2 * (2,3) = (4,6)
-            return b.map(val => val * a);
-        } else {
-            // Regular number multiplication
-            return a * b;
-        }
-    }
-
-    _vectorAwareDivide(a, b) {
-        if (Array.isArray(a) && Array.isArray(b)) {
-            // Element-wise vector division: (4,6) / (2,3) = (2,2)
-            if (a.length !== b.length) return null; // Cannot divide vectors of different lengths
-            return a.map((val, i) => b[i] !== 0 ? val / b[i] : null);
-        } else if (Array.isArray(a) && typeof b === 'number') {
-            // Scalar division of vector: (4,6) / 2 = (2,3)
-            return a.map(val => b !== 0 ? val / b : null);
-        } else if (Array.isArray(b) && typeof a === 'number') {
-            // Division of number by vector: 6 / (2,3) = (3,2)
-            return b.map(val => val !== 0 ? a / val : null);
-        } else {
-            // Regular number division
-            return b !== 0 ? a / b : null;
-        }
-    }
-
-    _compare(a, b) {
-        if (typeof a === 'number' && typeof b === 'number') {
-            if (a < b) return -1;
-            if (a > b) return 1;
-            return 0;
-        }
         // For non-numbers, return appropriate comparison or null
         return null;
     }
@@ -138,7 +64,7 @@ export class OperationEvaluationEngine {
 
     // Evaluate unified operators that can serve both structural and functional purposes
     async _evaluateUnifiedOperator(operationTerm, context, variableBindings) {
-        // Check if all arguments are Truth values or Boolean atoms
+        // Check if all arguments are Boolean atoms (True, False, Null) for functional evaluation
         const isFunctionalEvaluation = this._areAllBooleanValues(operationTerm.components, variableBindings);
         
         if (isFunctionalEvaluation) {
@@ -161,16 +87,12 @@ export class OperationEvaluationEngine {
         }
     }
 
-    // Check if all components are Truth values or Boolean atoms
+    // Check if all components are Boolean atoms (True, False, Null) 
     _areAllBooleanValues(components, variableBindings) {
         for (const comp of components) {
             const boundComp = this._substituteVariables(comp, variableBindings);
-            if (!isTrue(boundComp) && !isFalse(boundComp) && !isNull(boundComp)) {
-                // Check if it's a Truth value (frequency and confidence)
-                if (typeof boundComp === 'object' && boundComp.frequency !== undefined && boundComp.confidence !== undefined) {
-                    continue; // This is a Truth value
-                }
-                // It's not a boolean/Truth value, so we can't do functional evaluation
+            if (!TermType.isBooleanValue(boundComp)) {
+                // It's not a boolean value, so we can't do functional evaluation
                 return false;
             }
         }
