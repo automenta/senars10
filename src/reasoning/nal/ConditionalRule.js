@@ -1,5 +1,4 @@
 import {NALRule} from './NALRule.js';
-import {Term} from '../../term/Term.js';
 import {RuleUtils} from './RuleUtils.js';
 
 /**
@@ -18,15 +17,15 @@ export class ConditionalRule extends NALRule {
 
     _matches(task, context) {
         return task.term?.isCompound &&
-               (task.term.operator === '==>' || task.term.operator === '<=>') && // Implication or equivalence
-               task.term.components?.length === 2;
+            (task.term.operator === '==>' || task.term.operator === '<=>') && // Implication or equivalence
+            task.term.components?.length === 2;
     }
 
     async _apply(task, context) {
         const results = [];
 
-        if (!task.term?.isCompound || 
-            !['==>', '<=>'].includes(task.term.operator) || 
+        if (!task.term?.isCompound ||
+            !['==>', '<=>'].includes(task.term.operator) ||
             task.term.components?.length !== 2) {
             return results;
         }
@@ -35,7 +34,7 @@ export class ConditionalRule extends NALRule {
 
         // Look for tasks matching the condition
         const allTasks = RuleUtils.collectTasks(context);
-        
+
         // Find tasks that match the condition of the implication
         for (const compTask of allTasks) {
             // Check if compTask term matches the condition of the implication
@@ -51,7 +50,7 @@ export class ConditionalRule extends NALRule {
                     priority: task.priority * compTask.priority * this.priority
                 }));
             }
-            
+
             // Also try the reverse for equivalence: if we have <a <=> b> and <b>, derive <a>
             if (task.term.operator === '<=>' && this._termsMatch(consequent, compTask.term)) {
                 const derivedTerm = condition;

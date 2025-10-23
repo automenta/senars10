@@ -1,11 +1,11 @@
 import {Term} from '../term/Term.js';
-import {SYSTEM_ATOMS, isNull, isTrue, isFalse} from './SystemAtoms.js';
+import {isFalse, isNull, isTrue, SYSTEM_ATOMS} from './SystemAtoms.js';
 
 export class BooleanReductionEngine {
     constructor() {
         this.reductionRules = {
             '&': this._reduceAnd.bind(this),
-            '|': this._reduceOr.bind(this), 
+            '|': this._reduceOr.bind(this),
             '--': this._reduceNegation.bind(this),
             '==>': this._reduceImplication.bind(this),
             '<=>': this._reduceEquivalence.bind(this)
@@ -27,7 +27,7 @@ export class BooleanReductionEngine {
         }
 
         const reducedComponents = term.components.map(comp => this.reduce(comp));
-        return reducedComponents.some((comp, idx) => comp !== term.components[idx]) 
+        return reducedComponents.some((comp, idx) => comp !== term.components[idx])
             ? this._safeCreateTerm(term, reducedComponents)
             : term;
     }
@@ -43,37 +43,37 @@ export class BooleanReductionEngine {
 
     _reduceAnd(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.True;
-        
+
         const poisonResult = this._checkPoison(components);
         if (poisonResult) return poisonResult;
 
         const nonTrueComponents = components.filter(comp => !isTrue(comp));
         const count = nonTrueComponents.length;
-        
-        return count === 0 ? SYSTEM_ATOMS.True : 
-               count === 1 ? nonTrueComponents[0] :
-               new Term('compound', 'AND', nonTrueComponents, '&');
+
+        return count === 0 ? SYSTEM_ATOMS.True :
+            count === 1 ? nonTrueComponents[0] :
+                new Term('compound', 'AND', nonTrueComponents, '&');
     }
 
     _reduceOr(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.False;
-        
+
         const poisonResult = this._checkPoison(components, isTrue, SYSTEM_ATOMS.True);
         if (poisonResult) return poisonResult;
 
         const nonFalseComponents = components.filter(comp => !isFalse(comp));
         const count = nonFalseComponents.length;
-        
+
         return count === 0 ? SYSTEM_ATOMS.False :
-               count === 1 ? nonFalseComponents[0] :
-               new Term('compound', 'OR', nonFalseComponents, '|');
+            count === 1 ? nonFalseComponents[0] :
+                new Term('compound', 'OR', nonFalseComponents, '|');
     }
 
     _reduceNegation(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.Null;
 
         const operand = components[0];
-        
+
         if (this._isDoubleNegation(operand)) return operand.components[0];
         if (isTrue(operand)) return SYSTEM_ATOMS.False;
         if (isFalse(operand)) return SYSTEM_ATOMS.True;
@@ -121,7 +121,7 @@ export class BooleanReductionEngine {
             : new Term('compound', 'EQUIVALENCE', [left, right], '<=>');
     }
 
-    _isDoubleNegation = operand => 
+    _isDoubleNegation = operand =>
         operand.isCompound && operand.operator === '--' && operand.components.length === 1;
 
     _checkPoison = (components, checkFn = isFalse, returnVal = SYSTEM_ATOMS.False) => {
@@ -134,8 +134,8 @@ export class BooleanReductionEngine {
 
     cascadeReduce(term) {
         if (!term) return SYSTEM_ATOMS.Null;
-        
-        const reducedTerm = term.isCompound 
+
+        const reducedTerm = term.isCompound
             ? new Term(term.type, term.name, term.components.map(comp => this.cascadeReduce(comp)), term.operator)
             : term;
 

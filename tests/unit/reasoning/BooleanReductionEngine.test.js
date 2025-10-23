@@ -1,6 +1,6 @@
-import { BooleanReductionEngine } from '../../../src/reasoning/BooleanReductionEngine.js';
-import { Term, TermType } from '../../../src/term/Term.js';
-import { SYSTEM_ATOMS } from '../../../src/reasoning/SystemAtoms.js';
+import {BooleanReductionEngine} from '../../../src/reasoning/BooleanReductionEngine.js';
+import {Term, TermType} from '../../../src/term/Term.js';
+import {SYSTEM_ATOMS} from '../../../src/reasoning/SystemAtoms.js';
 
 describe('BooleanReductionEngine', () => {
     let reductionEngine;
@@ -14,7 +14,7 @@ describe('BooleanReductionEngine', () => {
             new Term(TermType.ATOM, 'A'),
             SYSTEM_ATOMS.True
         ], '&');
-        
+
         const result = reductionEngine.reduce(andTerm);
         expect(result).toEqual(new Term(TermType.ATOM, 'A'));
     });
@@ -24,7 +24,7 @@ describe('BooleanReductionEngine', () => {
             new Term(TermType.ATOM, 'A'),
             SYSTEM_ATOMS.False
         ], '&');
-        
+
         const result = reductionEngine.reduce(andTerm);
         expect(result).toEqual(SYSTEM_ATOMS.False);
     });
@@ -34,7 +34,7 @@ describe('BooleanReductionEngine', () => {
             new Term(TermType.ATOM, 'A'),
             SYSTEM_ATOMS.Null
         ], '&');
-        
+
         const result = reductionEngine.reduce(andTerm);
         expect(result).toEqual(SYSTEM_ATOMS.Null);
     });
@@ -44,7 +44,7 @@ describe('BooleanReductionEngine', () => {
             new Term(TermType.ATOM, 'A'),
             SYSTEM_ATOMS.True
         ], '|');
-        
+
         const result = reductionEngine.reduce(orTerm);
         expect(result).toEqual(SYSTEM_ATOMS.True);
     });
@@ -54,7 +54,7 @@ describe('BooleanReductionEngine', () => {
             new Term(TermType.ATOM, 'A'),
             SYSTEM_ATOMS.False
         ], '|');
-        
+
         const result = reductionEngine.reduce(orTerm);
         expect(result).toEqual(new Term(TermType.ATOM, 'A'));
     });
@@ -63,21 +63,21 @@ describe('BooleanReductionEngine', () => {
         const doubleNegation = new Term(TermType.COMPOUND, null, [
             new Term(TermType.COMPOUND, null, [new Term(TermType.ATOM, 'A')], '--')
         ], '--');
-        
+
         const result = reductionEngine.reduce(doubleNegation);
         expect(result).toEqual(new Term(TermType.ATOM, 'A'));
     });
 
     test('reduces negation of True to False', () => {
         const negation = new Term(TermType.COMPOUND, null, [SYSTEM_ATOMS.True], '--');
-        
+
         const result = reductionEngine.reduce(negation);
         expect(result).toEqual(SYSTEM_ATOMS.False);
     });
 
     test('reduces negation of False to True', () => {
         const negation = new Term(TermType.COMPOUND, null, [SYSTEM_ATOMS.False], '--');
-        
+
         const result = reductionEngine.reduce(negation);
         expect(result).toEqual(SYSTEM_ATOMS.True);
     });

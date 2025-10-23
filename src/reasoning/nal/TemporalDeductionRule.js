@@ -18,15 +18,15 @@ export class TemporalDeductionRule extends NALRule {
 
     _matches(task, context) {
         return task.term?.isCompound &&
-               (task.term.operator === '==>' || task.term.operator === '<=>') && // Implication or equivalence for temporal relations
-               task.term.components?.length === 2;
+            (task.term.operator === '==>' || task.term.operator === '<=>') && // Implication or equivalence for temporal relations
+            task.term.components?.length === 2;
     }
 
     async _apply(task, context) {
         const results = [];
 
-        if (!task.term?.isCompound || 
-            !['==>', '<=>'].includes(task.term.operator) || 
+        if (!task.term?.isCompound ||
+            !['==>', '<=>'].includes(task.term.operator) ||
             task.term.components?.length !== 2) {
             return results;
         }
@@ -35,8 +35,8 @@ export class TemporalDeductionRule extends NALRule {
 
         // Look for complementary temporal tasks
         const allTasks = RuleUtils.collectTasks(context);
-        const temporalTasks = allTasks.filter(t => t.term?.isCompound && 
-            ['==>', '<=>'].includes(t.term.operator) && 
+        const temporalTasks = allTasks.filter(t => t.term?.isCompound &&
+            ['==>', '<=>'].includes(t.term.operator) &&
             t.term.components?.length === 2);
 
         for (const compTask of temporalTasks) {

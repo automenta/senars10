@@ -93,7 +93,7 @@ export class Cycle extends BaseComponent {
 
         for (const task of tasks) {
             const associatedTerms = termLayer.get(task.term);
-            
+
             for (const assoc of associatedTerms) {
                 if (assoc.target?.name) {
                     const concept = this._memory.getConcept(this._termFactory.create(assoc.target.name));

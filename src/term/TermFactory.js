@@ -216,7 +216,7 @@ export class TermFactory {
             '-->': this._canonicalizeImplication,
             '=': this._canonicalizeEquivalence  // Also commutative like equivalence operators
         };
-        
+
         // Handle commutative operators with a default approach
         if (COMMUTATIVE_OPERATORS.has(operator)) {
             return (components) => {
@@ -226,7 +226,7 @@ export class TermFactory {
                 return canonicalComponents;
             };
         }
-        
+
         return canonicalizers[operator] || null;
     }
 
@@ -561,7 +561,7 @@ export class TermFactory {
      * @returns {boolean} - True if the term is a system atom
      */
     isSystemAtom(term) {
-        return term && term.isAtomic && 
+        return term && term.isAtomic &&
             (term.name === 'True' || term.name === 'False' || term.name === 'Null');
     }
 }

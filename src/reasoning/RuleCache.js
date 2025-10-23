@@ -9,21 +9,21 @@ export class Memoizer {
     }
 
     memoize(fn) {
-        const { cache, maxSize, accessOrder } = this;
-        
+        const {cache, maxSize, accessOrder} = this;
+
         return function memoized(...args) {
             const key = this._createKey(args);
-            
+
             if (cache.has(key)) {
                 this._updateAccessOrder(key, accessOrder);
                 return cache.get(key);
             }
-            
+
             if (cache.size >= maxSize) {
                 const lruKey = accessOrder.shift();
                 cache.delete(lruKey);
             }
-            
+
             let result;
             try {
                 result = fn.apply(this, args);
@@ -31,7 +31,7 @@ export class Memoizer {
                 console.error(`Error during memoized function execution: ${error.message}`);
                 return null;
             }
-            
+
             cache.set(key, result);
             accessOrder.push(key);
 

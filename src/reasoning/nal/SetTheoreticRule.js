@@ -1,6 +1,5 @@
 import {NALRule} from './NALRule.js';
 import {Term} from '../../term/Term.js';
-import {RuleUtils} from './RuleUtils.js';
 
 /**
  * Set-Theoretic Rule: Handle set membership and subset relations
@@ -18,8 +17,8 @@ export class SetTheoreticRule extends NALRule {
 
     _matches(task, context) {
         // Matches terms involving set operations (extensional: {}, intensional: [])
-        return task.term?.isCompound && 
-               (task.term.operator === '{}' || task.term.operator === '[]');
+        return task.term?.isCompound &&
+            (task.term.operator === '{}' || task.term.operator === '[]');
     }
 
     async _apply(task, context) {
@@ -37,7 +36,7 @@ export class SetTheoreticRule extends NALRule {
                 // For element in extensional set: <element --> {set}> 
                 const derivedTerm = new Term('compound', 'INHERITANCE', [element, task.term], '-->');
                 const derivedTruth = this._calculateSetMembershipTruth(task.truth, element);
-                
+
                 results.push(this._createDerivedTask(task, {
                     term: derivedTerm,
                     truth: derivedTruth,
@@ -45,15 +44,14 @@ export class SetTheoreticRule extends NALRule {
                     priority: task.priority * this.priority * 0.8
                 }));
             }
-        } 
-        else if (task.term.operator === '[]') {
+        } else if (task.term.operator === '[]') {
             // Intensional set: [a, b, c] 
             const elements = task.term.components;
             for (const element of elements) {
                 // For element in intensional set: <[set] --> element>
                 const derivedTerm = new Term('compound', 'INHERITANCE', [task.term, element], '-->');
                 const derivedTruth = this._calculateSetMembershipTruth(task.truth, element);
-                
+
                 results.push(this._createDerivedTask(task, {
                     term: derivedTerm,
                     truth: derivedTruth,

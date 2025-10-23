@@ -27,7 +27,7 @@ export class SyllogisticRules {
     static getAbductionRule() {
         return new AbductionRule();
     }
-    
+
     static getComparisonRule() {
         return new ComparisonRule();
     }

@@ -27,23 +27,23 @@ export class NarseseParser {
 
     parseTermData = input => {
         const trimmed = input.trim();
-        
+
         // Handle function call notation: f(x,y) as shorthand for f ^ (x,y)
         if (trimmed.includes('(') && trimmed.endsWith(')')) {
             const match = trimmed.match(/^([^(]+)\((.*)\)$/);
             if (match) {
                 const functionName = match[1].trim();
                 const argsStr = match[2].trim();
-                
+
                 if (argsStr) {
                     const args = this.parseList(argsStr);
                     return {
                         operator: '^',
                         components: [
-                            { components: [functionName] },
-                            { 
+                            {components: [functionName]},
+                            {
                                 operator: ',',
-                                components: [{ components: ['*'] }, ...args]
+                                components: [{components: ['*']}, ...args]
                             }
                         ]
                     };
@@ -51,17 +51,17 @@ export class NarseseParser {
                     return {
                         operator: '^',
                         components: [
-                            { components: [functionName] },
-                            { 
+                            {components: [functionName]},
+                            {
                                 operator: ',',
-                                components: [{ components: ['*'] }]
+                                components: [{components: ['*']}]
                             }
                         ]
                     };
                 }
             }
         }
-        
+
         for (const [start, end] of Object.entries(BRACKETS)) {
             if (trimmed.startsWith(start) && trimmed.endsWith(end)) {
                 const inner = trimmed.slice(1, -1).trim();

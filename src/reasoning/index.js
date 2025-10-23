@@ -20,9 +20,9 @@ import {StrategyMetrics} from './StrategyMetrics.js';
 import {Functor, FunctorRegistry} from './Functor.js';
 import {CoreFunctorLibrary} from './CoreFunctorLibrary.js';
 import {OperationEvaluationEngine} from './OperationEvaluationEngine.js';
-import {TRUE_TERM, FALSE_TERM, NULL_TERM, isSystemAtom, isTrue, isFalse, isNull} from './SystemAtoms.js';
+import {FALSE_TERM, isFalse, isNull, isSystemAtom, isTrue, NULL_TERM, TRUE_TERM} from './SystemAtoms.js';
 import {BooleanReductionEngine} from './BooleanReductionEngine.js';
-import {RuleSelectionQueue, AdaptiveRuleSelectionQueue} from './RuleSelectionQueue.js';
+import {AdaptiveRuleSelectionQueue, RuleSelectionQueue} from './RuleSelectionQueue.js';
 import {TermIndexer} from './TermIndexer.js';
 import {Memoizer} from './RuleCache.js';
 
@@ -51,7 +51,7 @@ export {
     ReasoningContext,
     PerformanceOptimizer,
     StrategyMetrics,
-    
+
     // Phase 2 additions
     Functor,
     FunctorRegistry,

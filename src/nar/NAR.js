@@ -70,7 +70,7 @@ export class NAR extends BaseComponent {
                 ...config.tools?.explanation
             });
         }
-        
+
         // Initialize MetricsMonitor for self-optimization
         this._metricsMonitor = new MetricsMonitor({
             eventBus: this._eventBus,
@@ -129,6 +129,27 @@ export class NAR extends BaseComponent {
         return this._componentManager;
     }
 
+    /**
+     * Get the MetricsMonitor instance
+     */
+    get metricsMonitor() {
+        return this._metricsMonitor;
+    }
+
+    /**
+     * Get the TermLayer instance for associative reasoning
+     */
+    get termLayer() {
+        return this._termLayer;
+    }
+
+    /**
+     * Get the ReasoningAboutReasoning instance for meta-cognitive reasoning
+     */
+    get reasoningAboutReasoning() {
+        return this._reasoningAboutReasoning;
+    }
+
     _registerComponents() {
         // Register core components with dependencies
         this._componentManager.registerComponent('termFactory', {
@@ -158,7 +179,7 @@ export class NAR extends BaseComponent {
         }
 
         this._componentManager.registerComponent('cycle', this._cycle, ['memory', 'focus', 'taskManager', 'ruleEngine']);
-        
+
         // MetricsMonitor, TermLayer, and ReasoningAboutReasoning are features that don't follow
         // the ComponentManager lifecycle interface, so they're not registered with it.
         // They're initialized directly in the constructor and managed separately.
@@ -416,21 +437,14 @@ export class NAR extends BaseComponent {
         }
         return false;
     }
-    
-    /**
-     * Get the MetricsMonitor instance
-     */
-    get metricsMonitor() {
-        return this._metricsMonitor;
-    }
-    
+
     /**
      * Get current metrics from the MetricsMonitor
      */
     getMetrics() {
         return this._metricsMonitor ? this._metricsMonitor.getMetricsSnapshot() : null;
     }
-    
+
     /**
      * Perform manual self-optimization
      */
@@ -439,7 +453,7 @@ export class NAR extends BaseComponent {
             this._metricsMonitor._performSelfOptimization();
         }
     }
-    
+
     /**
      * Solve an equation for a variable
      */
@@ -450,40 +464,26 @@ export class NAR extends BaseComponent {
             memory: this._memory,
             termFactory: this._termFactory
         };
-        
+
         // Use the Cycle's operation evaluation engine if available
         if (this._cycle && this._cycle.operationEvaluationEngine) {
             return await this._cycle.operationEvaluationEngine.solveEquation(
-                leftTerm, 
-                rightTerm, 
-                variableName, 
+                leftTerm,
+                rightTerm,
+                variableName,
                 evaluationContext
             );
         }
-        
+
         // If no operation evaluation engine is directly available on the cycle,
         // we'll need to create one or use the rule engine's associated components
         // This is a simplified approach - in a full implementation, the NAR would
         // have direct access to the OperationEvaluationEngine
-        return { 
-            result: SYSTEM_ATOMS.Null, 
-            success: false, 
-            message: 'No operation evaluation engine available' 
+        return {
+            result: SYSTEM_ATOMS.Null,
+            success: false,
+            message: 'No operation evaluation engine available'
         };
-    }
-
-    /**
-     * Get the TermLayer instance for associative reasoning
-     */
-    get termLayer() {
-        return this._termLayer;
-    }
-
-    /**
-     * Get the ReasoningAboutReasoning instance for meta-cognitive reasoning
-     */
-    get reasoningAboutReasoning() {
-        return this._reasoningAboutReasoning;
     }
 
     /**

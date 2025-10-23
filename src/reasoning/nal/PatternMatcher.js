@@ -2,6 +2,12 @@ import {Term} from '../../term/Term.js';
 
 export class PatternMatcher {
     /**
+     * Check if an operator is commutative
+     */
+    _isCommutativeOperator = (operator => new Set(['&', '|', '<->', '<=>', '=']).has(operator));
+    _commutativeOperators = new Set(['&', '|', '<->', '<=>', '=']);
+
+    /**
      * Unify two terms, adding variable bindings to an existing binding map
      */
     unify(pattern, term, existingBindings = null) {
@@ -26,13 +32,13 @@ export class PatternMatcher {
         return currentBindings;
     }
 
-    /** 
+    /**
      * Internal method to unify two terms with support for complex and dependent variables
      */
     _unifyTerms(pattern, term, bindings) {
         if (this._isVariable(pattern)) {
             const variableName = pattern.name || pattern.toString();
-            
+
             if (bindings.has(variableName)) {
                 const boundValue = bindings.get(variableName);
                 return this._termsEqual(boundValue, term, bindings);
@@ -54,10 +60,10 @@ export class PatternMatcher {
 
         return false;
     }
-    
+
     _unifyCompound(pattern, term, bindings) {
         if (pattern.operator !== term.operator) {
-            if (this._isCommutativeOperator(pattern.operator) && 
+            if (this._isCommutativeOperator(pattern.operator) &&
                 this._isCommutativeOperator(term.operator) &&
                 pattern.components.length === term.components.length) {
                 return this._unifyCommutative(pattern, term, bindings);
@@ -118,13 +124,6 @@ export class PatternMatcher {
         return !!(term?.name?.startsWith?.('?'));
     }
 
-    /**
-     * Check if an operator is commutative
-     */
-    _isCommutativeOperator = (operator => new Set(['&', '|', '<->', '<=>', '=']).has(operator));
-    
-    _commutativeOperators = new Set(['&', '|', '<->', '<=>', '=']);
-    
     isCommutativeOperator(operator) {
         return this._commutativeOperators.has(operator);
     }
@@ -134,24 +133,24 @@ export class PatternMatcher {
      */
     _termsEqual(t1, t2, bindings = null) {
         if (!t1 || !t2) return t1 === t2;
-        
+
         if (bindings) {
             t1 = this.substitute(t1, bindings);
             t2 = this.substitute(t2, bindings);
         }
-        
+
         if (t1.equals && typeof t1.equals === 'function') {
             return t1.equals(t2);
         }
-        
+
         if (t1.name !== t2.name) return false;
-        
+
         if (t1.isAtomic && t2.isAtomic) return true;
-        
+
         if (t1.isCompound && t2.isCompound) {
             if (t1.operator !== t2.operator) return false;
             if (t1.components.length !== t2.components.length) return false;
-            
+
             for (let i = 0; i < t1.components.length; i++) {
                 if (!this._termsEqual(t1.components[i], t2.components[i], bindings)) {
                     return false;
@@ -159,7 +158,7 @@ export class PatternMatcher {
             }
             return true;
         }
-        
+
         return false;
     }
 }

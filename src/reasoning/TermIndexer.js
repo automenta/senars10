@@ -1,5 +1,3 @@
-import {Term} from '../term/Term.js';
-
 /**
  * Term Indexing System for Faster Pattern Matching
  * Implements multiple indexing strategies for efficient term retrieval
@@ -14,13 +12,13 @@ export class TermIndexer {
             byComponentCount: new Map(),
             byAtomicComponent: new Map()
         };
-        
+
         this.options = {
             maxIndexedTerms: options.maxIndexedTerms || 10000,
             enableComponentIndexing: options.enableComponentIndexing !== false,
             enableComplexityIndexing: options.enableComplexityIndexing !== false
         };
-        
+
         this.stats = {
             totalIndexed: 0,
             totalQueries: 0,
@@ -35,7 +33,7 @@ export class TermIndexer {
             if (this.stats.totalIndexed >= this.options.maxIndexedTerms) this._evictOldest();
 
             const timestamp = Date.now();
-            const entry = { term, metadata, timestamp };
+            const entry = {term, metadata, timestamp};
 
             // Index by various strategies
             this._indexByAllStrategies(term, entry, metadata);
@@ -84,9 +82,9 @@ export class TermIndexer {
     _indexByComponents(term, metadata) {
         for (const component of term.components) {
             if (component.isAtomic) {
-                const entry = { 
-                    term, 
-                    metadata, 
+                const entry = {
+                    term,
+                    metadata,
                     timestamp: Date.now(),
                     componentPath: term.id + '_' + component.id
                 };
@@ -101,7 +99,7 @@ export class TermIndexer {
         this.stats.totalQueries++;
         const result = this.indexes[indexKey].get(key) || [];
         if (result.length > 0) this.stats.cacheHits++;
-        
+
         return result.map(item => item.term);
     }
 
@@ -147,14 +145,14 @@ export class TermIndexer {
         }
 
         this.stats.totalQueries++;
-        
+
         try {
             const candidates = new Set();
 
             if (pattern.isCompound && pattern.operator) {
                 this.findByOperator(pattern.operator).forEach(term => candidates.add(term));
             }
-            
+
             if (pattern.isCompound && pattern.components && pattern.components.length > 0) {
                 for (const comp of pattern.components) {
                     if (comp.isAtomic) {
@@ -162,7 +160,7 @@ export class TermIndexer {
                     }
                 }
             }
-            
+
             if (pattern.isAtomic) {
                 this.findByName(pattern.name).forEach(term => candidates.add(term));
             }
@@ -179,24 +177,24 @@ export class TermIndexer {
 
         // Remove from various indexes
         this._removeFromIndex(this.indexes.byHash, term.hash, term);
-        
+
         if (term.isCompound && term.operator) {
             this._removeFromIndex(this.indexes.byOperator, term.operator, term);
         }
-        
+
         const name = term.name || 'unknown';
         this._removeFromIndex(this.indexes.byName, name, term);
-        
+
         if (this.options.enableComplexityIndexing) {
             const complexity = term.complexity || 1;
             this._removeFromIndex(this.indexes.byComplexity, complexity, term);
         }
-        
+
         if (term.isCompound) {
             const compCount = term.components.length;
             this._removeFromIndex(this.indexes.byComponentCount, compCount, term);
         }
-        
+
         if (this.options.enableComponentIndexing && term.isCompound) {
             this._removeFromComponentIndexes(term);
         }
@@ -235,7 +233,7 @@ export class TermIndexer {
         let oldestItem = null;
         let oldestIndexKey = null;
         let oldestKey = null;
-        
+
         for (const [indexKey, index] of Object.entries(this.indexes)) {
             for (const [key, items] of index.entries()) {
                 for (const item of items) {
@@ -259,7 +257,7 @@ export class TermIndexer {
             indexSizes[name] = index.size;
         }
 
-        const hitRate = this.stats.totalQueries > 0 ? 
+        const hitRate = this.stats.totalQueries > 0 ?
             this.stats.cacheHits / this.stats.totalQueries : 0;
 
         return {
