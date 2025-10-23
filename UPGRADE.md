@@ -72,11 +72,11 @@ The existing system features:
 - **2.2. Implement Core Evaluation Engine (Priority 2):**
     - [ ] Develop the core evaluation logic for **`^`** (Operation) terms within a given context, including variable substitution. This provides the foundation for Phase 3's back-solving.
     - [ ] **Implement a Core `Functor` Library:**
-        - [ ] Add a library of essential **`Functor`**s, including basic arithmetic (`add`, `subtract`) and boolean logic (`and`, `or`, `not`).
+        - [ ] Add a library of essential **`Functor`**s, including basic arithmetic (`add`, `subtract`, `multiply`, `divide`), comparison (`cmp`), and boolean logic (`and`, `or`, `not`).  
     - [ ] **Implement Graceful Failure Handling & Boolean Reduction:**
-        - [ ] Implement cascading reductions for logical operators (Conjunction, Disjunction, Implication) using the **`True`**, **`False`**, and **`Null`** atoms.
-        - [ ] Ensure **`Null`** acts as a short-circuiting "poison pill" in reductions (e.g., `(&, Null, x) => Null`).
-        - [ ] Implement specific reductions like `(--, False) => True` and `(&, False, x) => False`.
+        - [ ] Implement cascading reductions for logical operators (Conjunction `&&`, Disjunction `||`, Implication `==>` using the **`True`**, **`False`**, and **`Null`** atoms.
+        - [ ] Ensure **`Null`** acts as a short-circuiting "poison pill" in reductions (e.g., `(&&, Null, x) => Null`).
+        - [ ] Implement specific reductions like `(--, False) => True` and `(&&, False, x) => False`.
 
 - **2.3. Implement Performance Optimizations (Priority 3):**
     - [ ] Implement **capacity-limited** memoization and caching for NAL rules to ensure AIKR compliance.
@@ -123,16 +123,117 @@ The existing system features:
 
 ---
 
-### Phase 4: Advanced Tool Integration & Multi-Modal Reasoning
+### Phase 4: Core Evaluation Engine with Unified Operators
+*Goal: Implement a unified system where NAL operators serve dual purposes for both structural composition and functional evaluation.*
+
+- **4.1:** Implement basic OperationEvaluationEngine with arithmetic functors
+    - [ ] Functions: `add(x, y)`, `subtract(x, y)`, `multiply(x, y)`, `divide(x, y)`, `cmp(x, y)`
+    - [ ] Support for vector operations: `add((1,2), (3,4))` → `(4,6)`, `multiply((2,3), 2)` → `(4,6)` (scalar multiplication)
+    - [ ] Support for Product terms as numeric vectors: `(*,1,2)` and shorthand `(1,2)`
+    - [ ] Variable substitution and binding
+
+- **4.2:** Implement equality operator (`=`) with bidirectional capabilities
+    - [ ] Symmetric evaluation: `a = b` same as `b = a`
+    - [ ] Variable binding: `(?x, 5) = (3, ?y)` → bindings `?x=3, ?y=5`
+    - [ ] Compound decomposition: `(f(?x), g(?y)) = (f(3), g(5))` → `?x=3, ?y=5`
+    - [ ] Vector component equality: `(a,?x,c) = (a,b,c)` → `?x=b`
+
+- **4.3:** Implement unified operator system with dual semantics
+    - [ ] `(&&, a, b)` creates structural conjunction OR evaluates boolean values based on context
+    - [ ] `(||, a, b)` creates structural disjunction OR evaluates boolean values based on context  
+    - [ ] `(==>, a, b)` creates NAL conditional OR evaluates boolean implication based on context
+    - [ ] Context-aware evaluation based on argument types
+
+- **4.4:** Create functor registration system
+    - [ ] `system.registerFunctor(name, function, config)`
+    - [ ] Support for commutative and associative operations
+    - [ ] Metadata for operation properties (arity, commutativity, etc.)
+
+### Acceptance Criteria for Phase 4:
+- [ ] Basic arithmetic operations work with proper variable substitution
+- [ ] Equality operator supports bidirectional evaluation and variable binding
+- [ ] Unified operators behave correctly based on context (structural vs functional)
+- [ ] Functor registration system allows dynamic extension of operations
+
+---
+
+### Phase 5: Unified Logical Evaluation & Reduction
+*Goal: Implement boolean reduction with unified operators that serve both structural and functional purposes.*
+
+- **5.1:** Implement BooleanReductionEngine with unified operators
+    - [ ] Context-aware evaluation: distinguish between structural and functional usage
+    - [ ] `(&&, True, x)` → `x` (boolean evaluation) when x is boolean
+    - [ ] `(&&, p, q)` → compound term when p, q are non-boolean terms
+    - [ ] Proper handling of Truth values in NAL context
+
+- **5.2:** Implement logical reduction with True/False/Null short-circuiting
+    - [ ] Conjunction: `(&&, a, b, c)` with variable binding from equalities and boolean evaluation
+    - [ ] Disjunction: `(||, a, b, c)` with appropriate short-circuiting
+    - [ ] Implication: `(==>, antecedent, consequent)` with truth evaluation
+    - [ ] Support for comparison operations: `cmp(x, y)` returning -1, 0, or 1 for less than, equal, greater than
+    - [ ] Integration of comparison results with conditional logic: `(cmp(x, y) = 1)` for x > y
+
+- **5.3:** Add cascading reductions and optimizations
+    - [ ] Memoization for frequently computed terms
+    - [ ] Performance-based priority queuing for rule selection
+    - [ ] Capacity-limited caching for AIKR compliance
+
+- **5.4:** Implement comprehensive test suite
+    - [ ] Unit tests for all functor operations
+    - [ ] Integration tests for complex evaluation workflows
+    - [ ] Performance benchmarks for evaluation paths
+
+### Acceptance Criteria for Phase 5:
+- [ ] BooleanReductionEngine correctly handles unified operators
+- [ ] Short-circuiting behavior works for boolean evaluation
+- [ ] Structural composition still functions for NAL reasoning
+- [ ] Performance optimizations maintain system efficiency
+
+---
+
+### Phase 6: Advanced Back-Solving & Meta-Cognition
+*Goal: Implement sophisticated back-solving and self-monitoring capabilities.*
+
+- **6.1:** Enhanced back-solving with variable cascading
+    - [ ] Solve systems of equations with interdependent variables
+    - [ ] Support for complex algebraic expressions: `multiply(?x, add(?x, 1)) = 6`
+    - [ ] Vector component solving: `(a, ?x, c) = (a, b, c)` → `?x = b`
+    - [ ] Comparison-based solving: `(cmp(?x, 5) = 0)` → `?x = 5`, `(cmp(?x, 3) = 1)` → `?x > 3`
+    - [ ] Integration with NARS truth maintenance system
+
+- **6.2:** Meta-cognitive reasoning capabilities
+    - [ ] Metrics monitoring for evaluation success rates
+    - [ ] Self-optimization of evaluation strategies based on performance
+    - [ ] Introspection APIs for real-time system state examination
+
+- **6.3:** Integration with associative memory layers
+    - [ ] TermLayer for associative premise selection during evaluation
+    - [ ] Performance optimization through associative reasoning
+    - [ ] Hybrid NAL-evaluation synergy
+
+- **6.4:** Advanced pattern matching
+    - [ ] Dependent variable binding in complex patterns
+    - [ ] Higher-order pattern matching for functional expressions
+    - [ ] Integration with temporal and causal reasoning
+
+### Acceptance Criteria for Phase 6:
+- [ ] The evaluation engine supports back-solving for key **`Functor`**s.
+- [ ] The **`TermLayer`** is actively used in the reasoning cycle, improving performance or capabilities.
+- [ ] The self-optimization component can dynamically adjust rule priorities based on performance metrics.
+- [ ] Meta-cognitive capabilities enable system awareness and self-correction.
+
+---
+
+### Phase 7: Tool Integration & Multi-Modal Capabilities
 *Goal: Expand the tool ecosystem, synergize tools with internal evaluation, and integrate multi-modal reasoning via embedding layers.*
 
-- **4.1. Advanced Tool Framework:**
+- **7.1:** Advanced Tool Framework:
     - [ ] Implement sophisticated tool discovery, sandboxing, and workflow orchestration.
     - [ ] **Establish a Clear Functor/Tool Boundary:**
-        - [ ] Maintain a strict separation: **`Functor`**s are for pure, synchronous, CPU-bound logic. **`Tool`**s are for external, asynchronous operations with side effects (I/O, network).
+        - [ ] Maintain a unified approach: **`Functor`**s are for pure, synchronous, CPU-bound logic using unified operators. **`Tool`**s are for external, asynchronous operations with side effects (I/O, network).
         - [ ] To bridge them, create specific **`Functor`**s that can **schedule** a **`Tool`** execution, with the result returned to the system asynchronously as a new task or event.
 
-- **4.2. Multi-Modal & Embedding Integration:**
+- **7.2:** Multi-Modal & Embedding Integration:
     - [ ] **`EmbeddingLayer` Implementation:**
         - [ ] Implement the **`EmbeddingLayer`** as a concrete **`Layer`** for semantic similarity reasoning.
         - [ ] Associate each **`EmbeddingLayer`** with a specific LM embedding model, allowing multiple layers to support different models.
@@ -142,71 +243,61 @@ The existing system features:
         - [ ] This feature adapts and enhances the `embeddingRef` concept from `v8/`.
     - [ ] Add other multimedia processing tools and cross-modal reasoning capabilities.
 
-### Acceptance Criteria for Phase 4:
+### Acceptance Criteria for Phase 7:
 - [ ] The **`EmbeddingLayer`** is fully implemented, providing asynchronous, progressive, and persistent semantic reasoning.
 - [ ] A clear, secure boundary between internal **`Functor`**s and external **`Tool`**s is implemented.
 - [ ] Multi-modal reasoning capabilities process diverse data types effectively.
 
 ---
 
-### Phase 5: Interface Enhancement & User Experience
-*Goal: Develop sophisticated interfaces that showcase the system's advanced reasoning and evaluation capabilities.*
+### Phase 8: Interface Enhancement & Validation
+*Goal: Develop sophisticated interfaces and ensure system reliability.*
 
-- **5.1. Comprehensive Web UI:**
-    - [ ] Create interactive visualizations for reasoning processes, memory structures, and **evaluation traces**.
-    - [ ] Implement real-time monitoring dashboards.
+- **8.1:** Comprehensive WebSocket API
+    - [ ] Real-time event notifications for evaluation processes
+    - [ ] Interactive debugging of term evaluation and back-solving
+    - [ ] Agent interfaces for autonomous operation
 
-- **5.2. Enhanced REPL & TUI:**
-    - [ ] Implement advanced REPL with command history, auto-completion, and session management.
-    - [ ] Add commands for triggering and debugging **term evaluation** and **back-solving**.
+- **8.2:** Advanced Visualization
+    - [ ] Interactive visualizations for reasoning processes
+    - [ ] Memory structure visualization
+    - [ ] Evaluation trace visualization for debugging
 
-- **5.3. API & Integration Layer:**
-    - [ ] Develop a comprehensive **WebSocket API** for streaming real-time event notifications and interaction.
-    - [ ] Implement agent interfaces for autonomous operation.
+- **8.3:** Property-based Testing
+    - [ ] Comprehensive testing of all core data structures
+    - [ ] Boolean reduction logic validation
+    - [ ] Complex evaluation workflow verification
 
-### Acceptance Criteria for Phase 5:
+- **8.4:** Performance Validation
+    - [ ] Load testing with complex evaluation scenarios
+    - [ ] Scalability benchmarks for evaluation systems
+    - [ ] Integration testing with hybrid reasoning workflows
+
+### Acceptance Criteria for Phase 8:
+- [ ] WebSocket API supports robust, real-time external integration.
 - [ ] Interfaces provide comprehensive insight into system operation, including evaluation and back-solving.
-- [ ] The **WebSocket API** supports robust, real-time external integration.
+- [ ] System passes comprehensive validation tests for correctness and performance.
 
 ---
 
-### Phase 6: Validation & Performance Excellence
-*Goal: Ensure system reliability, performance, and correctness at scale through rigorous testing.*
-
-- **6.1. Comprehensive Testing Strategy:**
-    - [ ] Implement property-based testing for all core data structures, **boolean reduction logic**, and **`Functor`** evaluation.
-    - [ ] Create extensive integration tests for hybrid reasoning and **complex evaluation workflows (including back-solving)**.
-    - [ ] Add performance regression testing and automated benchmarks.
-
-- **6.2. Quality Validation & Performance Optimization:**
-    - [ ] Conduct comprehensive load testing, security validation, and fault injection testing.
-    - [ ] Profile and optimize critical reasoning and **evaluation paths** for scale.
-    - [ ] Implement and verify advanced **capacity-limited** caching strategies for all system caches.
-
-### Acceptance Criteria for Phase 6:
-- [ ] Property-based tests verify correctness of all core operations, including evaluation.
-- [ ] Integration tests validate complete system functionality under load.
-- [ ] Performance benchmarks demonstrate scalability and efficiency.
-
----
-
-### Phase 7: Production Excellence & Ecosystem Development
+### Phase 9: Production Excellence & Ecosystem Development
 *Goal: Achieve production-readiness with comprehensive deployment, documentation, and maintenance.*
 
-- **7.1. Deployment & Operations:**
+- **9.1:** Deployment & Operations:
     - [ ] Create containerized deployment with comprehensive monitoring, alerting, and observability.
     - [ ] Develop automated backup, recovery, and deployment procedures.
 
-- **7.2. Documentation & Ecosystem:**
+- **9.2:** Documentation & Ecosystem:
     - [ ] Document all APIs, components, **`Functor`**s, and integration patterns comprehensively.
-    - [ ] Create user guides, tutorials, and advanced usage examples for the **evaluation system**.
+    - [ ] Create user guides, tutorials, and advanced usage examples for the **unified operator system**.
+    - [ ] Document the **unified approach** for operators serving both structural and functional purposes.
 
-- **7.3. Security & Compliance:**
+- **9.3:** Security & Compliance:
     - [ ] Implement comprehensive security measures, including input sanitization, access control, and auditing.
 
-### Acceptance Criteria for Phase 7:
+### Acceptance Criteria for Phase 9:
 - [ ] System deploys reliably in containerized environments with monitoring.
-- [ ] Documentation enables effective system usage, extension, and understanding of its evaluation capabilities.
+- [ ] Documentation enables effective system usage, extension, and understanding of its unified operator evaluation capabilities.
 - [ ] Security measures protect against various threat vectors.
 
 ## 4. Implementation Strategy: Technical Excellence
@@ -217,7 +308,58 @@ This plan emphasizes:
 - **Performance First**: Optimization that doesn't compromise architectural clarity
 - **Reliability by Design**: Validation and error handling built into core components
 - **Extensibility Focus**: APIs and interfaces that enable powerful third-party integration
+- **Unified Semantics**: Clear, consistent handling of operators for both structural and functional use cases
 
 ## 5. Conclusion: Path to Advanced Intelligence
 
-This enhanced development plan provides a focused roadmap for elevating the already sophisticated SeNARS v10 implementation to new levels of capability, elegance, and production-readiness. By integrating a powerful term evaluation system, the project is well-positioned to achieve its goal of supporting advanced, flexible reasoning akin to systems like Prolog and OpenCog Hyperon MeTTa. Each phase builds on the strong foundation while delivering measurable improvements in intelligence, performance, and usability.
+This enhanced development plan provides a focused roadmap for elevating the already sophisticated SeNARS v10 implementation to new levels of capability, elegance, and production-readiness. By implementing a unified operator system where NAL operators serve both structural composition and functional evaluation purposes, the project is well-positioned to achieve its goal of supporting advanced, flexible reasoning akin to systems like Prolog and OpenCog Hyperon MeTTa. Each phase builds on the strong foundation while delivering measurable improvements in intelligence, performance, and usability.
+
+## Syntax Examples
+
+```
+# Functional evaluation
+(&&, True, False)           # Evaluates to False
+(||, False, True)           # Evaluates to True  
+(==>, False, ?x)            # Evaluates to True
+
+# Structural combination
+(&&, <subject --> predicate>, <another --> fact>)  # Creates compound term
+
+# Mixed usage
+(&&, (=, add(?x, 2), 5), f(?x))  # Reduces to f(3) after solving ?x=3
+
+# Function application
+add(2, 3)                 # Operation: add ^ (*, 2, 3)
+multiply(5, add(2, 3))    # Nested operations
+
+# Equality solving
+(=, add(?x, 2), 5)        # Solve: ?x = 3
+(=, (?a, ?b), (3, 4))    # Decompose: ?a = 3, ?b = 4
+
+# Vector operations (Product terms)
+(*, 1, 2)                 # Vector shorthand: (1, 2)
+add((1,2), (3,4))         # Vector addition: (4, 6)
+multiply((2,3), 2)        # Scalar multiplication: (4, 6)
+
+# Comparison operations
+cmp(1, 2)                 # Returns -1 (less than)
+cmp(2, 1)                 # Returns 1 (greater than) 
+cmp(1, 1)                 # Returns 0 (equal)
+cmp(?x, 5)                # Can be used in equations for solving
+
+# Complex back-solving
+(=, (?a, ?x, ?c), (3, 5, 7))  # Decompose: ?a=3, ?x=5, ?c=7
+(cmp(?x, 3) = 0)          # Solve for equality: ?x = 3
+(cmp(?x, 2) = 1)          # Solve for greater-than: ?x > 2
+```
+
+## Success Criteria
+- Unified operators work for both structural composition and functional evaluation
+- All basic arithmetic operations work with proper variable substitution
+- Back-solving correctly handles single and multiple variable equations
+- Boolean operations exhibit proper short-circuiting behavior
+- Comparison operations (cmp) work with proper return values (-1, 0, 1)
+- Vector operations work with Product terms as numeric vectors
+- Integration with existing NARS reasoning system maintains performance
+- System passes property-based tests for evaluation correctness
+- Hybrid NAL-evaluation reasoning provides synergistic benefits
