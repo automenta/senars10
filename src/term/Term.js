@@ -6,6 +6,15 @@ export const TermType = Object.freeze({
     COMPOUND: 'compound',
 });
 
+// Semantic types for evaluation
+export const SemanticType = Object.freeze({
+    BOOLEAN: 'boolean',
+    NUMERIC: 'numeric',
+    VARIABLE: 'variable',
+    NAL_CONCEPT: 'nal_concept',
+    UNKNOWN: 'unknown'
+});
+
 export class Term {
     constructor(type, name, components = [], operator = null) {
         this._type = type;
@@ -15,8 +24,38 @@ export class Term {
         this._complexity = this._calculateComplexity();
         this._id = type === TermType.ATOM ? name : `${operator}_${name}`;
         this._hash = Term.hash(this._id);
+        this._semanticType = this._determineSemanticType();  // Determine semantic type once at construction
 
         return freeze(this);
+    }
+
+    _determineSemanticType() {
+        // Determine semantic type based on the term structure and name
+        if (this._type === TermType.ATOM) {
+            // Check for boolean values
+            if (this._name === 'True' || this._name === 'False' || this._name === 'Null') {
+                return SemanticType.BOOLEAN;
+            }
+            
+            // Check for variables (start with ?)
+            if (this._name?.startsWith('?')) {
+                return SemanticType.VARIABLE;
+            }
+            
+            // Check for numeric values
+            if (!isNaN(Number(this._name))) {
+                return SemanticType.NUMERIC;
+            }
+            
+            // Everything else is a NAL concept
+            return SemanticType.NAL_CONCEPT;
+        } else {
+            // For compound terms, the semantic type depends on the operator and components
+            // If it's an operation like ^, it might be numeric/function evaluation
+            // If it's a logical operator with boolean components, it's boolean
+            // Otherwise it's typically a NAL concept
+            return SemanticType.NAL_CONCEPT; // Default for compound terms
+        }
     }
 
     get type() {
@@ -47,12 +86,32 @@ export class Term {
         return this._id;
     }
 
+    get semanticType() {
+        return this._semanticType;
+    }
+
     get isAtomic() {
         return this._type === TermType.ATOM;
     }
 
     get isCompound() {
         return this._type === TermType.COMPOUND;
+    }
+
+    get isBoolean() {
+        return this._semanticType === SemanticType.BOOLEAN;
+    }
+
+    get isNumeric() {
+        return this._semanticType === SemanticType.NUMERIC;
+    }
+
+    get isVariable() {
+        return this._semanticType === SemanticType.VARIABLE;
+    }
+
+    get isNALConcept() {
+        return this._semanticType === SemanticType.NAL_CONCEPT;
     }
 
     static hash(str) {

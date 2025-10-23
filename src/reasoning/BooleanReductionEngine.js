@@ -1,6 +1,5 @@
 import {Term} from '../term/Term.js';
 import {isFalse, isNull, isTrue, SYSTEM_ATOMS} from './SystemAtoms.js';
-import {TermType} from './TermType.js';
 
 /**
  * Enhanced BooleanReductionEngine for SeNARS v10 - Phase 5
@@ -50,13 +49,19 @@ export class BooleanReductionEngine {
         if (!term.isCompound) return false;
         // For operators &, |, ==>, <=>, check if ALL components are boolean values
         if (['&', '|', '==>', '<=>'].includes(term.operator)) {
-            return term.components && term.components.every(comp => TermType.isBooleanValue(comp));
+            return term.components && term.components.every(comp => this._isBooleanValue(comp));
         }
         // For negation, check if operand is boolean
         if (term.operator === '--') {
-            return term.components && term.components.length > 0 && TermType.isBooleanValue(term.components[0]);
+            return term.components && term.components.length > 0 && this._isBooleanValue(term.components[0]);
         }
         return false;
+    }
+
+    // Helper method to determine if term is a boolean value using constant properties
+    _isBooleanValue(term) {
+        // Check if the term is a system atom (True, False, Null) or has boolean semantic type
+        return isTrue(term) || isFalse(term) || isNull(term) || term.isBoolean;
     }
 
     _applyFunctionalRule(operator, components) {

@@ -4,7 +4,6 @@ import {ConcreteFunctor, FunctorRegistry} from './Functor.js';
 import {isNull, isTrue, isFalse, SYSTEM_ATOMS} from './SystemAtoms.js';
 import {VectorOperations} from './VectorOperations.js';
 import {EqualitySolver} from './EqualitySolver.js';
-import {TermType} from './TermType.js';
 
 export class OperationEvaluationEngine {
     constructor(functorRegistry = null, termFactory = null) {
@@ -91,7 +90,8 @@ export class OperationEvaluationEngine {
     _areAllBooleanValues(components, variableBindings) {
         for (const comp of components) {
             const boundComp = this._substituteVariables(comp, variableBindings);
-            if (!TermType.isBooleanValue(boundComp)) {
+            // Use the semantic type from the term itself
+            if (!boundComp.isBoolean && !isTrue(boundComp) && !isFalse(boundComp) && !isNull(boundComp)) {
                 // It's not a boolean value, so we can't do functional evaluation
                 return false;
             }
