@@ -14,38 +14,43 @@ export class TermLayer extends Layer {
     this._ensureCapacity();
     
     const sourceLinks = this._getOrCreateSourceMap(source.name);
-    const priority = data.priority || 1;
+    const priority = data.priority ?? 1; // Using nullish coalescing for more robust default
     
     const linkEntry = this._createLinkEntry(source, target, { ...data, priority });
-    
     const added = this.linkBag.add(linkEntry);
     
     if (added) {
       sourceLinks.set(target.name, linkEntry);
       this.count++;
-      return true;
     }
     
-    return false;
+    return added;
   }
 
   get(source) {
     const sourceLinks = this.linkMap.get(source.name);
     return sourceLinks ? 
-      Array.from(sourceLinks.values()).map(linkEntry => ({
-        target: linkEntry.target,
-        data: linkEntry.data
-      })) : [];
+      Array.from(sourceLinks.values()).map(this._mapLinkEntryToResult) 
+      : [];
+  }
+
+  _mapLinkEntryToResult(linkEntry) {
+    return {
+      target: linkEntry.target,
+      data: linkEntry.data
+    };
   }
 
   remove(source, target) {
     const sourceLinks = this.linkMap.get(source.name);
-    if (!sourceLinks || !sourceLinks.has(target.name)) {
-      return false;
-    }
+    if (!sourceLinks?.has(target.name)) return false;
 
     const linkEntry = sourceLinks.get(target.name);
-    this._removeFromLinkMap(sourceLinks, target.name, source.name);
+    sourceLinks.delete(target.name);
+    
+    if (sourceLinks.size === 0) {
+      this.linkMap.delete(source.name);
+    }
 
     this.linkBag.remove(linkEntry);
     this.count--;
@@ -55,23 +60,21 @@ export class TermLayer extends Layer {
 
   has(source, target) {
     const sourceLinks = this.linkMap.get(source.name);
-    return sourceLinks ? sourceLinks.has(target.name) : false;
+    return sourceLinks?.has(target.name) ?? false;
   }
 
   getSources() {
     return Array.from(this.linkMap.keys())
       .map(name => this._getSourceTermByName(name))
-      .filter(term => term !== undefined);
+      .filter(Boolean); // More concise than explicit undefined check
   }
 
   update(source, target, data) {
     const sourceLinks = this.linkMap.get(source.name);
-    if (!sourceLinks || !sourceLinks.has(target.name)) {
-      return false;
-    }
+    if (!sourceLinks?.has(target.name)) return false;
 
     const linkEntry = sourceLinks.get(target.name);
-    linkEntry.data = { ...linkEntry.data, ...data };
+    Object.assign(linkEntry.data, data); // More concise than spread operator for extension
     
     if (data.priority !== undefined) {
       this._updatePriorityInBag(linkEntry);
@@ -120,16 +123,11 @@ export class TermLayer extends Layer {
 
   _removeLowestPriorityLink() {
     const lowestItem = this._findLowestPriorityItem();
-    
-    if (lowestItem) {
-      this.linkBag.remove(lowestItem);
-      this._removeFromLinkMap(
-        this.linkMap.get(lowestItem.source.name), 
-        lowestItem.target.name, 
-        lowestItem.source.name
-      );
-      this.count--;
-    }
+    if (!lowestItem) return;
+
+    this.linkBag.remove(lowestItem);
+    this._removeFromSimpleLinkMap(lowestItem);
+    this.count--;
   }
 
   _findLowestPriorityItem() {
@@ -159,10 +157,11 @@ export class TermLayer extends Layer {
     return this.linkMap.get(sourceName);
   }
 
-  _removeFromLinkMap(sourceLinks, targetName, sourceName) {
-    sourceLinks.delete(targetName);
-    if (sourceLinks.size === 0) {
-      this.linkMap.delete(sourceName);
+  _removeFromSimpleLinkMap(item) {
+    const sourceLinks = this.linkMap.get(item.source.name);
+    sourceLinks?.delete(item.target.name);
+    if (sourceLinks?.size === 0) {
+      this.linkMap.delete(item.source.name);
     }
   }
 

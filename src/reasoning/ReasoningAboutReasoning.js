@@ -6,7 +6,7 @@ export class ReasoningAboutReasoning {
     this.eventBus = nar._eventBus;
     
     this.reasoningTrace = [];
-    this.maxTraceLength = config.maxTraceLength || 1000;
+    this.maxTraceLength = config.maxTraceLength ?? 1000;
     this.traceEnabled = config.traceEnabled !== false;
     
     this._setupEventListeners();
@@ -18,9 +18,7 @@ export class ReasoningAboutReasoning {
     ['rule.executed', 'task.processed', 'operation.evaluated', 'cycle.completed', 'memory.concept.accessed']
       .forEach(eventType => {
         this.eventBus.on(eventType, (data) => {
-          if (this.traceEnabled) {
-            this._addToTrace(eventType.replace(/\./g, '_'), data);
-          }
+          this.traceEnabled && this._addToTrace(eventType.replace(/\./g, '_'), data);
         });
       });
   }
@@ -66,17 +64,19 @@ export class ReasoningAboutReasoning {
   }
 
   _getTaskCount() {
-    const beliefs = this.nar.getBeliefs().length;
-    const goals = this.nar.getGoals().length;
-    const questions = this.nar.getQuestions().length;
+    const [beliefs, goals, questions] = [
+      this.nar.getBeliefs().length,
+      this.nar.getGoals().length,
+      this.nar.getQuestions().length
+    ];
     return { beliefs, goals, questions, totalTasks: beliefs + goals + questions };
   }
 
   _getRuleStats() {
     if (!this.nar._ruleEngine) return null;
 
-    const rules = this.nar._ruleEngine.rules || [];
-    const metrics = this.nar._ruleEngine.metrics || {};
+    const rules = this.nar._ruleEngine.rules ?? [];
+    const metrics = this.nar._ruleEngine.metrics ?? {};
 
     return {
       totalRules: rules.length,
@@ -90,7 +90,7 @@ export class ReasoningAboutReasoning {
     
     try {
       const metrics = this.nar.metricsMonitor.getMetricsSnapshot();
-      return metrics.ruleMetrics || {};
+      return metrics.ruleMetrics ?? {};
     } catch (error) {
       console.warn('Could not retrieve rule performance data:', error);
       return null;
@@ -118,12 +118,8 @@ export class ReasoningAboutReasoning {
 
     const ruleExecutions = recentEvents.filter(event => event.eventType === 'rule_execution');
     if (ruleExecutions.length > 0) {
-      const ruleFrequency = {};
-      ruleExecutions.forEach(event => {
-        const ruleId = event.data?.ruleId || event.data?.rule?.id;
-        if (ruleId) ruleFrequency[ruleId] = (ruleFrequency[ruleId] || 0) + 1;
-      });
-
+      const ruleFrequency = this._countRuleFrequencies(ruleExecutions);
+      
       for (const [ruleId, count] of Object.entries(ruleFrequency)) {
         if (count > ruleExecutions.length * 0.5) {
           suggestions.push({
@@ -138,6 +134,15 @@ export class ReasoningAboutReasoning {
 
     return suggestions;
   }
+  
+  _countRuleFrequencies(ruleExecutions) {
+    const ruleFrequency = {};
+    ruleExecutions.forEach(event => {
+      const ruleId = event.data?.ruleId ?? event.data?.rule?.id;
+      if (ruleId) ruleFrequency[ruleId] = (ruleFrequency[ruleId] ?? 0) + 1;
+    });
+    return ruleFrequency;
+  }
 
   _analyzeTaskDistribution(taskCount) {
     const suggestions = [];
@@ -150,9 +155,17 @@ export class ReasoningAboutReasoning {
         taskCount.questions / total
       ];
 
-      if (beliefRatio > 0.9) suggestions.push({ type: 'task_distribution_imbalance', message: 'System dominated by beliefs with very few goals/questions. Consider adding more goal-oriented or question-answering tasks.' });
-      if (goalRatio > 0.5) suggestions.push({ type: 'high_goal_pressure', message: 'High number of goals relative to beliefs. System may be focusing too much on goal-oriented reasoning.' });
-      if (questionRatio > 0.3) suggestions.push({ type: 'high_query_load', message: 'High number of questions. System may be spending too much time on query answering.' });
+      const taskAnalysisMap = [
+        { ratio: beliefRatio, threshold: 0.9, type: 'task_distribution_imbalance', message: 'System dominated by beliefs with very few goals/questions. Consider adding more goal-oriented or question-answering tasks.' },
+        { ratio: goalRatio, threshold: 0.5, type: 'high_goal_pressure', message: 'High number of goals relative to beliefs. System may be focusing too much on goal-oriented reasoning.' },
+        { ratio: questionRatio, threshold: 0.3, type: 'high_query_load', message: 'High number of questions. System may be spending too much time on query answering.' }
+      ];
+
+      taskAnalysisMap.forEach(({ ratio, threshold, type, message }) => {
+        if (ratio > threshold) {
+          suggestions.push({ type, message });
+        }
+      });
     }
 
     return suggestions;
@@ -160,30 +173,39 @@ export class ReasoningAboutReasoning {
 
   _analyzeRuleUsage(ruleStats) {
     const suggestions = [];
-    if (!ruleStats || !ruleStats.rulePerformance) return suggestions;
+    if (!ruleStats?.rulePerformance) return suggestions;
 
     for (const [ruleId, performance] of Object.entries(ruleStats.rulePerformance)) {
       if (performance && typeof performance === 'object') {
-        if (performance.successRate && performance.successRate < 0.1) {
-          suggestions.push({
-            type: 'low_success_rate',
-            ruleId,
-            successRate: performance.successRate,
-            message: `Rule ${ruleId} has a very low success rate (${(performance.successRate * 100).toFixed(2)}%). Consider reviewing or disabling this rule.`
-          });
-        }
-
-        if (performance.averageExecutionTime && performance.averageExecutionTime > 100) {
-          suggestions.push({
-            type: 'high_execution_time',
-            ruleId,
-            avgExecutionTime: performance.averageExecutionTime,
-            message: `Rule ${ruleId} has a high average execution time (${performance.averageExecutionTime}ms). Consider optimizing this rule.`
-          });
-        }
+        const perfSuggestions = this._getRulePerformanceSuggestions(ruleId, performance);
+        suggestions.push(...perfSuggestions);
       }
     }
 
+    return suggestions;
+  }
+  
+  _getRulePerformanceSuggestions(ruleId, performance) {
+    const suggestions = [];
+    
+    if (performance.successRate < 0.1) {
+      suggestions.push({
+        type: 'low_success_rate',
+        ruleId,
+        successRate: performance.successRate,
+        message: `Rule ${ruleId} has a very low success rate (${(performance.successRate * 100).toFixed(2)}%). Consider reviewing or disabling this rule.`
+      });
+    }
+
+    if (performance.averageExecutionTime > 100) {
+      suggestions.push({
+        type: 'high_execution_time',
+        ruleId,
+        avgExecutionTime: performance.averageExecutionTime,
+        message: `Rule ${ruleId} has a high average execution time (${performance.averageExecutionTime}ms). Consider optimizing this rule.`
+      });
+    }
+    
     return suggestions;
   }
 
@@ -193,12 +215,19 @@ export class ReasoningAboutReasoning {
     }
 
     const q = query.toLowerCase();
+    const queryMap = [
+      { keywords: ['task', 'goal', 'question', 'belief'], handler: () => this._getTaskInfo() },
+      { keywords: ['rule', 'engine'], handler: () => this._getRuleInfo() },
+      { keywords: ['memory', 'concept'], handler: () => this._getMemoryInfo() },
+      { keywords: ['trace', 'reasoning', 'history'], handler: () => this._getTraceInfo() },
+      { keywords: ['cycle', 'performance', 'stats'], handler: () => this._getPerformanceInfo() }
+    ];
 
-    if (['task', 'goal', 'question', 'belief'].some(keyword => q.includes(keyword))) return this._getTaskInfo();
-    if (['rule', 'engine'].some(keyword => q.includes(keyword))) return this._getRuleInfo();
-    if (['memory', 'concept'].some(keyword => q.includes(keyword))) return this._getMemoryInfo();
-    if (['trace', 'reasoning', 'history'].some(keyword => q.includes(keyword))) return this._getTraceInfo();
-    if (['cycle', 'performance', 'stats'].some(keyword => q.includes(keyword))) return this._getPerformanceInfo();
+    for (const { keywords, handler } of queryMap) {
+      if (keywords.some(keyword => q.includes(keyword))) {
+        return handler();
+      }
+    }
     
     return this.getReasoningState();
   }
@@ -215,10 +244,10 @@ export class ReasoningAboutReasoning {
   _getRuleInfo() {
     if (!this.nar._ruleEngine) return { error: 'No rule engine available' };
 
-    const rules = this.nar._ruleEngine.rules || [];
+    const rules = this.nar._ruleEngine.rules ?? [];
     return {
       ruleCount: rules.length,
-      ruleNames: rules.map(r => r.id || r.constructor?.name || 'unknown').slice(0, 10),
+      ruleNames: rules.map(r => r.id ?? r.constructor?.name ?? 'unknown').slice(0, 10),
       ruleStats: this._getRuleStats()
     };
   }
@@ -226,8 +255,8 @@ export class ReasoningAboutReasoning {
   _getMemoryInfo() {
     return {
       memoryStats: this.nar.memory.getDetailedStats(),
-      conceptCount: this.nar.memory.getConceptCount ? this.nar.memory.getConceptCount() : 'unknown',
-      termLayerStats: this.nar.termLayer ? this.nar.termLayer.getStats() : 'not available'
+      conceptCount: this.nar.memory.getConceptCount?.() ?? 'unknown',
+      termLayerStats: this.nar.termLayer?.getStats() ?? 'not available'
     };
   }
 
@@ -245,7 +274,7 @@ export class ReasoningAboutReasoning {
       cycleCount: this.nar.cycleCount,
       isRunning: this.nar.isRunning,
       systemStats: this.nar.getStats(),
-      metricsMonitor: this.nar.metricsMonitor ? this.nar.metricsMonitor.getMetricsSnapshot() : 'not available'
+      metricsMonitor: this.nar.metricsMonitor?.getMetricsSnapshot() ?? 'not available'
     };
   }
 
@@ -255,52 +284,51 @@ export class ReasoningAboutReasoning {
 
     if (analysis?.suggestions) {
       for (const suggestion of analysis.suggestions) {
-        switch (suggestion.type) {
-          case 'potential_infinite_loop':
-            if (this.nar._ruleEngine) {
-              const rule = this.nar._ruleEngine.getRule(suggestion.ruleId);
-              if (rule && rule.priority > 0.1) {
-                corrections.push({
-                  action: 'rule_priority_adjustment',
-                  ruleId: suggestion.ruleId,
-                  message: `Reduced priority of rule that may cause infinite loop`
-                });
-              }
-            }
-            break;
-
-          case 'low_success_rate':
-            corrections.push({
-              action: 'rule_review_suggested',
-              ruleId: suggestion.ruleId,
-              reason: 'Low success rate',
-              message: `Rule ${suggestion.ruleId} has low success rate, consider reviewing or disabling`
-            });
-            break;
-
-          case 'high_execution_time':
-            corrections.push({
-              action: 'rule_optimization_suggested',
-              ruleId: suggestion.ruleId,
-              reason: 'High execution time',
-              message: `Rule ${suggestion.ruleId} has high execution time, consider optimization`
-            });
-            break;
-
-          case 'task_distribution_imbalance':
-          case 'high_goal_pressure':
-          case 'high_query_load':
-            corrections.push({
-              action: 'load_balancing_advice',
-              issue: suggestion.type,
-              message: suggestion.message
-            });
-            break;
-        }
+        this._processSuggestion(suggestion, corrections);
       }
     }
 
     return { analysis, corrections, timestamp: Date.now() };
+  }
+  
+  _processSuggestion(suggestion, corrections) {
+    const correctionMap = {
+      'potential_infinite_loop': () => {
+        if (this.nar._ruleEngine) {
+          const rule = this.nar._ruleEngine.getRule(suggestion.ruleId);
+          if (rule?.priority > 0.1) {
+            corrections.push({
+              action: 'rule_priority_adjustment',
+              ruleId: suggestion.ruleId,
+              message: `Reduced priority of rule that may cause infinite loop`
+            });
+          }
+        }
+      },
+      'low_success_rate': () => corrections.push({
+        action: 'rule_review_suggested',
+        ruleId: suggestion.ruleId,
+        reason: 'Low success rate',
+        message: `Rule ${suggestion.ruleId} has low success rate, consider reviewing or disabling`
+      }),
+      'high_execution_time': () => corrections.push({
+        action: 'rule_optimization_suggested',
+        ruleId: suggestion.ruleId,
+        reason: 'High execution time',
+        message: `Rule ${suggestion.ruleId} has high execution time, consider optimization`
+      })
+    };
+
+    const handler = correctionMap[suggestion.type];
+    if (handler) {
+      handler();
+    } else if (['task_distribution_imbalance', 'high_goal_pressure', 'high_query_load'].includes(suggestion.type)) {
+      corrections.push({
+        action: 'load_balancing_advice',
+        issue: suggestion.type,
+        message: suggestion.message
+      });
+    }
   }
 
   setEnabled(enabled) {

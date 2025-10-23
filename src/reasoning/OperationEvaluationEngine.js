@@ -78,7 +78,10 @@ export class OperationEvaluationEngine {
 
             return this._createResult(resultTerm, true, null, { functorName: functionName });
         } catch (error) {
-            console.error(`Error evaluating operation: ${error.message}`);
+            // Log the error but only in non-test environments to avoid polluting test output
+            if (typeof process === 'undefined' || !process.env.JEST_WORKER_ID) {
+                console.error(`Error evaluating operation: ${error.message}`);
+            }
             return this._createResult(SYSTEM_ATOMS.Null, false, error.message);
         }
     }
