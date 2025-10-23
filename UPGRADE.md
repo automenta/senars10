@@ -179,7 +179,7 @@ The existing system features:
     - [ ] Capacity-limited caching for AIKR compliance
 
 - **5.4:** Support for mixed usage scenarios
-    - [ ] `(&&, (=, add(?x, 2), 5), f(?x))` → reduces to `f(3)` after solving `?x=3`
+    - [ ] `(&&, (add(?x, 2) = 5), f(?x))` → reduces to `f(3)` after solving `?x=3`
     - [ ] Integration of structural and functional reasoning in complex expressions
     - [ ] Proper handling of Truth values within functional expressions
 
@@ -329,15 +329,15 @@ This enhanced development plan provides a focused roadmap for elevating the alre
 (==>, False, True)          # Evaluates to True
 
 # Mixed usage scenarios (the key capability)
-(&&, (=, add(?x, 2), 5), f(?x))  # Reduces to f(3) after solving ?x=3
+(&&, (add(?x, 2) = 5), f(?x))  # Reduces to f(3) after solving ?x=3
 
 # Function application
 add(2, 3)                 # Operation: add ^ (*, 2, 3)
 multiply(5, add(2, 3))    # Nested operations
 
 # Equality solving
-(=, add(?x, 2), 5)        # Solve: ?x = 3
-(=, (?a, ?b), (3, 4))    # Decompose: ?a = 3, ?b = 4
+(add(?x, 2) = 5)        # Solve: ?x = 3
+((?a, ?b) = (3, 4))    # Decompose: ?a = 3, ?b = 4
 
 # Vector operations (Product terms)
 (*, 1, 2)                 # Vector shorthand: (1, 2)
@@ -351,7 +351,7 @@ cmp(1, 1)                 # Returns 0 (equal)
 cmp(?x, 5)                # Can be used in equations for solving
 
 # Complex back-solving
-(=, (?a, ?x, ?c), (3, 5, 7))  # Decompose: ?a=3, ?x=5, ?c=7
+((?a, ?x, ?c) = (3, 5, 7))  # Decompose: ?a=3, ?x=5, ?c=7
 (cmp(?x, 3) = 0)          # Solve for equality: ?x = 3
 (cmp(?x, 2) = 1)          # Solve for greater-than: ?x > 2
 ```
@@ -363,7 +363,7 @@ cmp(?x, 5)                # Can be used in equations for solving
 - Boolean operations exhibit proper short-circuiting behavior when dealing with Truth values
 - Comparison operations (cmp) work with proper return values (-1, 0, 1)
 - Vector operations work with Product terms as numeric vectors
-- Mixed usage scenarios function correctly (e.g., `(&&, (=, add(?x, 2), 5), f(?x))`)
+- Mixed usage scenarios function correctly (e.g., `(&&, (add(?x, 2) = 5), f(?x))`)
 - Integration with existing NARS reasoning system maintains performance
 - System passes property-based tests for evaluation correctness
 - Hybrid NAL-evaluation reasoning provides synergistic benefits
