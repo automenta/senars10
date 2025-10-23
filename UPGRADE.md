@@ -44,7 +44,7 @@ The existing system features:
         - [ ] Add the **`=`** (Equals) operator: a 2-ary, commutative, bidirectional operator distinct from `<=>` and `<->`.
         - [ ] Add the **`^`** (Operation) operator for applying **`Functor`**s to arguments (0-ary to n-ary).
         - [ ] Add special system atoms for boolean logic: **`True`**, **`False`**, **`Null`**.
-    - [ ] **Update Parser** to support shorthand notation for operations (e.g., `f(x,y)` as `f ^ (*,x,y)`).
+    - [ ] **Update Parser** to support standardized parentheses notation: `(a-->b)` instead of `<a --> b>`, and shorthand notation for operations (e.g., `f(x,y)` as `f ^ (*,x,y)`).
 
 - **1.3. Associative Memory Architecture (`Layer`s):**
     - [ ] Design and implement an abstract, pluggable **`Layer`** interface for associative links, supporting dynamic implementations and per-link data.
@@ -56,7 +56,7 @@ The existing system features:
 ### Acceptance Criteria for Phase 1:
 - [ ] Core architecture is consolidated with consistent lifecycle and configuration patterns.
 - [ ] Term system is expanded to include the **`=`**, **`^`**, **`True`**, **`False`**, and **`Null`** primitives.
-- [ ] Parser correctly handles shorthand operation notation.
+- [ ] Parser correctly handles standardized parentheses notation and shorthand operation notation.
 - [ ] The **`Functor`** registration system is in place.
 - [ ] The abstract **`Layer`** and concrete **`TermLayer`** are implemented and tested.
 
@@ -123,8 +123,8 @@ The existing system features:
 
 ---
 
-### Phase 4: Core Evaluation Engine with Unified Operators
-*Goal: Implement a unified system where NAL operators serve dual purposes for both structural composition and functional evaluation.*
+### Phase 4: Unified Operator System with Type-Directed Evaluation
+*Goal: Implement a unified system where NAL operators serve dual purposes for both structural composition and functional evaluation, with clear type-based disambiguation.*
 
 - **4.1:** Implement basic OperationEvaluationEngine with arithmetic functors
     - [ ] Functions: `add(x, y)`, `subtract(x, y)`, `multiply(x, y)`, `divide(x, y)`, `cmp(x, y)`
@@ -138,11 +138,11 @@ The existing system features:
     - [ ] Compound decomposition: `(f(?x), g(?y)) = (f(3), g(5))` → `?x=3, ?y=5`
     - [ ] Vector component equality: `(a,?x,c) = (a,b,c)` → `?x=b`
 
-- **4.3:** Implement unified operator system with dual semantics
-    - [ ] `(&&, a, b)` creates structural conjunction OR evaluates boolean values based on context
-    - [ ] `(||, a, b)` creates structural disjunction OR evaluates boolean values based on context  
-    - [ ] `(==>, a, b)` creates NAL conditional OR evaluates boolean implication based on context
-    - [ ] Context-aware evaluation based on argument types
+- **4.3:** Implement unified operator system with automatic type-directed evaluation
+    - [ ] For `(&&, a, b)`, check argument types: if all are Truth-values/Boolean atoms, perform functional evaluation; otherwise, create structural compound
+    - [ ] For `(||, a, b)`, check argument types: if all are Truth-values/Boolean atoms, perform functional evaluation; otherwise, create structural compound  
+    - [ ] For `(==>, a, b)`, check argument types: if both are Truth-values/Boolean atoms, perform functional evaluation; otherwise, create NAL conditional
+    - [ ] Automatic context detection based on argument types (Truth values, Boolean atoms vs. NAL concepts)
 
 - **4.4:** Create functor registration system
     - [ ] `system.registerFunctor(name, function, config)`
@@ -152,24 +152,24 @@ The existing system features:
 ### Acceptance Criteria for Phase 4:
 - [ ] Basic arithmetic operations work with proper variable substitution
 - [ ] Equality operator supports bidirectional evaluation and variable binding
-- [ ] Unified operators behave correctly based on context (structural vs functional)
+- [ ] Unified operators automatically determine behavior based on argument types
 - [ ] Functor registration system allows dynamic extension of operations
 
 ---
 
 ### Phase 5: Unified Logical Evaluation & Reduction
-*Goal: Implement boolean reduction with unified operators that serve both structural and functional purposes.*
+*Goal: Implement boolean reduction with unified operators that serve both structural and functional purposes based on type-directed disambiguation.*
 
 - **5.1:** Implement BooleanReductionEngine with unified operators
-    - [ ] Context-aware evaluation: distinguish between structural and functional usage
-    - [ ] `(&&, True, x)` → `x` (boolean evaluation) when x is boolean
-    - [ ] `(&&, p, q)` → compound term when p, q are non-boolean terms
+    - [ ] Type-aware evaluation: only evaluate when arguments are Boolean/Truth values
+    - [ ] `(&&, True, x)` → `x` (boolean evaluation) when x is boolean Truth value
+    - [ ] `(&&, (a-->b), (c-->d))` → compound term when arguments are NAL concepts
     - [ ] Proper handling of Truth values in NAL context
 
 - **5.2:** Implement logical reduction with True/False/Null short-circuiting
-    - [ ] Conjunction: `(&&, a, b, c)` with variable binding from equalities and boolean evaluation
-    - [ ] Disjunction: `(||, a, b, c)` with appropriate short-circuiting
-    - [ ] Implication: `(==>, antecedent, consequent)` with truth evaluation
+    - [ ] Conjunction: `(&&, a, b, c)` with variable binding from equalities and boolean evaluation when appropriate
+    - [ ] Disjunction: `(||, a, b, c)` with appropriate short-circuiting when dealing with boolean values
+    - [ ] Implication: `(==>, antecedent, consequent)` with truth evaluation when appropriate
     - [ ] Support for comparison operations: `cmp(x, y)` returning -1, 0, or 1 for less than, equal, greater than
     - [ ] Integration of comparison results with conditional logic: `(cmp(x, y) = 1)` for x > y
 
@@ -178,15 +178,16 @@ The existing system features:
     - [ ] Performance-based priority queuing for rule selection
     - [ ] Capacity-limited caching for AIKR compliance
 
-- **5.4:** Implement comprehensive test suite
-    - [ ] Unit tests for all functor operations
-    - [ ] Integration tests for complex evaluation workflows
-    - [ ] Performance benchmarks for evaluation paths
+- **5.4:** Support for mixed usage scenarios
+    - [ ] `(&&, (=, add(?x, 2), 5), f(?x))` → reduces to `f(3)` after solving `?x=3`
+    - [ ] Integration of structural and functional reasoning in complex expressions
+    - [ ] Proper handling of Truth values within functional expressions
 
 ### Acceptance Criteria for Phase 5:
-- [ ] BooleanReductionEngine correctly handles unified operators
+- [ ] BooleanReductionEngine correctly handles type-directed unified operators
 - [ ] Short-circuiting behavior works for boolean evaluation
 - [ ] Structural composition still functions for NAL reasoning
+- [ ] Mixed usage scenarios work correctly
 - [ ] Performance optimizations maintain system efficiency
 
 ---
@@ -230,7 +231,7 @@ The existing system features:
 - **7.1:** Advanced Tool Framework:
     - [ ] Implement sophisticated tool discovery, sandboxing, and workflow orchestration.
     - [ ] **Establish a Clear Functor/Tool Boundary:**
-        - [ ] Maintain a unified approach: **`Functor`**s are for pure, synchronous, CPU-bound logic using unified operators. **`Tool`**s are for external, asynchronous operations with side effects (I/O, network).
+        - [ ] **`Functor`**s are for pure, synchronous, CPU-bound logic. **`Tool`**s are for external, asynchronous operations with side effects (I/O, network).
         - [ ] To bridge them, create specific **`Functor`**s that can **schedule** a **`Tool`** execution, with the result returned to the system asynchronously as a new task or event.
 
 - **7.2:** Multi-Modal & Embedding Integration:
@@ -290,7 +291,7 @@ The existing system features:
 - **9.2:** Documentation & Ecosystem:
     - [ ] Document all APIs, components, **`Functor`**s, and integration patterns comprehensively.
     - [ ] Create user guides, tutorials, and advanced usage examples for the **unified operator system**.
-    - [ ] Document the **unified approach** for operators serving both structural and functional purposes.
+    - [ ] Document the **type-directed approach** for operators serving both structural and functional purposes.
 
 - **9.3:** Security & Compliance:
     - [ ] Implement comprehensive security measures, including input sanitization, access control, and auditing.
@@ -308,24 +309,26 @@ This plan emphasizes:
 - **Performance First**: Optimization that doesn't compromise architectural clarity
 - **Reliability by Design**: Validation and error handling built into core components
 - **Extensibility Focus**: APIs and interfaces that enable powerful third-party integration
-- **Unified Semantics**: Clear, consistent handling of operators for both structural and functional use cases
+- **Type-Directed Semantics**: Clear, consistent handling of operators based on argument types for both structural and functional use cases
 
 ## 5. Conclusion: Path to Advanced Intelligence
 
-This enhanced development plan provides a focused roadmap for elevating the already sophisticated SeNARS v10 implementation to new levels of capability, elegance, and production-readiness. By implementing a unified operator system where NAL operators serve both structural composition and functional evaluation purposes, the project is well-positioned to achieve its goal of supporting advanced, flexible reasoning akin to systems like Prolog and OpenCog Hyperon MeTTa. Each phase builds on the strong foundation while delivering measurable improvements in intelligence, performance, and usability.
+This enhanced development plan provides a focused roadmap for elevating the already sophisticated SeNARS v10 implementation to new levels of capability, elegance, and production-readiness. By implementing a type-directed unified operator system where NAL operators serve both structural composition and functional evaluation purposes based on their arguments, the project is well-positioned to achieve its goal of supporting advanced, flexible reasoning akin to systems like Prolog and OpenCog Hyperon MeTTa. Each phase builds on the strong foundation while delivering measurable improvements in intelligence, performance, and usability.
 
 ## Syntax Examples
 
 ```
-# Functional evaluation
+# Structural compound terms (when arguments are NARS concepts)
+(&&, (a-->b), (c-->d))    # Creates compound term for NAL reasoning
+(||, (a-->b), (c-->d))    # Creates disjunction term for NAL reasoning
+(==>, (a-->b), (c-->d))    # Creates conditional for NAL reasoning
+
+# Functional evaluation (when arguments are Truth values/Boolean atoms)
 (&&, True, False)           # Evaluates to False
 (||, False, True)           # Evaluates to True  
-(==>, False, ?x)            # Evaluates to True
+(==>, False, True)          # Evaluates to True
 
-# Structural combination
-(&&, <subject --> predicate>, <another --> fact>)  # Creates compound term
-
-# Mixed usage
+# Mixed usage scenarios (the key capability)
 (&&, (=, add(?x, 2), 5), f(?x))  # Reduces to f(3) after solving ?x=3
 
 # Function application
@@ -354,12 +357,13 @@ cmp(?x, 5)                # Can be used in equations for solving
 ```
 
 ## Success Criteria
-- Unified operators work for both structural composition and functional evaluation
+- Unified operators work for both structural composition and functional evaluation based on argument types
 - All basic arithmetic operations work with proper variable substitution
 - Back-solving correctly handles single and multiple variable equations
-- Boolean operations exhibit proper short-circuiting behavior
+- Boolean operations exhibit proper short-circuiting behavior when dealing with Truth values
 - Comparison operations (cmp) work with proper return values (-1, 0, 1)
 - Vector operations work with Product terms as numeric vectors
+- Mixed usage scenarios function correctly (e.g., `(&&, (=, add(?x, 2), 5), f(?x))`)
 - Integration with existing NARS reasoning system maintains performance
 - System passes property-based tests for evaluation correctness
 - Hybrid NAL-evaluation reasoning provides synergistic benefits
