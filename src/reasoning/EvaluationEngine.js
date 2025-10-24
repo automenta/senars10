@@ -285,7 +285,6 @@ export class EvaluationEngine {
             try {
                 return rule(components);
             } catch (error) {
-                console.error(`Error during functional reduction: ${error.message}`);
                 return SYSTEM_ATOMS.Null;
             }
         }
@@ -302,7 +301,6 @@ export class EvaluationEngine {
             try {
                 return rule(components);
             } catch (error) {
-                console.error(`Error during structural reduction: ${error.message}`);
                 // For structural operations, return the original form on error with proper canonical name
                 const safeOperator = operator || 'UNKNOWN';
                 const componentNames = components.map(comp => comp.name || comp.toString());
