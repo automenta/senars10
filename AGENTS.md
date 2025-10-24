@@ -17,4 +17,4 @@
 
 - Unit testing: avoid Mocks; test objects directly.
 
-- Do not modify `v8/` and `v9/` - these previous versions are for reference, ideas, and inspiration.
+- Do not modify `v8/`, `v9/`, `narchy/` - these previous versions are for reference, ideas, and inspiration.
