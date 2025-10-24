@@ -280,39 +280,63 @@ export class EvaluationEngine {
     }
 
     _applyFunctionalRule(operator, components) {
+        // Validate inputs to prevent undefined operators in normal processing
+        if (!operator) {
+            // This should not happen during normal operation - indicates a data flow issue
+            const safeOperator = 'UNKNOWN';
+            const componentNames = components ? components.map(comp => comp.name || comp.toString()) : [];
+            const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
+            return new Term('compound', termName, components || [], safeOperator);
+        }
+        
         const rule = this.functionalRules[operator];
         if (rule) {
             try {
                 return rule(components);
             } catch (error) {
+                // Report genuine errors that indicate bugs in rule implementations
+                console.error(`Error during functional reduction for operator ${operator}:`, error.message);
+                console.error('Stack:', error.stack);
                 return SYSTEM_ATOMS.Null;
             }
         }
         // If no functional rule, return original components as a compound term with proper canonical name
-        const safeOperator = operator || 'UNKNOWN';
+        // This is NORMAL operation, not an error
         const componentNames = components.map(comp => comp.name || comp.toString());
-        const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
-        return new Term('compound', termName, components, safeOperator);
+        const termName = `(${operator}, ${componentNames.join(', ')})`;
+        return new Term('compound', termName, components, operator);
     }
 
     _applyStructuralRule(operator, components) {
+        // Validate inputs to prevent undefined operators in normal processing
+        if (!operator) {
+            // This should not happen during normal operation - indicates a data flow issue
+            // For now, return a safe default rather than throwing, but this suggests a deeper issue
+            const safeOperator = 'UNKNOWN';
+            const componentNames = components ? components.map(comp => comp.name || comp.toString()) : [];
+            const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
+            return new Term('compound', termName, components || [], safeOperator);
+        }
+        
         const rule = this.structuralRules[operator];
         if (rule) {
             try {
                 return rule(components);
             } catch (error) {
+                // Report genuine errors that indicate bugs in rule implementations
+                console.error(`Error during structural reduction for operator ${operator}:`, error.message);
+                console.error('Stack:', error.stack);
                 // For structural operations, return the original form on error with proper canonical name
-                const safeOperator = operator || 'UNKNOWN';
                 const componentNames = components.map(comp => comp.name || comp.toString());
-                const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
-                return new Term('compound', termName, components, safeOperator);
+                const termName = `(${operator}, ${componentNames.join(', ')})`;
+                return new Term('compound', termName, components, operator);
             }
         }
         // If no structural rule, return original components as a compound term with proper canonical name
-        const safeOperator = operator || 'UNKNOWN';
+        // This is NORMAL operation, not an error
         const componentNames = components.map(comp => comp.name || comp.toString());
-        const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
-        return new Term('compound', termName, components, safeOperator);
+        const termName = `(${operator}, ${componentNames.join(', ')})`;
+        return new Term('compound', termName, components, operator);
     }
 
     // Functional evaluation rules
@@ -457,7 +481,7 @@ export class EvaluationEngine {
         if (isNull(antecedent) || isNull(consequent)) return SYSTEM_ATOMS.Null;  // Null in either position gives Null
         
         // For NAL concepts, return the implication structure with proper canonical name
-        const termName = `(${operator}, ${antecedent.name}, ${consequent.name})`;
+        const termName = `(==>, ${antecedent.name}, ${consequent.name})`;
         return new Term('compound', termName, [antecedent, consequent], '==>');
     }
 

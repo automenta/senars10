@@ -178,7 +178,8 @@ export class NALRule extends Rule {
                     components: substitutedComponents
                 });
             } catch (error) {
-                console.error('Error creating compound term:', error.message);
+                // If term creation fails, return null - this indicates a problem with the substitution
+                // but we don't log here as it could be part of normal operation
                 return null;
             }
         }

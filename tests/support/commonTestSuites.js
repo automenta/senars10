@@ -157,7 +157,6 @@ export const performanceSuite = (narProvider) => {
 
             const beliefs = narProvider().getBeliefs();
             expect(beliefs.length).toBe(50);
-            console.log(`Performance test completed in ${duration}ms`);
         });
 
         test('should handle large compound terms', async () => {

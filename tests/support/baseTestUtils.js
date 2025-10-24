@@ -548,7 +548,6 @@ export const runPerformanceTest = async (testFn, maxDurationMs = 5000, descripti
     const duration = Date.now() - startTime;
 
     expect(duration).toBeLessThan(maxDurationMs);
-    console.log(`${description} completed in ${duration}ms`);
 
     return result;
 };
@@ -743,8 +742,6 @@ export const robustNARTests = {
         const result = await narOperation();
         const duration = Date.now() - startTime;
 
-        // Log the duration but don't fail unless it's significantly over the limit
-        console.log(`${description} completed in ${duration}ms`);
         expect(duration).toBeLessThanOrEqual(maxDurationMs);
 
         return result;

@@ -12,7 +12,6 @@ describe('NAL Reasoning Cycle Validation', () => {
     });
 
     afterEach(() => {
-        console.log(consoleInfoSpy.mock.calls);
         Logger.setSilent(true);
         consoleInfoSpy.mockRestore();
     });
@@ -27,7 +26,6 @@ describe('NAL Reasoning Cycle Validation', () => {
             .execute();
 
         const nar = testNAR.getNAR();
-        console.log(nar.memory.getAllConcepts().flatMap(c => c.getAllTasks()).map(t => t.term.toString()));
 
         expect(result).toBe(true);
     });
