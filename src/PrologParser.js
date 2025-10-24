@@ -15,20 +15,16 @@ export class PrologParser {
      * Parse Prolog syntax and convert to SeNARS tasks (beliefs/goals)
      */
     parseProlog(prologInput) {
-        const tasks = [];
-        const lines = prologInput.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('%'));
-        
-        for (const line of lines) {
-            if (this._isRule(line)) {
-                tasks.push(...this._parseRule(line));
-            } else if (this._isFact(line)) {
-                tasks.push(this._parseFact(line));
-            } else if (this._isQuery(line)) {
-                tasks.push(this._parseQuery(line));
-            }
-        }
-        
-        return tasks;
+        return prologInput
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('%'))
+            .flatMap(line => {
+                if (this._isRule(line)) return this._parseRule(line);
+                if (this._isFact(line)) return [this._parseFact(line)];
+                if (this._isQuery(line)) return [this._parseQuery(line)];
+                return [];
+            });
     }
 
     _isFact(line) {

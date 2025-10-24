@@ -60,7 +60,7 @@ export class InputTasks {
      * Get the highest priority task
      */
     getHighestPriorityTask() {
-        return this.tasks.length > 0 ? this.tasks[0] : null;
+        return this.tasks[0] || null;
     }
 
     /**
@@ -92,21 +92,14 @@ export class InputTasks {
     _validateTask(task) {
         // Basic validation to ensure the task has essential properties
         // In a real implementation, this would be more comprehensive based on Task structure
-        return task !== null && task !== undefined;
+        return task != null;
     }
 
     /**
      * Sort tasks by priority (descending) and then by timestamp (ascending) as tiebreaker
      */
     _sortTasks() {
-        this.tasks.sort((a, b) => {
-            // Primary sort: by priority (descending)
-            if (b.priority !== a.priority) {
-                return b.priority - a.priority;
-            }
-            // Secondary sort: by timestamp (ascending) to maintain order of addition for same priority
-            return a.timestamp - b.timestamp;
-        });
+        this.tasks.sort((a, b) => b.priority - a.priority || a.timestamp - b.timestamp);
     }
 
     /**
