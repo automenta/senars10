@@ -1,19 +1,19 @@
 import {BaseComponent} from '../util/BaseComponent.js';
-import {OperationEvaluationEngine} from '../reasoning/OperationEvaluationEngine.js';
+import {EvaluationEngine} from '../reasoning/EvaluationEngine.js';
 
 export class Cycle extends BaseComponent {
-    constructor({memory, focus, ruleEngine, taskManager, config, reasoningStrategy, termFactory, nar}) {
+    constructor({memory, focus, ruleEngine, taskManager, evaluator, config, reasoningStrategy, termFactory, nar}) {
         super(config, 'Cycle');
         this._memory = memory;
         this._focus = focus;
         this._ruleEngine = ruleEngine;
         this._taskManager = taskManager;
+        this._evaluator = evaluator || new EvaluationEngine(); // Use provided evaluator or create new one
         this._config = config;
         this._reasoningStrategy = reasoningStrategy;
         this._termFactory = termFactory;
         this._nar = nar;
 
-        this._operationEvaluationEngine = new OperationEvaluationEngine();
         this._cycleCount = 0;
         this._isRunning = false;
         this._stats = {
@@ -25,8 +25,8 @@ export class Cycle extends BaseComponent {
         };
     }
 
-    get operationEvaluationEngine() {
-        return this._operationEvaluationEngine;
+    get evaluator() {
+        return this._evaluator;
     }
 
     get cycleCount() {
@@ -68,12 +68,15 @@ export class Cycle extends BaseComponent {
                 allTasks
             );
 
-            this._updateMemoryWithInferences(newInferences, cycleStartTime);
+            // Process all inferences through the evaluator to ensure they are simplified and evaluated
+            const processedInferences = await this._processInferencesWithEvaluator(newInferences);
+
+            this._updateMemoryWithInferences(processedInferences, cycleStartTime);
             this._updateCycleStats(cycleStartTime);
 
             return {
                 cycleNumber: this._cycleCount,
-                newInferences: newInferences.length,
+                newInferences: processedInferences.length,
                 cycleTime: Date.now() - cycleStartTime,
                 memoryStats: this._memory.getDetailedStats()
             };
@@ -84,6 +87,39 @@ export class Cycle extends BaseComponent {
         } finally {
             this._isRunning = false;
         }
+    }
+
+    /**
+     * Process inferences through the evaluator to ensure proper simplification and evaluation
+     */
+    async _processInferencesWithEvaluator(inferences) {
+        const processed = [];
+        
+        for (const inference of inferences) {
+            try {
+                // Process the term through the evaluator
+                const evaluationResult = await this._evaluator.evaluate(
+                    inference.term, 
+                    this._nar, 
+                    new Map()
+                );
+                
+                if (evaluationResult.success && evaluationResult.result) {
+                    // Create a new task with the evaluated term
+                    const newTask = inference.clone({ term: evaluationResult.result });
+                    processed.push(newTask);
+                } else {
+                    // If evaluation didn't produce a better result, keep the original
+                    processed.push(inference);
+                }
+            } catch (error) {
+                // If evaluation fails, keep the original inference
+                this.logger.warn(`Evaluation failed for inference, keeping original:`, error.message);
+                processed.push(inference);
+            }
+        }
+        
+        return processed;
     }
 
     async _enhanceTasksWithAssociativeLinks(tasks, termLayer) {

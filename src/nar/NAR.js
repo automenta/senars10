@@ -18,6 +18,7 @@ import {Task} from '../task/Task.js';
 import {Truth} from '../Truth.js';
 import {ToolIntegration} from '../tools/ToolIntegration.js';
 import {ExplanationService} from '../tools/ExplanationService.js';
+import {EvaluationEngine} from '../reasoning/EvaluationEngine.js';
 import {MetricsMonitor} from '../reasoning/MetricsMonitor.js';
 import {TermLayer} from '../memory/TermLayer.js';
 import {ReasoningAboutReasoning} from '../reasoning/ReasoningAboutReasoning.js';
@@ -38,6 +39,9 @@ export class NAR extends BaseComponent {
         this._focus = new Focus(this._config.focus);
         this._taskManager = new TaskManager(this._memory, this._focus, this._config.taskManager);
 
+        // Initialize the unified Evaluator as a core component
+        this._evaluator = new EvaluationEngine(null, this._termFactory);
+
         // Initialize LM if enabled
         this._lm = desiredLmEnabled ? new LM() : null;
         this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm, this._termFactory);
@@ -52,6 +56,7 @@ export class NAR extends BaseComponent {
             focus: this._focus,
             ruleEngine: this._ruleEngine,
             taskManager: this._taskManager,
+            evaluator: this._evaluator,
             config: this._config.get('cycle'),
             reasoningStrategy: reasoningStrategy,
             termFactory: this._termFactory,
@@ -465,9 +470,9 @@ export class NAR extends BaseComponent {
             termFactory: this._termFactory
         };
 
-        // Use the Cycle's operation evaluation engine if available
-        if (this._cycle && this._cycle.operationEvaluationEngine) {
-            return await this._cycle.operationEvaluationEngine.solveEquation(
+        // Use the Cycle's evaluation engine if available
+        if (this._cycle && this._cycle.evaluationEngine) {
+            return await this._cycle.evaluationEngine.solveEquation(
                 leftTerm,
                 rightTerm,
                 variableName,

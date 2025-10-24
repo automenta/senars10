@@ -5,11 +5,34 @@ import {isNull, isTrue, isFalse, SYSTEM_ATOMS} from './SystemAtoms.js';
 import {VectorOperations} from './VectorOperations.js';
 import {EqualitySolver} from './EqualitySolver.js';
 
-export class OperationEvaluationEngine {
+/**
+ * Unified EvaluationEngine for SeNARS v10 - Phase 5
+ * Consolidates OperationEvaluationEngine, UnifiedOperatorEvaluator, and BooleanReductionEngine
+ */
+export class EvaluationEngine {
     constructor(functorRegistry = null, termFactory = null) {
         this.functorRegistry = functorRegistry || new FunctorRegistry();
         this.termFactory = termFactory || new TermFactory();
         this.equalitySolver = new EqualitySolver(this.termFactory);
+        
+        // Rules for functional evaluation (when all arguments are boolean values)
+        this.functionalRules = {
+            '&': this._reduceAndFunctional.bind(this),
+            '|': this._reduceOrFunctional.bind(this),
+            '--': this._reduceNegationFunctional.bind(this),
+            '==>': this._reduceImplicationFunctional.bind(this),
+            '<=>': this._reduceEquivalenceFunctional.bind(this)
+        };
+        
+        // Rules for structural reduction (traditional NAL logic)
+        this.structuralRules = {
+            '&': this._reduceAndStructural.bind(this),
+            '|': this._reduceOrStructural.bind(this),
+            '--': this._reduceNegationStructural.bind(this),
+            '==>': this._reduceImplicationStructural.bind(this),
+            '<=>': this._reduceEquivalenceStructural.bind(this)
+        };
+        
         this._initializeDefaultFunctors();
     }
 
@@ -29,64 +52,73 @@ export class OperationEvaluationEngine {
         this.addFunctor('cmp', VectorOperations.compare, {arity: 2});
     }
 
-    _vectorAwareAdd(a, b) {
-        // Check if either argument is a vector (array)
-        // For non-numbers, return appropriate comparison or null
-        return null;
-    }
-
-    async evaluate(operationTerm, context, variableBindings = new Map()) {
-        if (!operationTerm.isCompound) {
-            return this._evaluateNonOperation(operationTerm, context, variableBindings);
+    /**
+     * Unified evaluation method that combines all evaluation capabilities
+     */
+    async evaluate(term, context, variableBindings = new Map()) {
+        if (!term.isCompound) {
+            return this._evaluateNonOperation(term, context, variableBindings);
         }
 
         // Handle unified operators that can be both structural and functional based on argument types
-        if (['&', '|', '==>', '<=>'].includes(operationTerm.operator)) {
-            return this._evaluateUnifiedOperator(operationTerm, context, variableBindings);
+        if (['&', '|', '==>', '<=>'].includes(term.operator)) {
+            return this._evaluateUnifiedOperator(term, context, variableBindings);
         }
 
         // Handle operation operator (^) normally
-        if (operationTerm.operator === '^') {
-            if (operationTerm.components.length !== 2) {
+        if (term.operator === '^') {
+            if (term.components.length !== 2) {
                 return this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format');
             }
-            return this._evaluateOperation(operationTerm, variableBindings);
+            return await this._evaluateOperation(term, variableBindings);
         }
 
         // Handle equality operator (=)
-        if (operationTerm.operator === '=') {
-            return this._evaluateEquality(operationTerm, context, variableBindings);
+        if (term.operator === '=') {
+            return await this._evaluateEquality(term, context, variableBindings);
         }
 
-        return this._evaluateNonOperation(operationTerm, context, variableBindings);
+        // Handle boolean reduction for logical operators
+        if (['&', '|', '--', '==>', '<=>'].includes(term.operator)) {
+            return this.reduce(term);
+        }
+
+        return this._evaluateNonOperation(term, context, variableBindings);
     }
 
-    // Evaluate unified operators that can serve both structural and functional purposes
-    async _evaluateUnifiedOperator(operationTerm, context, variableBindings) {
+    /**
+     * Evaluate unified operators that can serve both structural and functional purposes
+     * This method combines logic from both OperationEvaluationEngine and UnifiedOperatorEvaluator
+     */
+    async _evaluateUnifiedOperator(term, context, variableBindings) {
         // Check if all arguments are Boolean atoms (True, False, Null) for functional evaluation
-        const isFunctionalEvaluation = this._areAllBooleanValues(operationTerm.components, variableBindings);
+        const isFunctionalEvaluation = this._areAllBooleanValues(term.components, variableBindings);
         
         if (isFunctionalEvaluation) {
             // Perform functional evaluation
-            switch (operationTerm.operator) {
+            switch (term.operator) {
                 case '&':
-                    return this._evaluateAndFunction(operationTerm, variableBindings);
+                    return this._evaluateAndFunction(term, variableBindings);
                 case '|':
-                    return this._evaluateOrFunction(operationTerm, variableBindings);
+                    return this._evaluateOrFunction(term, variableBindings);
                 case '==>':
-                    return this._evaluateImplicationFunction(operationTerm, variableBindings);
+                    return this._evaluateImplicationFunction(term, variableBindings);
                 case '<=>':
-                    return this._evaluateEquivalenceFunction(operationTerm, variableBindings);
+                    return this._evaluateEquivalenceFunction(term, variableBindings);
                 default:
-                    return this._evaluateNonOperation(operationTerm, context, variableBindings);
+                    return this._evaluateNonOperation(term, context, variableBindings);
             }
         } else {
             // Create structural compound (the traditional NAL behavior)
-            return this._evaluateNonOperation(operationTerm, context, variableBindings);
+            // Also perform structural reduction
+            return this._createResult(this.reduce(term), true, 'Structural compound with boolean reduction');
         }
     }
 
-    // Check if all components are Boolean atoms (True, False, Null) 
+    /**
+     * Check if all components are Boolean atoms (True, False, Null) 
+     * This method combines logic from both OperationEvaluationEngine and UnifiedOperatorEvaluator
+     */
     _areAllBooleanValues(components, variableBindings) {
         for (const comp of components) {
             const boundComp = this._substituteVariables(comp, variableBindings);
@@ -99,8 +131,8 @@ export class OperationEvaluationEngine {
         return true;
     }
 
-    _evaluateAndFunction(operationTerm, variableBindings) {
-        const components = operationTerm.components.map(comp => this._substituteVariables(comp, variableBindings));
+    _evaluateAndFunction(term, variableBindings) {
+        const components = term.components.map(comp => this._substituteVariables(comp, variableBindings));
         const values = components.map(comp => this._termToValue(comp));
 
         // Boolean AND evaluation: if any component is False, return False; if all are True, return True; otherwise return original term
@@ -116,8 +148,8 @@ export class OperationEvaluationEngine {
         return this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean AND evaluation: cannot determine');
     }
 
-    _evaluateOrFunction(operationTerm, variableBindings) {
-        const components = operationTerm.components.map(comp => this._substituteVariables(comp, variableBindings));
+    _evaluateOrFunction(term, variableBindings) {
+        const components = term.components.map(comp => this._substituteVariables(comp, variableBindings));
         const values = components.map(comp => this._termToValue(comp));
 
         // Boolean OR evaluation: if any component is True, return True; if all are False, return False
@@ -133,12 +165,12 @@ export class OperationEvaluationEngine {
         return this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean OR evaluation: cannot determine');
     }
 
-    _evaluateImplicationFunction(operationTerm, variableBindings) {
-        if (operationTerm.components.length !== 2) {
+    _evaluateImplicationFunction(term, variableBindings) {
+        if (term.components.length !== 2) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Implication requires exactly 2 arguments');
         }
 
-        const [antecedent, consequent] = operationTerm.components.map(comp => this._substituteVariables(comp, variableBindings));
+        const [antecedent, consequent] = term.components.map(comp => this._substituteVariables(comp, variableBindings));
         const antVal = this._termToValue(antecedent);
         const consVal = this._termToValue(consequent);
 
@@ -155,12 +187,12 @@ export class OperationEvaluationEngine {
         return this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean implication: cannot determine with non-boolean values');
     }
 
-    _evaluateEquivalenceFunction(operationTerm, variableBindings) {
-        if (operationTerm.components.length !== 2) {
+    _evaluateEquivalenceFunction(term, variableBindings) {
+        if (term.components.length !== 2) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Equivalence requires exactly 2 arguments');
         }
 
-        const [left, right] = operationTerm.components.map(comp => this._substituteVariables(comp, variableBindings));
+        const [left, right] = term.components.map(comp => this._substituteVariables(comp, variableBindings));
         const leftVal = this._termToValue(left);
         const rightVal = this._termToValue(right);
 
@@ -172,13 +204,15 @@ export class OperationEvaluationEngine {
         return this._createResult(SYSTEM_ATOMS.False, true, 'Boolean equivalence: values are different');
     }
 
-    // Enhanced equality evaluation that supports bidirectional evaluation
-    async _evaluateEquality(operationTerm, context, variableBindings) {
-        if (operationTerm.components.length !== 2) {
+    /**
+     * Enhanced equality evaluation that supports bidirectional evaluation
+     */
+    async _evaluateEquality(term, context, variableBindings) {
+        if (term.components.length !== 2) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Equality requires exactly 2 arguments');
         }
 
-        const [left, right] = operationTerm.components;
+        const [left, right] = term.components;
         
         // Check for variable bindings in both directions
         const leftBound = this._substituteVariables(left, variableBindings);
@@ -208,8 +242,257 @@ export class OperationEvaluationEngine {
         return this._createResult(SYSTEM_ATOMS.False, false, 'Equality: structures do not match');
     }
 
-    async _evaluateOperation(operationTerm, variableBindings) {
-        const [functionTerm, argsTerm] = operationTerm.components;
+    /**
+     * Main reduction method that handles both boolean evaluation and structural composition
+     */
+    reduce(term) {
+        if (!term || !term.isCompound) return term;
+
+        // Identify if this is a functional evaluation (all arguments are boolean values)
+        if (this._isFunctionalEvaluation(term)) {
+            return this._applyFunctionalRule(term.operator, term.components);
+        } else {
+            // Perform structural composition reduction (traditional NAL logic)
+            return this._applyStructuralRule(term.operator, term.components);
+        }
+    }
+
+    /**
+     * Determines if this term should undergo functional evaluation (boolean logic)
+     */
+    _isFunctionalEvaluation(term) {
+        if (!term.isCompound) return false;
+        // For operators &, |, ==>, <=>, check if ALL components are boolean values
+        if (['&', '|', '==>', '<=>'].includes(term.operator)) {
+            return term.components && term.components.every(comp => this._isBooleanValue(comp));
+        }
+        // For negation, check if operand is boolean
+        if (term.operator === '--') {
+            return term.components && term.components.length > 0 && this._isBooleanValue(term.components[0]);
+        }
+        return false;
+    }
+
+    // Helper method to determine if term is a boolean value using constant properties
+    _isBooleanValue(term) {
+        // Check if the term is a system atom (True, False, Null) or has boolean semantic type
+        return isTrue(term) || isFalse(term) || isNull(term) || term.isBoolean;
+    }
+
+    _applyFunctionalRule(operator, components) {
+        const rule = this.functionalRules[operator];
+        if (rule) {
+            try {
+                return rule(components);
+            } catch (error) {
+                console.error(`Error during functional reduction: ${error.message}`);
+                return SYSTEM_ATOMS.Null;
+            }
+        }
+        // If no functional rule, return original components as a compound term
+        return new Term('compound', operator.toUpperCase(), components, operator);
+    }
+
+    _applyStructuralRule(operator, components) {
+        const rule = this.structuralRules[operator];
+        if (rule) {
+            try {
+                return rule(components);
+            } catch (error) {
+                console.error(`Error during structural reduction: ${error.message}`);
+                // For structural operations, return the original form on error
+                return new Term('compound', operator.toUpperCase(), components, operator);
+            }
+        }
+        // If no structural rule, return original components as a compound term
+        return new Term('compound', operator.toUpperCase(), components, operator);
+    }
+
+    // Functional evaluation rules
+    _reduceAndFunctional(components) {
+        if (!components || components.length === 0) return SYSTEM_ATOMS.True;
+
+        // Short-circuiting: if any component is False, result is False
+        if (components.some(comp => isFalse(comp))) return SYSTEM_ATOMS.False;
+        // If any component is Null, result is Null (poison)
+        if (components.some(comp => isNull(comp))) return SYSTEM_ATOMS.Null;
+        // If all components are True, result is True
+        if (components.every(comp => isTrue(comp))) return SYSTEM_ATOMS.True;
+
+        // This shouldn't happen if we're in functional mode with booleans, but just in case
+        return new Term('compound', 'AND', components, '&');
+    }
+
+    _reduceOrFunctional(components) {
+        if (!components || components.length === 0) return SYSTEM_ATOMS.False;
+
+        // Short-circuiting: if any component is True, result is True
+        if (components.some(comp => isTrue(comp))) return SYSTEM_ATOMS.True;
+        // If any component is Null, result is Null (poison)
+        if (components.some(comp => isNull(comp))) return SYSTEM_ATOMS.Null;
+        // If all components are False, result is False
+        if (components.every(comp => isFalse(comp))) return SYSTEM_ATOMS.False;
+
+        // This shouldn't happen if we're in functional mode with booleans, but just in case
+        return new Term('compound', 'OR', components, '|');
+    }
+
+    _reduceNegationFunctional(components) {
+        if (!components || components.length === 0) return SYSTEM_ATOMS.Null;
+
+        const operand = components[0];
+        if (isTrue(operand)) return SYSTEM_ATOMS.False;
+        if (isFalse(operand)) return SYSTEM_ATOMS.True;
+        if (isNull(operand)) return SYSTEM_ATOMS.Null;
+        
+        // Shouldn't reach here if we're in functional mode
+        return SYSTEM_ATOMS.Null;
+    }
+
+    _reduceImplicationFunctional(components) {
+        if (!components || components.length !== 2) return SYSTEM_ATOMS.Null;
+
+        const [antecedent, consequent] = components;
+        // Boolean implication: ~A v B (not A OR B)
+        if (isFalse(antecedent) || isTrue(consequent)) return SYSTEM_ATOMS.True;
+        if (isTrue(antecedent) && isFalse(consequent)) return SYSTEM_ATOMS.False;
+        if (isNull(antecedent) || isNull(consequent)) return SYSTEM_ATOMS.Null;
+        
+        return SYSTEM_ATOMS.Null; // Unknown case
+    }
+
+    _reduceEquivalenceFunctional(components) {
+        if (!components || components.length !== 2) return SYSTEM_ATOMS.Null;
+
+        const [left, right] = components;
+        if ((isTrue(left) && isTrue(right)) || (isFalse(left) && isFalse(right))) return SYSTEM_ATOMS.True;
+        if ((isTrue(left) && isFalse(right)) || (isFalse(left) && isTrue(right))) return SYSTEM_ATOMS.False;
+        if (isNull(left) || isNull(right)) return SYSTEM_ATOMS.Null;
+        
+        return SYSTEM_ATOMS.Null; // Unknown case
+    }
+
+    // Structural reduction rules (NAL logic)
+    _reduceAndStructural(components) {
+        if (!components || components.length === 0) return SYSTEM_ATOMS.True;
+
+        // In structural context, handle boolean values within NAL concepts
+        // Remove True components (they don't affect conjunction)
+        const nonTrueComponents = components.filter(comp => !isTrue(comp));
+        
+        // If any component is False, the whole conjunction is False
+        if (components.some(comp => isFalse(comp))) return SYSTEM_ATOMS.False;
+        
+        // If any component is Null, result is Null
+        if (components.some(comp => isNull(comp))) return SYSTEM_ATOMS.Null;
+        
+        // Return simplified or original form
+        if (nonTrueComponents.length === 0) return SYSTEM_ATOMS.True;  // All were True
+        if (nonTrueComponents.length === 1) return nonTrueComponents[0];  // Single component
+        return new Term('compound', 'AND', nonTrueComponents, '&');
+    }
+
+    _reduceOrStructural(components) {
+        if (!components || components.length === 0) return SYSTEM_ATOMS.False;
+
+        // In structural context, handle boolean values within NAL concepts
+        // Remove False components (they don't affect disjunction)
+        const nonFalseComponents = components.filter(comp => !isFalse(comp));
+        
+        // If any component is True, the whole disjunction is True
+        if (components.some(comp => isTrue(comp))) return SYSTEM_ATOMS.True;
+        
+        // If any component is Null, result is Null
+        if (components.some(comp => isNull(comp))) return SYSTEM_ATOMS.Null;
+        
+        // Return simplified or original form
+        if (nonFalseComponents.length === 0) return SYSTEM_ATOMS.False;  // All were False
+        if (nonFalseComponents.length === 1) return nonFalseComponents[0];  // Single component
+        return new Term('compound', 'OR', nonFalseComponents, '|');
+    }
+
+    _reduceNegationStructural(components) {
+        if (!components || components.length === 0) return SYSTEM_ATOMS.Null;
+
+        const operand = components[0];
+        
+        // Handle boolean values in negation
+        if (isTrue(operand)) return SYSTEM_ATOMS.False;
+        if (isFalse(operand)) return SYSTEM_ATOMS.True;
+        if (isNull(operand)) return SYSTEM_ATOMS.Null;
+        
+        // Check for double negation elimination in structural context
+        if (operand.isCompound && operand.operator === '--' && operand.components && operand.components.length > 0) {
+            // Double negation: --(--(X)) reduces to X
+            return operand.components[0];
+        }
+        
+        // For non-boolean terms, return the negation structure
+        return new Term('compound', 'NEGATION', [operand], '--');
+    }
+
+    _reduceImplicationStructural(components) {
+        if (!components || components.length !== 2) {
+            // If not proper implication, return a compound term
+            return components && components.length > 0 
+                ? new Term('compound', 'IMPLICATION', components, '==>') 
+                : SYSTEM_ATOMS.Null;
+        }
+
+        const [antecedent, consequent] = components;
+        
+        // Handle boolean values in implication (NAL logic)
+        if (isFalse(antecedent) || isTrue(consequent)) return SYSTEM_ATOMS.True;  // False -> X is True, X -> True is True
+        if (isTrue(antecedent) && isFalse(consequent)) return SYSTEM_ATOMS.False;  // True -> False is False
+        if (isNull(antecedent) || isNull(consequent)) return SYSTEM_ATOMS.Null;  // Null in either position gives Null
+        
+        // For NAL concepts, return the implication structure
+        return new Term('compound', 'IMPLICATION', [antecedent, consequent], '==>');
+    }
+
+    _reduceEquivalenceStructural(components) {
+        if (!components || components.length !== 2) {
+            // If not proper equivalence, return first component or compound term
+            return components && components.length > 0 
+                ? (components.length === 1 ? components[0] : new Term('compound', 'EQUIVALENCE', components, '<=>')) 
+                : SYSTEM_ATOMS.Null;
+        }
+
+        const [left, right] = components;
+        
+        // Handle boolean values in equivalence (NAL logic)
+        if ((isTrue(left) && isTrue(right)) || (isFalse(left) && isFalse(right))) return SYSTEM_ATOMS.True;
+        if ((isTrue(left) && isFalse(right)) || (isFalse(left) && isTrue(right))) return SYSTEM_ATOMS.False;
+        if (isNull(left) || isNull(right)) return SYSTEM_ATOMS.Null;  // Null in either position gives Null
+        
+        // For NAL concepts, return the equivalence structure
+        return new Term('compound', 'EQUIVALENCE', [left, right], '<=>');
+    }
+
+    /**
+     * Cascading reduction that processes entire term trees
+     */
+    cascadeReduce(term) {
+        if (!term) return SYSTEM_ATOMS.Null;
+
+        // First, recursively reduce all components
+        if (term.isCompound && term.components) {
+            const reducedComponents = term.components.map(comp => this.cascadeReduce(comp));
+            // Create a new term with the reduced components
+            const processedTerm = reducedComponents.some((comp, idx) => comp !== term.components[idx])
+                ? new Term(term.type, term.name, reducedComponents, term.operator)
+                : term;
+            
+            // Then apply the reduction to the processed term
+            return this.reduce(processedTerm);
+        }
+        
+        // For atomic terms, just return after possible processing
+        return this.reduce(term);
+    }
+
+    async _evaluateOperation(term, variableBindings) {
+        const [functionTerm, argsTerm] = term.components;
 
         const functionName = this._resolveFunctionName(functionTerm, variableBindings);
         if (!functionName) {

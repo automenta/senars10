@@ -1,4 +1,4 @@
-export { OperationEvaluationEngine } from './OperationEvaluationEngine.js';
+export { EvaluationEngine } from './EvaluationEngine.js';
 export { BooleanReductionEngine } from './BooleanReductionEngine.js';
 export { VectorOperations } from './VectorOperations.js';
 export { EqualitySolver } from './EqualitySolver.js';

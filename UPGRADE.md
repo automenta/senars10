@@ -1,4 +1,4 @@
-# SeNARS v11: The Agentic Cognitive Architecture Roadmap
+# SeNARS: The Agentic Cognitive Architecture Roadmap
 
 ## 1. Introduction: Architectural Elegance & Functional Enhancement
 
@@ -39,15 +39,15 @@ We are not just adding features; we are sculpting an architecture capable of gen
 ---
 
 ### Phase 5: The Unified Evaluation Core & Agentic Loop
-*Goal: Refactor the reasoning core into a single, hardened engine and establish the foundational "sense-reason-act" loop of an agentic system. This phase prioritizes architectural purity and the creation of a dynamic, user-controllable input task management system.*
+*Goal: Refactor the reasoning core into a single, hardened evaluator and establish the foundational "sense-reason-act" loop of an agentic system. This phase prioritizes architectural purity and the creation of a dynamic, user-controllable input task management system. The evaluator becomes a core component of the NAR, and Prolog functionality is implemented as a parsing utility that translates Prolog syntax to SeNARS beliefs/goals rather than a separate component.*
 
 **Architectural Vision:**
-The `Agent` is the top-level entity that orchestrates the system's lifecycle. It is the "executive function" that manages high-level goals and interacts with the external world. The `Agent` contains and delegates to a `NAR` instance, which serves as the "cognitive core." This clean separation of concerns allows the `NAR` to focus solely on reasoning, while the `Agent` handles the complexities of continuous, open-ended operation.
+The `Agent` is the top-level entity that orchestrates the system's lifecycle. It is the "executive function" that manages high-level goals and interacts with the external world. The `Agent` contains and delegates to a `NAR` instance, which serves as the "cognitive core." The NAR includes the unified `Evaluator` as a core component that handles all computational and logical evaluation, reduction, and unification operations. This clean separation of concerns allows the `NAR` to focus solely on reasoning with built-in evaluation capabilities, while the `Agent` handles the complexities of continuous, open-ended operation.
 
 **Key Initiatives:**
 
-*   **5.1: Forge the Unified `EvaluationEngine`:**
-    *   **Action:** Consolidate all logic from `OperationEvaluationEngine`, `UnifiedOperatorEvaluator`, and `BooleanReductionEngine` into a single, renamed `EvaluationEngine.js`. This engine will be the heart of the system, responsible for all term simplification, evaluation, and back-solving.
+*   **5.1: Forge the Unified `Evaluator`:**
+    *   **Action:** Consolidate all logic from `OperationEvaluationEngine`, `UnifiedOperatorEvaluator`, and `BooleanReductionEngine` into a single, core `Evaluator` component within the NAR. This evaluator will be the heart of the system, responsible for all term simplification, evaluation, and back-solving.
     *   **Implementation Details:**
         * Merge arithmetic operation evaluation logic from OperationEvaluationEngine
         * Integrate unified operator handling (for & | ==> <=>) that can switch between structural and functional behavior based on argument types
@@ -55,12 +55,12 @@ The `Agent` is the top-level entity that orchestrates the system's lifecycle. It
         * Maintain equation solving and variable binding capabilities
         * Consolidate functor execution capabilities from all three engines
         * Add comprehensive unit tests covering all consolidated functionality
-    *   **Outcome:** A dramatic reduction in technical debt and a single, authoritative source for all computational and logical truth.
+    *   **Outcome:** A dramatic reduction in technical debt and a single, authoritative source for all computational and logical truth as a core NAR component.
 
 *   **5.2: Implement the `Agent` and the `InputTasks` Buffer:**
     *   **Action:** Create a new top-level `Agent.js` class that orchestrates the system's lifecycle. The `Agent` will manage an `InputTasks` collection—a prioritizable list of input Tasks (beliefs, goals, questions) that represent the system's current agenda for processing.
     *   **Implementation Details:**
-        * Design the `Agent` class to wrap and delegate to a `NAR` instance
+        * Design the `Agent` class to wrap and delegate to a `NAR` instance, which contains the unified `Evaluator`
         * Implement `InputTasks` as a priority-ordered queue with methods to add, remove, and reprioritize tasks
         * Create API methods for external systems to manipulate the input task list (addTask, removeTask, updatePriority)
         * Support both synchronous and asynchronous task addition
@@ -69,33 +69,34 @@ The `Agent` is the top-level entity that orchestrates the system's lifecycle. It
         * Defer WebSocket UI components to Phase 8 (The Transparent Mind)
     *   **Outcome:** The system is no longer a fire-and-forget reasoner. It is a continuously operating agent with an accessible, programmatically manipulable input queue that anchors its cognitive and behavioral scaffolding.
 
-*   **5.3: Integrate the `EvaluationEngine` into the Agentic Loop:**
-    *   **Action:** The `Agent`'s core loop will be to select high-priority tasks from the `InputTasks` buffer and pass them to the `NAR`'s reasoning cycle. All derived sub-tasks and beliefs generated by the `NAR` will be passed through the unified `EvaluationEngine` before being added to memory.
+*   **5.3: Integrate the `Evaluator` into the NAR Cycle:**
+    *   **Action:** The `NAR`'s core reasoning cycle will process all derived sub-tasks and beliefs through the unified `Evaluator` to ensure they are maximally simplified and evaluated before being stored in memory.
     *   **Implementation Details:**
-        * Modify the Agent's main processing loop to retrieve tasks from InputTasks based on priority
-        * Ensure the unified EvaluationEngine is accessible within the NAR's cycle for processing all derived tasks
+        * Modify the NAR Cycle to pass all inferences through the evaluator during execution
+        * Ensure the unified Evaluator is accessible within the NAR's cycle for processing all derived tasks
         * Implement proper error handling when evaluation fails
         * Track evaluation metrics and performance for optimization
         * Ensure evaluated results are properly stored in memory with appropriate metadata
         * Add hooks for future UI integration to observe the processing flow
-    *   **Outcome:** A clean separation of concerns: the `Agent` manages high-level input agenda, the `NAR` performs inference, and the `EvaluationEngine` ensures all knowledge is maximally simplified and evaluated.
+    *   **Outcome:** A clean integration: the `NAR` performs inference with built-in evaluation capabilities from the core `Evaluator` component.
 
-*   **5.4: Achieve Prolog Parity (Declarative Logic):**
-    *   **Action:** Enhance the `EvaluationEngine`'s back-solving and unification capabilities to the point where any standard Prolog program can be translated into an equivalent set of SeNARS beliefs and queried.
+*   **5.4: Prolog Translation & Parity (Declarative Logic):**
+    *   **Action:** Provide a `PrologParser` utility that translates standard Prolog syntax into equivalent SeNARS beliefs and goals, enabling any standard Prolog program to be executed as a set of SeNARS beliefs through the existing evaluation framework.
     *   **Implementation Details:**
-        * Extend back-solving algorithms to handle complex logical patterns involving variables
-        * Implement enhanced unification algorithms for pattern matching with variables
+        * Create a `PrologParser` class that translates Prolog facts, rules, and queries to SeNARS tasks
+        * Implement translation for predicates: `parent(tom, bob).` becomes a SeNARS belief task
+        * Handle variable binding and unification through the existing evaluator's capabilities
         * Create a test suite with classic Prolog examples (e.g., family trees, logic puzzles, pathfinding) to validate functional parity
-        * Develop translation utilities to convert Prolog facts/rules to SeNARS format
-        * Add support for logical variable bindings and constraint checking
         * Document the mapping between Prolog constructs and SeNARS equivalents
-    *   **Outcome:** The system is demonstrably powerful for declarative, logic-based problem solving.
+        * Ensure translation preserves logical semantics and reasoning patterns
+    *   **Outcome:** The system can execute Prolog programs by translating them to SeNARS, leveraging the existing evaluation and reasoning infrastructure for declarative logic processing.
 
 ### Acceptance Criteria for Phase 5:
-- [ ] The codebase contains a single, unified `EvaluationEngine.js` with all functionality from the three original engines.
-- [ ] A top-level `Agent` class manages the main processing loop and delegates to a `NAR` instance.
-- [ ] The `InputTasks` system provides programmatic access to the input task queue with methods to add, remove, and reprioritize tasks.
-- [ ] The system can successfully execute a suite of Prolog translation tests.
+- [x] The codebase contains a single, unified `Evaluator` with all functionality from the three original engines as a core NAR component.
+- [x] A top-level `Agent` class manages the main processing loop and delegates to a `NAR` instance.
+- [x] The `InputTasks` system provides programmatic access to the input task queue with methods to add, remove, and reprioritize tasks.
+- [x] A `PrologParser` utility translates Prolog syntax to SeNARS tasks without creating a separate logical component.
+- [x] The system can successfully execute a suite of Prolog translation tests.
 
 ---
 

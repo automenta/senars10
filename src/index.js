@@ -3,6 +3,10 @@
 import {ReplInterface} from './io/ReplInterface.js';
 import {MonitoringAPI} from './io/MonitoringAPI.js';
 import {NAR} from './nar/NAR.js';
+import {Agent, InputTasks} from './Agent.js';
+import {EvaluationEngine} from './reasoning/EvaluationEngine.js';
+import {PrologParser} from './PrologParser.js';
+import {PrologParity} from './PrologParity.js';
 
 const MODES = {REPL: 'repl', SERVER: 'server', DEMO: 'demo'};
 const DEFAULT_CONFIG = {lm: {enabled: false}, cycle: {delay: 50}};
