@@ -2,13 +2,13 @@
  * Phase5Components.test.js - Unit tests for Phase 5: Unified Evaluation Core & Agentic Loop
  */
 
-const { Agent, InputTasks } = require('../../src/Agent.js');
-const { EvaluationEngine } = require('../../src/reasoning/EvaluationEngine.js');
-const { PrologParser } = require('../../src/PrologParser.js');
-const { NAR } = require('../../src/nar/NAR.js');
-const { Task } = require('../../src/task/Task.js');
-const { TermFactory } = require('../../src/term/TermFactory.js');
-const { Truth } = require('../../src/Truth.js');
+import { Agent, InputTasks } from '../../src/Agent.js';
+import { EvaluationEngine } from '../../src/reasoning/EvaluationEngine.js';
+import { PrologParser } from '../../src/PrologParser.js';
+import { NAR } from '../../src/nar/NAR.js';
+import { Task } from '../../src/task/Task.js';
+import { TermFactory } from '../../src/term/TermFactory.js';
+import { Truth } from '../../src/Truth.js';
 
 describe('Phase 5: Unified Evaluation Core & Agentic Loop', () => {
     let termFactory;
