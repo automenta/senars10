@@ -1,11 +1,11 @@
-import {OperationEvaluationEngine} from '../../../src/reasoning/OperationEvaluationEngine.js';
+import { EvaluationEngine as OperationEvaluationEngine } from '../../../src/reasoning/EvaluationEngine.js';
 import {TermFactory} from '../../../src/term/TermFactory.js';
 
-describe('OperationEvaluationEngine Back-Solving', () => {
+describe('BackSolving (Unified)', () => {
     let engine, termFactory;
 
     beforeEach(() => {
-        engine = new OperationEvaluationEngine();
+        engine = new OperationEvaluationEngine(); // Using unified engine
         termFactory = new TermFactory();
     });
 

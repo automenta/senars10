@@ -1,7 +1,7 @@
-import {OperationEvaluationEngine} from '../../../src/reasoning/OperationEvaluationEngine.js';
+import { EvaluationEngine as OperationEvaluationEngine } from '../../../src/reasoning/EvaluationEngine.js';
 import {TermFactory} from '../../../src/term/TermFactory.js';
 
-describe('OperationEvaluationEngine', () => {
+describe('OperationEvaluationEngine (Unified)', () => {
     let engine, termFactory;
 
     beforeEach(() => {

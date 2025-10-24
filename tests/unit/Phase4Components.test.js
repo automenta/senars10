@@ -1,4 +1,4 @@
-import { OperationEvaluationEngine } from '../../src/reasoning/OperationEvaluationEngine.js';
+import { EvaluationEngine as OperationEvaluationEngine } from '../../src/reasoning/EvaluationEngine.js';
 import { TermFactory } from '../../src/term/TermFactory.js';
 import { FunctorRegistry } from '../../src/reasoning/Functor.js';
 import { SYSTEM_ATOMS } from '../../src/reasoning/SystemAtoms.js';
@@ -10,7 +10,7 @@ describe('Phase 4 Components - Unified Operator System with Type-Directed Evalua
     beforeEach(() => {
         const functorRegistry = new FunctorRegistry();
         termFactory = new TermFactory();
-        engine = new OperationEvaluationEngine(functorRegistry, termFactory);
+        engine = new OperationEvaluationEngine(functorRegistry, termFactory); // Unified engine supports same interface
     });
 
     describe('Basic Operation Evaluation with Arithmetic Functors', () => {

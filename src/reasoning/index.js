@@ -1,5 +1,4 @@
 export { EvaluationEngine } from './EvaluationEngine.js';
-export { BooleanReductionEngine } from './BooleanReductionEngine.js';
 export { VectorOperations } from './VectorOperations.js';
 export { EqualitySolver } from './EqualitySolver.js';
 export { Functor, ConcreteFunctor, FunctorRegistry } from './Functor.js';

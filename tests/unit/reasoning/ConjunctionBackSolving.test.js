@@ -1,12 +1,12 @@
-import {OperationEvaluationEngine} from '../../../src/reasoning/OperationEvaluationEngine.js';
+import { EvaluationEngine as OperationEvaluationEngine } from '../../../src/reasoning/EvaluationEngine.js';
 import {TermFactory} from '../../../src/term/TermFactory.js';
 import {NAR} from '../../../src/nar/NAR.js';
 
-describe('Conjunction Back-Solving Test', () => {
+describe('Conjunction Back-Solving Test (Unified)', () => {
     let engine, termFactory;
 
     beforeEach(() => {
-        engine = new OperationEvaluationEngine();
+        engine = new OperationEvaluationEngine(); // Using unified engine
         termFactory = new TermFactory();
     });
 
