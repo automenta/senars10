@@ -6,6 +6,7 @@ import {Cycle} from './Cycle.js';
 import {NarseseParser} from '../parser/NarseseParser.js';
 import {RuleEngine} from '../reasoning/RuleEngine.js';
 import {SyllogisticRule} from '../reasoning/rules/syllogism.js';
+import {ImplicationSyllogisticRule} from '../reasoning/rules/implicationSyllogism.js';
 import {ModusPonensRule} from '../reasoning/rules/modusponens.js';
 import {PRIORITY} from '../config/constants.js';
 import {BaseComponent} from '../util/BaseComponent.js';
@@ -193,6 +194,7 @@ export class NAR extends BaseComponent {
     _setupDefaultRules() {
         try {
             this._ruleEngine.register(SyllogisticRule.create(this._termFactory));
+            this._ruleEngine.register(ImplicationSyllogisticRule.create(this._termFactory));
             this._ruleEngine.register(ModusPonensRule.create(this._termFactory));
         } catch (error) {
             this.logWarn('Error setting up default rules:', error);

@@ -146,21 +146,41 @@ export class NALRule extends Rule {
      * @returns {Term|null} The new term with variables substituted, or null on failure.
      */
     _substituteVariables(term, bindings, termFactory) {
+        if (!term || !bindings || !termFactory) return null;
+        
         if (term.isAtomic) {
-            return bindings.get(term.name) || term;
+            // If this is a variable (starts with '?'), try to get its binding
+            if (term.name && term.name.startsWith && term.name.startsWith('?')) {
+                const boundTerm = bindings.get(term.name);
+                // Return the bound term if found, otherwise return the original term
+                return boundTerm || term;
+            }
+            // For non-variables, return as is
+            return term;
         }
 
         if (term.isCompound) {
-            const substitutedComponents = term.components.map(comp => this._substituteVariables(comp, bindings, termFactory));
-
-            if (substitutedComponents.some(c => !c)) {
-                return null;
+            // Recursively substitute each component
+            const substitutedComponents = [];
+            for (const comp of term.components) {
+                const substitutedComp = this._substituteVariables(comp, bindings, termFactory);
+                if (!substitutedComp) {
+                    // If any component substitution fails, return null
+                    return null;
+                }
+                substitutedComponents.push(substitutedComp);
             }
 
-            return termFactory.create({
-                operator: term.operator,
-                components: substitutedComponents
-            });
+            try {
+                // Create the new compound term with substituted components
+                return termFactory.create({
+                    operator: term.operator,
+                    components: substitutedComponents
+                });
+            } catch (error) {
+                console.error('Error creating compound term:', error.message);
+                return null;
+            }
         }
 
         return term;

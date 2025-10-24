@@ -91,26 +91,39 @@ export class Cycle extends BaseComponent {
 
     /**
      * Process inferences through the evaluator to ensure proper simplification and evaluation
+     * Only apply evaluation to operation terms (f^args) and functional expressions,
+     * not to NAL conditional/implication terms
      */
     async _processInferencesWithEvaluator(inferences) {
         const processed = [];
         
         for (const inference of inferences) {
             try {
-                // Process the term through the evaluator
-                const evaluationResult = await this._evaluator.evaluate(
-                    inference.term, 
-                    this._nar, 
-                    new Map()
-                );
-                
-                if (evaluationResult.success && evaluationResult.result) {
-                    // Create a new task with the evaluated term
-                    const newTask = inference.clone({ term: evaluationResult.result });
-                    processed.push(newTask);
+                // Only process operation terms (^), arithmetic expressions, and functional expressions
+                // through the evaluator. Don't process NAL conditional terms (==>, <==>, etc.) as these
+                // are logical relationships that should not be evaluated functionally
+                if (inference.term.operator === '^') { // Only operation terms
+                    // Process the term through the evaluator
+                    const evaluationResult = await this._evaluator.evaluate(
+                        inference.term, 
+                        this._nar, 
+                        new Map()
+                    );
+                    
+                    if (evaluationResult.success && evaluationResult.result) {
+                        // Create a new task with the evaluated term
+                        const newTask = inference.clone({ term: evaluationResult.result });
+                        processed.push(newTask);
+                    } else {
+                        // If evaluation didn't produce a better result, keep the original
+                        processed.push(inference);
+                    }
                 } else {
-                    // If evaluation didn't produce a better result, keep the original
-                    processed.push(inference);
+                    // For NAL terms like implication, equivalence, conjunction, etc., 
+                    // just apply structural reduction without functional evaluation
+                    const reducedTerm = this._evaluator.reduce(inference.term);
+                    const newTask = inference.clone({ term: reducedTerm });
+                    processed.push(newTask);
                 }
             } catch (error) {
                 // If evaluation fails, keep the original inference

@@ -289,8 +289,11 @@ export class EvaluationEngine {
                 return SYSTEM_ATOMS.Null;
             }
         }
-        // If no functional rule, return original components as a compound term
-        return new Term('compound', operator.toUpperCase(), components, operator);
+        // If no functional rule, return original components as a compound term with proper canonical name
+        const safeOperator = operator || 'UNKNOWN';
+        const componentNames = components.map(comp => comp.name || comp.toString());
+        const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
+        return new Term('compound', termName, components, safeOperator);
     }
 
     _applyStructuralRule(operator, components) {
@@ -300,12 +303,18 @@ export class EvaluationEngine {
                 return rule(components);
             } catch (error) {
                 console.error(`Error during structural reduction: ${error.message}`);
-                // For structural operations, return the original form on error
-                return new Term('compound', operator.toUpperCase(), components, operator);
+                // For structural operations, return the original form on error with proper canonical name
+                const safeOperator = operator || 'UNKNOWN';
+                const componentNames = components.map(comp => comp.name || comp.toString());
+                const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
+                return new Term('compound', termName, components, safeOperator);
             }
         }
-        // If no structural rule, return original components as a compound term
-        return new Term('compound', operator.toUpperCase(), components, operator);
+        // If no structural rule, return original components as a compound term with proper canonical name
+        const safeOperator = operator || 'UNKNOWN';
+        const componentNames = components.map(comp => comp.name || comp.toString());
+        const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
+        return new Term('compound', termName, components, safeOperator);
     }
 
     // Functional evaluation rules
@@ -433,10 +442,13 @@ export class EvaluationEngine {
 
     _reduceImplicationStructural(components) {
         if (!components || components.length !== 2) {
-            // If not proper implication, return a compound term
-            return components && components.length > 0 
-                ? new Term('compound', 'IMPLICATION', components, '==>') 
-                : SYSTEM_ATOMS.Null;
+            // If not proper implication, return a compound term with proper canonical name
+            if (components && components.length > 0) {
+                const componentNames = components.map(comp => comp.name || comp.toString());
+                const termName = `(==>, ${componentNames.join(', ')})`;
+                return new Term('compound', termName, components, '==>');
+            }
+            return SYSTEM_ATOMS.Null;
         }
 
         const [antecedent, consequent] = components;
@@ -446,8 +458,9 @@ export class EvaluationEngine {
         if (isTrue(antecedent) && isFalse(consequent)) return SYSTEM_ATOMS.False;  // True -> False is False
         if (isNull(antecedent) || isNull(consequent)) return SYSTEM_ATOMS.Null;  // Null in either position gives Null
         
-        // For NAL concepts, return the implication structure
-        return new Term('compound', 'IMPLICATION', [antecedent, consequent], '==>');
+        // For NAL concepts, return the implication structure with proper canonical name
+        const termName = `(${operator}, ${antecedent.name}, ${consequent.name})`;
+        return new Term('compound', termName, [antecedent, consequent], '==>');
     }
 
     _reduceEquivalenceStructural(components) {
