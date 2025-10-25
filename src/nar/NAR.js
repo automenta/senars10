@@ -21,6 +21,7 @@ import {ToolIntegration} from '../tools/ToolIntegration.js';
 import {ExplanationService} from '../tools/ExplanationService.js';
 import {EvaluationEngine} from '../reasoning/EvaluationEngine.js';
 import {MetricsMonitor} from '../reasoning/MetricsMonitor.js';
+import {EmbeddingLayer} from '../lm/EmbeddingLayer.js';
 import {TermLayer} from '../memory/TermLayer.js';
 import {ReasoningAboutReasoning} from '../reasoning/ReasoningAboutReasoning.js';
 
@@ -45,6 +46,8 @@ export class NAR extends BaseComponent {
 
         // Initialize LM if enabled
         this._lm = desiredLmEnabled ? new LM() : null;
+        
+        // Initialize rule engine with LM if available
         this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm, this._termFactory);
 
         // Use coordinated reasoning strategy if LM is enabled, otherwise naive strategy
@@ -83,6 +86,12 @@ export class NAR extends BaseComponent {
             nar: this,
             ...config.metricsMonitor
         });
+
+        // Initialize EmbeddingLayer for semantic reasoning if enabled
+        const embeddingLayerConfig = config.embeddingLayer || { enabled: false };
+        this._embeddingLayer = embeddingLayerConfig.enabled && embeddingLayerConfig.enabled !== false
+            ? new EmbeddingLayer(embeddingLayerConfig)
+            : null;
 
         // Initialize TermLayer for associative reasoning
         const termLayerConfig = {
@@ -140,6 +149,30 @@ export class NAR extends BaseComponent {
      */
     get metricsMonitor() {
         return this._metricsMonitor;
+    }
+
+    /**
+     * Get the EvaluationEngine instance
+     */
+    get evaluator() {
+        return this._evaluator;
+    }
+
+    /**
+     * Get the RuleEngine instance
+     */
+    get ruleEngine() {
+        return this._ruleEngine;
+    }
+
+    /**
+     * Get the TermLayer instance for associative reasoning
+     */
+    /**
+     * Get the EmbeddingLayer instance for semantic reasoning
+     */
+    get embeddingLayer() {
+        return this._embeddingLayer;
     }
 
     /**

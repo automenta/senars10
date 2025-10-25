@@ -288,4 +288,39 @@ export class Agent {
     getInputTasks() {
         return this.inputTasks;
     }
+
+    /**
+     * Get the Language Model instance if available
+     */
+    getLM() {
+        return this.nar.lm || null;
+    }
+
+    /**
+     * Get the Metrics Monitor instance if available
+     */
+    getMetricsMonitor() {
+        return this.nar.metricsMonitor || null;
+    }
+
+    /**
+     * Get the Embedding Layer instance if available
+     */
+    getEmbeddingLayer() {
+        return this.nar.embeddingLayer || null;
+    }
+
+    /**
+     * Get the Term Layer instance if available
+     */
+    getTermLayer() {
+        return this.nar.termLayer || null;
+    }
+
+    /**
+     * Get the Tool Integration instance if available
+     */
+    getTools() {
+        return this.nar.tools || null;
+    }
 }

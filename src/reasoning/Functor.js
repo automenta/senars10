@@ -55,6 +55,16 @@ export class FunctorRegistry {
         }
 
         if (this.functors.has(name)) {
+            // Check if the functors are functionally equivalent to avoid unnecessary warnings
+            const existingFunctor = this.functors.get(name);
+            if (existingFunctor && 
+                existingFunctor.execute.toString() === functor.execute.toString() &&
+                existingFunctor.arity === functor.arity &&
+                existingFunctor.isCommutative === functor.isCommutative &&
+                existingFunctor.isAssociative === functor.isAssociative) {
+                // Same functor, no need to replace or warn
+                return true;
+            }
             console.warn(`Functor ${name} is already registered, replacing it.`);
         }
 
