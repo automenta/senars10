@@ -57,29 +57,8 @@ export class PrologParser {
         const [_, predicate, argsStr] = match;
         const args = this._parseArguments(argsStr);
         
-        // Create the predicate term: predicate(args)
-        const argTerms = args.map(arg => {
-            if (arg.startsWith('_') || /^[A-Z]/.test(arg)) {
-                // Variable
-                return this.termFactory.create({ name: `?${arg.toLowerCase()}`, type: 'variable' });
-            } else {
-                // Constant
-                return this.termFactory.create({ name: arg.toLowerCase(), type: 'atomic' });
-            }
-        });
-        
-        const argsTerm = this.termFactory.create({ 
-            operator: ',', 
-            components: argTerms 
-        });
-        
-        const predicateTerm = this.termFactory.create({ name: predicate, type: 'atomic' });
-        
-        // Create the relation term: predicate(args)
-        const relationTerm = this.termFactory.create({
-            operator: '^',  // Operation operator in NARS
-            components: [predicateTerm, argsTerm]
-        });
+        // Create the relation term: predicate(args) using helper
+        const relationTerm = this._createPredicateTerm(predicate, args);
         
         // Create a belief task with high truth value
         return new Task({
@@ -173,7 +152,24 @@ export class PrologParser {
         const [_, predicate, argsStr] = match;
         const args = this._parseArguments(argsStr);
         
-        // Create the query term
+        // Create the query term using helper
+        const queryTerm = this._createPredicateTerm(predicate, args);
+        
+        // Create a question task
+        return new Task({
+            term: queryTerm,
+            punctuation: '?'  // Question
+        });
+    }
+    
+    /**
+     * Helper method to create predicate term structure from arguments
+     * @param {string} predicate - Predicate name
+     * @param {Array} args - Array of argument strings
+     * @returns {Term} Created predicate term
+     */
+    _createPredicateTerm(predicate, args) {
+        // Create the predicate term: predicate(args)
         const argTerms = args.map(arg => {
             if (arg.startsWith('_') || /^[A-Z]/.test(arg)) {
                 // Variable
@@ -191,15 +187,9 @@ export class PrologParser {
         
         const predicateTerm = this.termFactory.create({ name: predicate, type: 'atomic' });
         
-        const queryTerm = this.termFactory.create({
-            operator: '^',
+        return this.termFactory.create({
+            operator: '^',  // Operation operator in NARS
             components: [predicateTerm, argsTerm]
-        });
-        
-        // Create a question task
-        return new Task({
-            term: queryTerm,
-            punctuation: '?'  // Question
         });
     }
 

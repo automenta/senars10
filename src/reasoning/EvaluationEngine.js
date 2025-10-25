@@ -118,7 +118,7 @@ export class EvaluationEngine {
 
     _evaluateAndFunction(term, variableBindings) {
         const values = term.components.map(comp => 
-            this._termToValue(this._substituteVariables(comp, variableBindings))
+            this._valueFromSubstitutedTerm(comp, variableBindings)
         );
 
         // Boolean AND evaluation: if any component is False, return False; if all are True, return True; otherwise return null
@@ -136,7 +136,7 @@ export class EvaluationEngine {
 
     _evaluateOrFunction(term, variableBindings) {
         const values = term.components.map(comp => 
-            this._termToValue(this._substituteVariables(comp, variableBindings))
+            this._valueFromSubstitutedTerm(comp, variableBindings)
         );
 
         // Boolean OR evaluation: if any component is True, return True; if all are False, return False
@@ -157,11 +157,9 @@ export class EvaluationEngine {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Implication requires exactly 2 arguments');
         }
 
-        const [antecedent, consequent] = term.components.map(comp => 
-            this._substituteVariables(comp, variableBindings)
+        const [antVal, consVal] = term.components.map(comp => 
+            this._valueFromSubstitutedTerm(comp, variableBindings)
         );
-        const antVal = this._termToValue(antecedent);
-        const consVal = this._termToValue(consequent);
 
         // Boolean implication: not A OR B
         return this._createBooleanResult(
@@ -181,11 +179,9 @@ export class EvaluationEngine {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Equivalence requires exactly 2 arguments');
         }
 
-        const [left, right] = term.components.map(comp => 
-            this._substituteVariables(comp, variableBindings)
+        const [leftVal, rightVal] = term.components.map(comp => 
+            this._valueFromSubstitutedTerm(comp, variableBindings)
         );
-        const leftVal = this._termToValue(left);
-        const rightVal = this._termToValue(right);
 
         // Boolean equivalence: A iff B
         return this._createBooleanResult(
@@ -958,6 +954,10 @@ export class EvaluationEngine {
 
     _createBooleanResult(result, message) {
         return this._createResult(result, true, message); // Evaluation itself is successful regardless of result
+    }
+    
+    _valueFromSubstitutedTerm(term, variableBindings) {
+        return this._termToValue(this._substituteVariables(term, variableBindings));
     }
 
     addFunctor(name, execute, config = {}) {
