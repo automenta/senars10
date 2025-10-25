@@ -16,13 +16,7 @@ export class Cycle extends BaseComponent {
 
         this._cycleCount = 0;
         this._isRunning = false;
-        this._stats = {
-            totalCycles: 0,
-            totalTasksProcessed: 0,
-            totalRulesApplied: 0,
-            averageCycleTime: 0,
-            createdAt: Date.now()
-        };
+        this._stats = this._initStats();
     }
 
     get evaluator() {
@@ -102,29 +96,11 @@ export class Cycle extends BaseComponent {
                 // Only process operation terms (^), arithmetic expressions, and functional expressions
                 // through the evaluator. Don't process NAL conditional terms (==>, <==>, etc.) as these
                 // are logical relationships that should not be evaluated functionally
-                if (inference.term.operator === '^') { // Only operation terms
-                    // Process the term through the evaluator
-                    const evaluationResult = await this._evaluator.evaluate(
-                        inference.term, 
-                        this._nar, 
-                        new Map()
-                    );
-                    
-                    if (evaluationResult.success && evaluationResult.result) {
-                        // Create a new task with the evaluated term
-                        const newTask = inference.clone({ term: evaluationResult.result });
-                        processed.push(newTask);
-                    } else {
-                        // If evaluation didn't produce a better result, keep the original
-                        processed.push(inference);
-                    }
-                } else {
-                    // For NAL terms like implication, equivalence, conjunction, etc., 
-                    // just apply structural reduction without functional evaluation
-                    const reducedTerm = this._evaluator.reduce(inference.term);
-                    const newTask = inference.clone({ term: reducedTerm });
-                    processed.push(newTask);
-                }
+                const processedTask = inference.term.operator === '^'
+                    ? await this._processOperationTerm(inference)
+                    : this._processNALTerm(inference);
+                
+                processed.push(processedTask);
             } catch (error) {
                 // If evaluation fails, keep the original inference
                 this.logger.warn(`Evaluation failed for inference, keeping original:`, error.message);
@@ -133,6 +109,26 @@ export class Cycle extends BaseComponent {
         }
         
         return processed;
+    }
+
+    async _processOperationTerm(inference) {
+        const evaluationResult = await this._evaluator.evaluate(
+            inference.term, 
+            this._nar, 
+            new Map()
+        );
+        
+        // Create a new task with the evaluated term if evaluation was successful, otherwise keep original
+        return evaluationResult.success && evaluationResult.result
+            ? inference.clone({ term: evaluationResult.result })
+            : inference;
+    }
+
+    _processNALTerm(inference) {
+        // For NAL terms like implication, equivalence, conjunction, etc., 
+        // just apply structural reduction without functional evaluation
+        const reducedTerm = this._evaluator.reduce(inference.term);
+        return inference.clone({ term: reducedTerm });
     }
 
     async _enhanceTasksWithAssociativeLinks(tasks, termLayer) {
@@ -179,7 +175,11 @@ export class Cycle extends BaseComponent {
     reset() {
         this._cycleCount = 0;
         this._isRunning = false;
-        this._stats = {
+        this._stats = this._initStats();
+    }
+    
+    _initStats() {
+        return {
             totalCycles: 0,
             totalTasksProcessed: 0,
             totalRulesApplied: 0,
