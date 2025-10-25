@@ -21,11 +21,7 @@ export class InputTasks {
             throw new Error('Invalid task format');
         }
         
-        this.tasks.push({
-            task,
-            priority,
-            timestamp: Date.now()
-        });
+        this.tasks.push({ task, priority, timestamp: Date.now() });
         
         // Sort tasks by priority (descending) and then by timestamp (ascending) as tiebreaker
         this._sortTasks();
@@ -196,17 +192,14 @@ export class Agent {
                 
                 if (added) {
                     // Execute one reasoning cycle to process the task
-                    const result = await this.nar.step();
+                    await this.nar.step();
                     
                     // Process all derived tasks through the unified EvaluationEngine
                     await this._processDerivedTasks();
                 }
                 
                 // Remove the processed task from the input buffer
-                const index = this.inputTasks.getAllTasks().findIndex(item => item.task === task);
-                if (index !== -1) {
-                    this.inputTasks.removeTask(index);
-                }
+                this._removeProcessedTask(task);
             } catch (error) {
                 console.error('Error processing task:', error);
                 // In a production system, we might want to handle errors differently
@@ -262,6 +255,17 @@ export class Agent {
      */
     _sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Remove a processed task from the input buffer
+     * @param {Task} task - Task to remove
+     */
+    _removeProcessedTask(task) {
+        const index = this.inputTasks.getAllTasks().findIndex(item => item.task === task);
+        if (index !== -1) {
+            this.inputTasks.removeTask(index);
+        }
     }
 
     /**

@@ -96,11 +96,9 @@ export class Cycle extends BaseComponent {
                 // Only process operation terms (^), arithmetic expressions, and functional expressions
                 // through the evaluator. Don't process NAL conditional terms (==>, <==>, etc.) as these
                 // are logical relationships that should not be evaluated functionally
-                const processedTask = inference.term.operator === '^'
+                processed.push(inference.term.operator === '^'
                     ? await this._processOperationTerm(inference)
-                    : this._processNALTerm(inference);
-                
-                processed.push(processedTask);
+                    : this._processNALTerm(inference));
             } catch (error) {
                 // If evaluation fails, keep the original inference
                 this.logger.warn(`Evaluation failed for inference, keeping original:`, error.message);

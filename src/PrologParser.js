@@ -19,12 +19,14 @@ export class PrologParser {
             .split('\n')
             .map(line => line.trim())
             .filter(line => line && !line.startsWith('%'))
-            .flatMap(line => {
-                if (this._isRule(line)) return this._parseRule(line);
-                if (this._isFact(line)) return [this._parseFact(line)];
-                if (this._isQuery(line)) return [this._parseQuery(line)];
-                return [];
-            });
+            .flatMap(line => this._parseLine(line));
+    }
+    
+    _parseLine(line) {
+        if (this._isRule(line)) return this._parseRule(line);
+        if (this._isFact(line)) return [this._parseFact(line)];
+        if (this._isQuery(line)) return [this._parseQuery(line)];
+        return [];
     }
 
     _isFact(line) {

@@ -122,11 +122,16 @@ export class EvaluationEngine {
         );
 
         // Boolean AND evaluation: if any component is False, return False; if all are True, return True; otherwise return null
-        return values.some(val => val === false) 
-            ? this._createResult(SYSTEM_ATOMS.False, true, 'Boolean AND evaluation: contains False')
-            : values.every(val => val === true)
-                ? this._createResult(SYSTEM_ATOMS.True, true, 'Boolean AND evaluation: all True')
-                : this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean AND evaluation: cannot determine');
+        return this._createBooleanResult(
+            values.some(val => val === false) ? SYSTEM_ATOMS.False :
+            values.every(val => val === true) ? SYSTEM_ATOMS.True :
+            SYSTEM_ATOMS.Null,
+            values.some(val => val === false) 
+                ? 'Boolean AND evaluation: contains False' 
+                : values.every(val => val === true) 
+                    ? 'Boolean AND evaluation: all True' 
+                    : 'Boolean AND evaluation: cannot determine'
+        );
     }
 
     _evaluateOrFunction(term, variableBindings) {
@@ -135,11 +140,16 @@ export class EvaluationEngine {
         );
 
         // Boolean OR evaluation: if any component is True, return True; if all are False, return False
-        return values.some(val => val === true) 
-            ? this._createResult(SYSTEM_ATOMS.True, true, 'Boolean OR evaluation: contains True')
-            : values.every(val => val === false)
-                ? this._createResult(SYSTEM_ATOMS.False, true, 'Boolean OR evaluation: all False')
-                : this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean OR evaluation: cannot determine');
+        return this._createBooleanResult(
+            values.some(val => val === true) ? SYSTEM_ATOMS.True :
+            values.every(val => val === false) ? SYSTEM_ATOMS.False :
+            SYSTEM_ATOMS.Null,
+            values.some(val => val === true) 
+                ? 'Boolean OR evaluation: contains True' 
+                : values.every(val => val === false) 
+                    ? 'Boolean OR evaluation: all False' 
+                    : 'Boolean OR evaluation: cannot determine'
+        );
     }
 
     _evaluateImplicationFunction(term, variableBindings) {
@@ -154,11 +164,16 @@ export class EvaluationEngine {
         const consVal = this._termToValue(consequent);
 
         // Boolean implication: not A OR B
-        return (antVal === true && consVal === false)
-            ? this._createResult(SYSTEM_ATOMS.False, true, 'Boolean implication: true => false = false')
-            : (antVal === false || consVal === true)
-                ? this._createResult(SYSTEM_ATOMS.True, true, 'Boolean implication: false => X or X => true = true')
-                : this._createResult(SYSTEM_ATOMS.Null, false, 'Boolean implication: cannot determine with non-boolean values');
+        return this._createBooleanResult(
+            (antVal === true && consVal === false) ? SYSTEM_ATOMS.False :
+            (antVal === false || consVal === true) ? SYSTEM_ATOMS.True :
+            SYSTEM_ATOMS.Null,
+            (antVal === true && consVal === false) 
+                ? 'Boolean implication: true => false = false' 
+                : (antVal === false || consVal === true) 
+                    ? 'Boolean implication: false => X or X => true = true' 
+                    : 'Boolean implication: cannot determine with non-boolean values'
+        );
     }
 
     _evaluateEquivalenceFunction(term, variableBindings) {
@@ -173,9 +188,12 @@ export class EvaluationEngine {
         const rightVal = this._termToValue(right);
 
         // Boolean equivalence: A iff B
-        return leftVal === rightVal
-            ? this._createResult(SYSTEM_ATOMS.True, true, 'Boolean equivalence: values are equal')
-            : this._createResult(SYSTEM_ATOMS.False, true, 'Boolean equivalence: values are different');
+        return this._createBooleanResult(
+            leftVal === rightVal ? SYSTEM_ATOMS.True : SYSTEM_ATOMS.False,
+            leftVal === rightVal 
+                ? 'Boolean equivalence: values are equal' 
+                : 'Boolean equivalence: values are different'
+        );
     }
 
     /**
@@ -254,34 +272,28 @@ export class EvaluationEngine {
     }
 
     _applyFunctionalRule(operator, components) {
-        // Validate inputs to prevent undefined operators in normal processing
-        const safeOperator = operator || 'UNKNOWN';
-        const safeComponents = components || [];
-        const componentNames = safeComponents.map(comp => comp.name || comp.toString());
-        const termName = `(${safeOperator}, ${componentNames.join(', ')})`;
-        
-        if (!operator) {
-            // This should not happen during normal operation - indicates a data flow issue
-            return new Term('compound', termName, safeComponents, safeOperator);
-        }
-        
-        const rule = this.functionalRules[operator];
-        if (rule) {
-            try {
-                return rule(safeComponents);
-            } catch (error) {
-                // Report genuine errors that indicate bugs in rule implementations
-                console.error(`Error during functional reduction for operator ${operator}:`, error.message);
-                console.error('Stack:', error.stack);
+        return this._applyReductionRule(operator, components, this.functionalRules, 
+            (op, err) => {
+                console.error(`Error during functional reduction for operator ${op}:`, err.message);
+                console.error('Stack:', err.stack);
                 return SYSTEM_ATOMS.Null;
-            }
-        }
-        // If no functional rule, return original components as a compound term with proper canonical name
-        // This is NORMAL operation, not an error
-        return new Term('compound', termName, safeComponents, safeOperator);
+            });
     }
 
     _applyStructuralRule(operator, components) {
+        return this._applyReductionRule(operator, components, this.structuralRules,
+            (op, err) => {
+                console.error(`Error during structural reduction for operator ${op}:`, err.message);
+                console.error('Stack:', err.stack);
+                // For structural operations, return the original form on error with proper canonical name
+                const safeOperator = operator || 'UNKNOWN';
+                const safeComponents = components || [];
+                const componentNames = safeComponents.map(comp => comp.name || comp.toString());
+                return new Term('compound', `(${safeOperator}, ${componentNames.join(', ')})`, safeComponents, safeOperator);
+            });
+    }
+    
+    _applyReductionRule(operator, components, rulesMap, errorHandler) {
         // Validate inputs to prevent undefined operators in normal processing
         const safeOperator = operator || 'UNKNOWN';
         const safeComponents = components || [];
@@ -293,19 +305,16 @@ export class EvaluationEngine {
             return new Term('compound', termName, safeComponents, safeOperator);
         }
         
-        const rule = this.structuralRules[operator];
+        const rule = rulesMap[operator];
         if (rule) {
             try {
                 return rule(safeComponents);
             } catch (error) {
                 // Report genuine errors that indicate bugs in rule implementations
-                console.error(`Error during structural reduction for operator ${operator}:`, error.message);
-                console.error('Stack:', error.stack);
-                // For structural operations, return the original form on error with proper canonical name
-                return new Term('compound', termName, safeComponents, safeOperator);
+                return errorHandler(operator, error);
             }
         }
-        // If no structural rule, return original components as a compound term with proper canonical name
+        // If no rule, return original components as a compound term with proper canonical name
         // This is NORMAL operation, not an error
         return new Term('compound', termName, safeComponents, safeOperator);
     }
@@ -314,18 +323,26 @@ export class EvaluationEngine {
     _reduceAndFunctional(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.True;
 
-        return components.some(comp => isFalse(comp)) ? SYSTEM_ATOMS.False
-            : components.some(comp => isNull(comp)) ? SYSTEM_ATOMS.Null
-            : components.every(comp => isTrue(comp)) ? SYSTEM_ATOMS.True
+        const falseComp = components.some(comp => isFalse(comp));
+        const nullComp = components.some(comp => isNull(comp));
+        const allTrue = components.every(comp => isTrue(comp));
+
+        return falseComp ? SYSTEM_ATOMS.False
+            : nullComp ? SYSTEM_ATOMS.Null
+            : allTrue ? SYSTEM_ATOMS.True
             : new Term('compound', 'AND', components, '&');
     }
 
     _reduceOrFunctional(components) {
         if (!components || components.length === 0) return SYSTEM_ATOMS.False;
 
-        return components.some(comp => isTrue(comp)) ? SYSTEM_ATOMS.True
-            : components.some(comp => isNull(comp)) ? SYSTEM_ATOMS.Null
-            : components.every(comp => isFalse(comp)) ? SYSTEM_ATOMS.False
+        const trueComp = components.some(comp => isTrue(comp));
+        const nullComp = components.some(comp => isNull(comp));
+        const allFalse = components.every(comp => isFalse(comp));
+
+        return trueComp ? SYSTEM_ATOMS.True
+            : nullComp ? SYSTEM_ATOMS.Null
+            : allFalse ? SYSTEM_ATOMS.False
             : new Term('compound', 'OR', components, '|');
     }
 
@@ -368,14 +385,13 @@ export class EvaluationEngine {
         // Remove True components (they don't affect conjunction)
         const nonTrueComponents = components.filter(comp => !isTrue(comp));
         
-        // If any component is False, the whole conjunction is False
-        if (components.some(comp => isFalse(comp))) return SYSTEM_ATOMS.False;
+        // Check for False or Null components
+        const hasFalse = components.some(comp => isFalse(comp));
+        const hasNull = components.some(comp => isNull(comp));
         
-        // If any component is Null, result is Null
-        if (components.some(comp => isNull(comp))) return SYSTEM_ATOMS.Null;
-        
-        // Return simplified or original form
-        return nonTrueComponents.length === 0 ? SYSTEM_ATOMS.True  // All were True
+        return hasFalse ? SYSTEM_ATOMS.False  // If any component is False, result is False
+            : hasNull ? SYSTEM_ATOMS.Null     // If any component is Null, result is Null
+            : nonTrueComponents.length === 0 ? SYSTEM_ATOMS.True  // All were True
             : nonTrueComponents.length === 1 ? nonTrueComponents[0]  // Single component
             : new Term('compound', 'AND', nonTrueComponents, '&');
     }
@@ -387,14 +403,13 @@ export class EvaluationEngine {
         // Remove False components (they don't affect disjunction)
         const nonFalseComponents = components.filter(comp => !isFalse(comp));
         
-        // If any component is True, the whole disjunction is True
-        if (components.some(comp => isTrue(comp))) return SYSTEM_ATOMS.True;
+        // Check for True or Null components
+        const hasTrue = components.some(comp => isTrue(comp));
+        const hasNull = components.some(comp => isNull(comp));
         
-        // If any component is Null, result is Null
-        if (components.some(comp => isNull(comp))) return SYSTEM_ATOMS.Null;
-        
-        // Return simplified or original form
-        return nonFalseComponents.length === 0 ? SYSTEM_ATOMS.False  // All were False
+        return hasTrue ? SYSTEM_ATOMS.True    // If any component is True, result is True
+            : hasNull ? SYSTEM_ATOMS.Null     // If any component is Null, result is Null
+            : nonFalseComponents.length === 0 ? SYSTEM_ATOMS.False  // All were False
             : nonFalseComponents.length === 1 ? nonFalseComponents[0]  // Single component
             : new Term('compound', 'OR', nonFalseComponents, '|');
     }
@@ -425,10 +440,16 @@ export class EvaluationEngine {
 
         const [antecedent, consequent] = components;
         
-        // Handle boolean values in implication (NAL logic)
-        return (isFalse(antecedent) || isTrue(consequent)) ? SYSTEM_ATOMS.True  // False -> X is True, X -> True is True
-            : (isTrue(antecedent) && isFalse(consequent)) ? SYSTEM_ATOMS.False  // True -> False is False
-            : (isNull(antecedent) || isNull(consequent)) ? SYSTEM_ATOMS.Null  // Null in either position gives Null
+        // Check for boolean values in implication (NAL logic)
+        const isAntFalse = isFalse(antecedent);
+        const isConsTrue = isTrue(consequent);
+        const isAntTrue = isTrue(antecedent);
+        const isConsFalse = isFalse(consequent);
+        const isAntOrConsNull = isNull(antecedent) || isNull(consequent);
+        
+        return isAntFalse || isConsTrue ? SYSTEM_ATOMS.True      // False -> X is True, X -> True is True
+            : (isAntTrue && isConsFalse) ? SYSTEM_ATOMS.False    // True -> False is False
+            : isAntOrConsNull ? SYSTEM_ATOMS.Null                // Null in either position gives Null
             // For NAL concepts, return the implication structure with proper canonical name
             : new Term('compound', `(==>, ${antecedent.name}, ${consequent.name})`, [antecedent, consequent], '==>');
     }
@@ -443,10 +464,15 @@ export class EvaluationEngine {
 
         const [left, right] = components;
         
-        // Handle boolean values in equivalence (NAL logic)
-        return ((isTrue(left) && isTrue(right)) || (isFalse(left) && isFalse(right))) ? SYSTEM_ATOMS.True
-            : ((isTrue(left) && isFalse(right)) || (isFalse(left) && isTrue(right))) ? SYSTEM_ATOMS.False
-            : (isNull(left) || isNull(right)) ? SYSTEM_ATOMS.Null  // Null in either position gives Null
+        // Check for boolean values in equivalence (NAL logic)
+        const bothTrue = isTrue(left) && isTrue(right);
+        const bothFalse = isFalse(left) && isFalse(right);
+        const trueFalse = (isTrue(left) && isFalse(right)) || (isFalse(left) && isTrue(right));
+        const isLeftOrRightNull = isNull(left) || isNull(right);
+        
+        return bothTrue || bothFalse ? SYSTEM_ATOMS.True         // Both True or both False
+            : trueFalse ? SYSTEM_ATOMS.False                      // One True, one False
+            : isLeftOrRightNull ? SYSTEM_ATOMS.Null              // Null in either position gives Null
             // For NAL concepts, return the equivalence structure
             : new Term('compound', 'EQUIVALENCE', [left, right], '<=>');
     }
@@ -928,6 +954,10 @@ export class EvaluationEngine {
 
     _createResult(result, success, message, additionalData = {}) {
         return {result, success, message, ...additionalData};
+    }
+
+    _createBooleanResult(result, message) {
+        return this._createResult(result, true, message); // Evaluation itself is successful regardless of result
     }
 
     addFunctor(name, execute, config = {}) {
