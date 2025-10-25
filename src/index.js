@@ -1,21 +1,38 @@
 #!/usr/bin/env node
 
-import {ReplInterface} from './io/ReplInterface.js';
-import {MonitoringAPI} from './io/MonitoringAPI.js';
-import {NAR} from './nar/NAR.js';
-import {Agent, InputTasks} from './Agent.js';
-import {EvaluationEngine} from './reasoning/EvaluationEngine.js';
-import {PrologParser} from './PrologParser.js';
-import {PrologParity} from './PrologParity.js';
+import { ReplInterface } from './io/ReplInterface.js';
+import { MonitoringAPI } from './io/MonitoringAPI.js';
+import { AgentBuilder } from './AgentBuilder.js';
+import { ReasoningModule } from './module/ReasoningModule.js';
+import { MetricsModule } from './module/MetricsModule.js';
+import { ToolModule } from './module/ToolModule.js';
+import { LMModule } from './module/LMModule.js';
 
-const MODES = {REPL: 'repl', SERVER: 'server', DEMO: 'demo'};
-const DEFAULT_CONFIG = {lm: {enabled: false}, cycle: {delay: 50}};
+const MODES = { REPL: 'repl', SERVER: 'server', DEMO: 'demo' };
 const DEFAULT_PORT = 8080;
 
 const args = process.argv.slice(2);
 const mode = args[0]?.toLowerCase() || MODES.REPL;
 
-const createNAR = (config = {}) => new NAR({...DEFAULT_CONFIG, ...config});
+const createAgent = async (config = {}) => {
+    const builder = new AgentBuilder();
+    builder.withNARConfig({ cycle: { delay: 50 }, ...config.narConfig });
+
+    // Add core modules
+    builder.withModule(new ReasoningModule(), { rules: ['syllogistic-core'], ...config.reasoning });
+    builder.withModule(new MetricsModule(), { enabled: true, ...config.metrics });
+
+    // Add optional modules based on config
+    if (config.tools?.enabled) {
+        builder.withModule(new ToolModule(), config.tools);
+    }
+    if (config.lm?.enabled) {
+        builder.withModule(new LMModule(), config.lm);
+    }
+
+    return await builder.build();
+};
+
 const showUsage = () => {
     console.log('Usage: node src/index.js [repl|server|demo]');
     console.log('  repl   - Start the REPL interface (default)');
@@ -24,34 +41,30 @@ const showUsage = () => {
     process.exit(1);
 };
 
-const runRepl = async () => new ReplInterface().start();
+const runRepl = async () => {
+    const agent = await createAgent();
+    new ReplInterface(agent.nar).start();
+};
 
 const runServer = async () => {
-    const nar = createNAR();
-    nar.start();
+    const agent = await createAgent({ metrics: { enabled: true } });
+    agent.nar.start();
 
-    const monitor = new MonitoringAPI(nar, {port: DEFAULT_PORT});
+    const monitor = new MonitoringAPI(agent.nar, { port: DEFAULT_PORT });
     await monitor.start();
 
     console.log(`NAR running with monitoring API on ws://localhost:${DEFAULT_PORT}`);
-    console.log('Press Ctrl+C to stop');
-
-    process.on('SIGINT', () => {
-        console.log('\nShutting down...');
-        monitor.stop();
-        nar.stop();
-        process.exit(0);
-    });
 };
 
 const runDemo = async () => {
-    console.log('Running Phase 10 demonstration...\n');
+    console.log('Running demonstration...\n');
 
-    const nar = createNAR();
+    const agent = await createAgent();
+    const { nar } = agent;
 
     const demonstrations = [
-        {input: '(bird --> animal). %1.0;0.9%', desc: 'All birds are animals'},
-        {input: '(Tweety --> bird). %1.0;0.8%', desc: 'Tweety is a bird'}
+        { input: '<bird --> animal>.', desc: 'All birds are animals' },
+        { input: '<Tweety --> bird>.', desc: 'Tweety is a bird' }
     ];
 
     for (const demo of demonstrations) {
@@ -65,14 +78,7 @@ const runDemo = async () => {
     const beliefs = nar.getBeliefs();
     console.log('\nBeliefs after reasoning:');
     beliefs.forEach((task, index) =>
-        console.log(`${index + 1}. ${task.term.name} ${task.truth?.toString() || ''}`));
-
-    const concepts = nar.memory.getAllConcepts();
-    console.log(`\nTotal concepts: ${concepts.length}`);
-    console.log(`Reasoning cycles: ${nar.cycleCount}`);
-
-    const repl = new ReplInterface(createNAR());
-    console.log('\nREPL interface available: await repl.start()');
+        console.log(`${index + 1}. ${task.term.toString()} ${task.truth?.toString() || ''}`));
 };
 
 const modeHandlers = {

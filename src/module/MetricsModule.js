@@ -1,46 +1,56 @@
-import {TRUTH} from '../config/constants.js';
+import { BaseModule } from './BaseModule.js';
+import { TRUTH } from '../config/constants.js';
 
-export class MetricsMonitor {
-    constructor(config = {}) {
-        this.config = config;
+export class MetricsModule extends BaseModule {
+    constructor() {
+        super('metrics');
         this.metrics = {
             ruleExecutions: new Map(),
             ruleSuccessRates: new Map(),
             executionTimes: new Map(),
             cacheStats: new Map(),
-            cycleStats: {count: 0, totalDuration: 0, averageDuration: 0},
-            taskStats: {inputCount: 0, processedCount: 0, successCount: 0}
+            cycleStats: { count: 0, totalDuration: 0, averageDuration: 0 },
+            taskStats: { inputCount: 0, processedCount: 0, successCount: 0 }
         };
+        this.selfOptimizationTimeout = null;
+    }
 
-        this.eventBus = config.eventBus || null;
-        this.nar = config.nar || null;
+    register(agent, config) {
+        this.agent = agent;
+        this.config = config;
         this.enabled = config.enabled !== false;
         this.selfOptimizationEnabled = config.selfOptimizationEnabled !== false;
         this.selfOptimizationInterval = config.selfOptimizationInterval || 10000;
-        this.selfOptimizationTimeout = null;
 
-        this._setupEventListeners();
-        this._startSelfOptimizationLoop();
+        if (this.enabled) {
+            this._setupEventListeners(agent.nar._eventBus);
+        }
     }
 
-    _setupEventListeners() {
-        if (!this.eventBus || !this.nar) return;
+    async initialize() {
+        if (this.enabled && this.selfOptimizationEnabled) {
+            this._startSelfOptimizationLoop();
+        }
+    }
 
-        this.eventBus.on('rule.executed', (data) => this._recordRuleExecution(data));
-        this.eventBus.on('task.input', () => this.metrics.taskStats.inputCount++);
-        this.eventBus.on('task.processed', (data) => {
+    _setupEventListeners(eventBus) {
+        if (!eventBus) return;
+
+        eventBus.on('rule.executed', (data) => this._recordRuleExecution(data));
+        eventBus.on('task.input', () => this.metrics.taskStats.inputCount++);
+        eventBus.on('task.processed', (data) => {
             this.metrics.taskStats.processedCount++;
             if (data.success) this.metrics.taskStats.successCount++;
         });
-        this.eventBus.on('cycle.completed', (data) => this._recordCycleMetrics(data));
-        this.eventBus.on('cache.hit', (data) => this._updateCacheStats(data, 'hit'));
-        this.eventBus.on('cache.miss', (data) => this._updateCacheStats(data, 'miss'));
+        eventBus.on('cycle.completed', (data) => this._recordCycleMetrics(data));
+        eventBus.on('cache.hit', (data) => this._updateCacheStats(data, 'hit'));
+        eventBus.on('cache.miss', (data) => this._updateCacheStats(data, 'miss'));
     }
 
     _recordRuleExecution(data) {
         if (!data?.ruleId) return;
 
-        const {ruleId, success, executionTime} = data;
+        const { ruleId, success, executionTime } = data;
         const ruleMetrics = this._ensureRuleMetrics(ruleId);
 
         ruleMetrics.totalExecutions++;
@@ -67,7 +77,7 @@ export class MetricsMonitor {
 
     _updateExecutionTime(ruleId, executionTime) {
         if (!this.metrics.executionTimes.has(ruleId)) {
-            this.metrics.executionTimes.set(ruleId, {count: 0, totalTime: 0, averageTime: 0});
+            this.metrics.executionTimes.set(ruleId, { count: 0, totalTime: 0, averageTime: 0 });
         }
 
         const execMetrics = this.metrics.executionTimes.get(ruleId);
@@ -85,11 +95,11 @@ export class MetricsMonitor {
     }
 
     _updateCacheStats(data, type) {
-        const {cacheName, duration} = data || {};
+        const { cacheName, duration } = data || {};
         if (!cacheName) return;
 
         if (!this.metrics.cacheStats.has(cacheName)) {
-            this.metrics.cacheStats.set(cacheName, {hits: 0, misses: 0, totalTime: 0});
+            this.metrics.cacheStats.set(cacheName, { hits: 0, misses: 0, totalTime: 0 });
         }
 
         const cacheMetrics = this.metrics.cacheStats.get(cacheName);
@@ -98,24 +108,22 @@ export class MetricsMonitor {
     }
 
     _startSelfOptimizationLoop() {
-        if (!this.enabled || !this.selfOptimizationEnabled) return;
         this.selfOptimizationTimeout = setInterval(() => this._performSelfOptimization(), this.selfOptimizationInterval);
     }
 
     _performSelfOptimization() {
-        if (!this.nar || !this.enabled || !this.selfOptimizationEnabled) return;
+        if (!this.agent || !this.enabled || !this.selfOptimizationEnabled) return;
 
         try {
             this._adjustRulePriorities();
-
-            this.eventBus?.emit('optimization.performed', {
+            this.agent.nar._eventBus.emit('optimization.performed', {
                 timestamp: Date.now(),
                 optimizationType: 'rulePriorityAdjustment',
                 metricsSnapshot: this.getMetricsSnapshot()
             });
         } catch (error) {
             console.error('Error during self-optimization:', error);
-            this.eventBus?.emit('optimization.error', {
+            this.agent.nar._eventBus.emit('optimization.error', {
                 error: error.message,
                 timestamp: Date.now()
             });
@@ -123,8 +131,8 @@ export class MetricsMonitor {
     }
 
     _adjustRulePriorities() {
-        if (!this.nar || !this.nar._ruleEngine) return;
-        const ruleEngine = this.nar._ruleEngine;
+        if (!this.agent.nar || !this.agent.nar._ruleEngine) return;
+        const ruleEngine = this.agent.nar._ruleEngine;
 
         for (const [ruleId, successRate] of this.metrics.ruleSuccessRates.entries()) {
             const rule = this._findRuleById(ruleEngine, ruleId);
@@ -139,8 +147,8 @@ export class MetricsMonitor {
     }
 
     _findRuleById(ruleEngine, ruleId) {
-        if (!ruleEngine || !ruleEngine._rules) return null;
-        for (const rule of ruleEngine._rules) {
+        if (!ruleEngine || !ruleEngine.rules) return null;
+        for (const rule of ruleEngine.rules) {
             if (rule.id === ruleId || rule.name === ruleId || (rule.constructor && rule.constructor.name === ruleId)) {
                 return rule;
             }
@@ -159,11 +167,11 @@ export class MetricsMonitor {
         const newPriority = this._mapPerformanceScoreToPriority(performanceScore);
         const newRule = rule.withPriority(newPriority);
 
-        if (this.nar && this.nar._ruleEngine) {
-            this.nar._ruleEngine._rules.set(rule.id, newRule);
+        if (this.agent.nar && this.agent.nar._ruleEngine) {
+            this.agent.nar._ruleEngine._rules.set(rule.id, newRule);
         }
 
-        this.eventBus?.emit('rule.priority.adjusted', {
+        this.agent.nar._eventBus.emit('rule.priority.adjusted', {
             ruleId: rule.id,
             oldPriority: rule.priority,
             newPriority,
@@ -174,8 +182,8 @@ export class MetricsMonitor {
 
     _mapPerformanceScoreToPriority(score) {
         const clampedScore = Math.max(0, Math.min(1, score));
-        const minPriority = TRUTH.MIN_PRIORITY + 0.1; // Using 0.1 above minimum to ensure rules still get execution time
-        const maxPriority = TRUTH.MAX_PRIORITY - 0.1; // Using 0.1 below maximum to leave headroom for special rules
+        const minPriority = TRUTH.MIN_PRIORITY + 0.1;
+        const maxPriority = TRUTH.MAX_PRIORITY - 0.1;
 
         return minPriority + (clampedScore * (maxPriority - minPriority));
     }
@@ -184,8 +192,8 @@ export class MetricsMonitor {
         return {
             timestamp: Date.now(),
             ruleMetrics: this._getRuleMetrics(),
-            cycleMetrics: {...this.metrics.cycleStats},
-            taskMetrics: {...this.metrics.taskStats},
+            cycleMetrics: { ...this.metrics.cycleStats },
+            taskMetrics: { ...this.metrics.taskStats },
             cacheMetrics: this._getCacheMetrics()
         };
     }
@@ -195,7 +203,7 @@ export class MetricsMonitor {
 
         for (const [ruleId, metrics] of this.metrics.ruleExecutions.entries()) {
             const successRate = this.metrics.ruleSuccessRates.get(ruleId) || 0;
-            const execMetrics = this.metrics.executionTimes.get(ruleId) || {averageTime: 0};
+            const execMetrics = this.metrics.executionTimes.get(ruleId) || { averageTime: 0 };
 
             summary[ruleId] = {
                 totalExecutions: metrics.totalExecutions,
@@ -234,47 +242,14 @@ export class MetricsMonitor {
         this.metrics.ruleSuccessRates.clear();
         this.metrics.executionTimes.clear();
         this.metrics.cacheStats.clear();
-
-        this.metrics.cycleStats = {count: 0, totalDuration: 0, averageDuration: 0};
-        this.metrics.taskStats = {inputCount: 0, processedCount: 0, successCount: 0};
-    }
-
-    setEnabled(enabled) {
-        this.enabled = !!enabled;
-        if (!this.enabled && this.selfOptimizationTimeout) {
-            clearInterval(this.selfOptimizationTimeout);
-            this.selfOptimizationTimeout = null;
-        } else if (this.enabled && !this.selfOptimizationTimeout) {
-            this._startSelfOptimizationLoop();
-        }
+        this.metrics.cycleStats = { count: 0, totalDuration: 0, averageDuration: 0 };
+        this.metrics.taskStats = { inputCount: 0, processedCount: 0, successCount: 0 };
     }
 
     shutdown() {
         if (this.selfOptimizationTimeout) {
             clearInterval(this.selfOptimizationTimeout);
             this.selfOptimizationTimeout = null;
-        }
-    }
-
-    getConfig() {
-        return {...this.config};
-    }
-
-    setConfig(newConfig) {
-        this.config = {...this.config, ...newConfig};
-
-        if (newConfig.selfOptimizationEnabled !== undefined) {
-            this.selfOptimizationEnabled = newConfig.selfOptimizationEnabled;
-        }
-
-        if (newConfig.selfOptimizationInterval !== undefined) {
-            this.selfOptimizationInterval = newConfig.selfOptimizationInterval;
-
-            if (this.selfOptimizationTimeout) {
-                clearInterval(this.selfOptimizationTimeout);
-                this.selfOptimizationTimeout = null;
-                this._startSelfOptimizationLoop();
-            }
         }
     }
 }

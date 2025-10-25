@@ -12,17 +12,11 @@ import {PRIORITY} from '../config/constants.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 import {ComponentManager} from '../util/ComponentManager.js';
 import {NaiveExhaustiveStrategy} from '../reasoning/NaiveExhaustiveStrategy.js';
-import {CoordinatedReasoningStrategy} from '../reasoning/CoordinatedReasoningStrategy.js';
-import {Focus} from '../memory/Focus.js';
-import {LM} from '../lm/LM.js';
-import {Task} from '../task/Task.js';
-import {Truth} from '../Truth.js';
-import {ToolIntegration} from '../tools/ToolIntegration.js';
-import {ExplanationService} from '../tools/ExplanationService.js';
-import {EvaluationEngine} from '../reasoning/EvaluationEngine.js';
-import {MetricsMonitor} from '../reasoning/MetricsMonitor.js';
-import {TermLayer} from '../memory/TermLayer.js';
-import {ReasoningAboutReasoning} from '../reasoning/ReasoningAboutReasoning.js';
+import { CoordinatedReasoningStrategy } from '../reasoning/CoordinatedReasoningStrategy.js';
+import { Focus } from '../memory/Focus.js';
+import { Task } from '../task/Task.js';
+import { Truth } from '../Truth.js';
+import { EvaluationEngine } from '../reasoning/EvaluationEngine.js';
 
 export class NAR extends BaseComponent {
     constructor(config = {}) {
@@ -40,15 +34,12 @@ export class NAR extends BaseComponent {
         this._focus = new Focus(this._config.focus);
         this._taskManager = new TaskManager(this._memory, this._focus, this._config.taskManager);
 
-        // Initialize the unified Evaluator as a core component
+        // Setup core components that are not dependency injected (yet)
         this._evaluator = new EvaluationEngine(null, this._termFactory);
-
-        // Initialize LM if enabled
-        this._lm = desiredLmEnabled ? new LM() : null;
-        this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm, this._termFactory);
+        this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, null, this._termFactory);
 
         // Use coordinated reasoning strategy if LM is enabled, otherwise naive strategy
-        const reasoningStrategy = desiredLmEnabled
+        const reasoningStrategy = config.lm?.enabled
             ? new CoordinatedReasoningStrategy(this._ruleEngine, this._config.reasoning || {})
             : new NaiveExhaustiveStrategy(this._config.reasoning || {});
 
@@ -61,46 +52,11 @@ export class NAR extends BaseComponent {
             config: this._config.get('cycle'),
             reasoningStrategy: reasoningStrategy,
             termFactory: this._termFactory,
-            nar: this  // Pass the NAR instance to the cycle for TermLayer access
-        });
-
-        // Initialize tool integration if enabled
-        this._toolIntegration = config.tools?.enabled !== false
-            ? new ToolIntegration(config.tools || {})
-            : null;
-
-        if (this._toolIntegration) {
-            this._toolIntegration.connectToReasoningCore(this);
-            this._explanationService = new ExplanationService({
-                lm: this._lm || null,
-                ...config.tools?.explanation
-            });
-        }
-
-        // Initialize MetricsMonitor for self-optimization
-        this._metricsMonitor = new MetricsMonitor({
-            eventBus: this._eventBus,
             nar: this,
-            ...config.metricsMonitor
-        });
-
-        // Initialize TermLayer for associative reasoning
-        const termLayerConfig = {
-            capacity: config.termLayer?.capacity || 1000, // Default capacity for AIKR compliance
-            ...config.termLayer
-        };
-        this._termLayer = new TermLayer(termLayerConfig);
-
-        // Initialize ReasoningAboutReasoning component for meta-cognitive reasoning
-        this._reasoningAboutReasoning = new ReasoningAboutReasoning(this, {
-            ...config.reasoningAboutReasoning
         });
 
         this._isRunning = false;
         this._cycleInterval = null;
-
-        // Register all components with the component manager
-        this._registerComponents();
     }
 
     get config() {
@@ -119,17 +75,6 @@ export class NAR extends BaseComponent {
         return this._cycle.cycleCount;
     }
 
-    get lm() {
-        return this._lm;
-    }
-
-    get tools() {
-        return this._toolIntegration;
-    }
-
-    get explanationService() {
-        return this._explanationService;
-    }
 
     get componentManager() {
         return this._componentManager;
@@ -156,40 +101,6 @@ export class NAR extends BaseComponent {
         return this._reasoningAboutReasoning;
     }
 
-    _registerComponents() {
-        // Register core components with dependencies
-        this._componentManager.registerComponent('termFactory', {
-            initialize: () => Promise.resolve(true),
-            start: () => Promise.resolve(true),
-            stop: () => Promise.resolve(true),
-            dispose: () => Promise.resolve(true),
-            isInitialized: true,
-            isStarted: true,
-            isDisposed: false
-        });
-
-        this._componentManager.registerComponent('memory', this._memory);
-        this._componentManager.registerComponent('focus', this._focus, ['memory']);
-        this._componentManager.registerComponent('taskManager', this._taskManager, ['memory', 'focus']);
-        this._componentManager.registerComponent('ruleEngine', this._ruleEngine);
-
-        if (this._lm) {
-            this._componentManager.registerComponent('lm', this._lm);
-        }
-
-        if (this._toolIntegration) {
-            this._componentManager.registerComponent('toolIntegration', this._toolIntegration);
-            if (this._explanationService) {
-                this._componentManager.registerComponent('explanationService', this._explanationService, ['toolIntegration']);
-            }
-        }
-
-        this._componentManager.registerComponent('cycle', this._cycle, ['memory', 'focus', 'taskManager', 'ruleEngine']);
-
-        // MetricsMonitor, TermLayer, and ReasoningAboutReasoning are features that don't follow
-        // the ComponentManager lifecycle interface, so they're not registered with it.
-        // They're initialized directly in the constructor and managed separately.
-    }
 
     _setupDefaultRules() {
         try {

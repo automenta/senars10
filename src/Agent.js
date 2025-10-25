@@ -112,14 +112,14 @@ export class InputTasks {
  */
 export class Agent {
     constructor(config = {}) {
-        // Create a NAR instance to serve as the cognitive core
-        this.nar = config.nar || new NAR(config.narConfig || {});
-        
-        // Create an InputTasks buffer to manage the system's agenda
+        this.nar = config.nar;
+        if (!this.nar) {
+            throw new Error('Agent requires a NAR instance.');
+        }
+
         this.inputTasks = new InputTasks();
-        
-        // Get the evaluator from the NAR since it's a core component
         this.evaluator = this.nar._evaluator;
+        this.modules = []; // To be populated by the AgentBuilder
         
         // Flag to control the main processing loop
         this.isRunning = false;
