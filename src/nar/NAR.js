@@ -28,33 +28,27 @@ import {ReasoningAboutReasoning} from '../reasoning/ReasoningAboutReasoning.js';
 export class NAR extends BaseComponent {
     constructor(config = {}) {
         super(config, 'NAR');
-
-        const desiredLmEnabled = config.lm?.enabled === true;
-
         this._config = SystemConfig.from(config);
         this._componentManager = new ComponentManager({}, this._eventBus);
+        this._initComponents(config);
+        this._isRunning = false;
+        this._cycleInterval = null;
+        this._registerComponents();
+    }
 
-        // Initialize components
+    _initComponents(config) {
+        const lmEnabled = config.lm?.enabled === true;
         this._termFactory = new TermFactory();
         this._memory = new Memory(this._config.memory);
         this._parser = new NarseseParser(this._termFactory);
         this._focus = new Focus(this._config.focus);
         this._taskManager = new TaskManager(this._memory, this._focus, this._config.taskManager);
-
-        // Initialize the unified Evaluator as a core component
         this._evaluator = new EvaluationEngine(null, this._termFactory);
-
-        // Initialize LM if enabled
-        this._lm = desiredLmEnabled ? new LM() : null;
-        
-        // Initialize rule engine with LM if available
+        this._lm = lmEnabled ? new LM() : null;
         this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, this._lm, this._termFactory);
-
-        // Use coordinated reasoning strategy if LM is enabled, otherwise naive strategy
-        const reasoningStrategy = desiredLmEnabled
+        const strategy = lmEnabled
             ? new CoordinatedReasoningStrategy(this._ruleEngine, this._config.reasoning || {})
             : new NaiveExhaustiveStrategy(this._config.reasoning || {});
-
         this._cycle = new Cycle({
             memory: this._memory,
             focus: this._focus,
@@ -62,54 +56,24 @@ export class NAR extends BaseComponent {
             taskManager: this._taskManager,
             evaluator: this._evaluator,
             config: this._config.get('cycle'),
-            reasoningStrategy: reasoningStrategy,
+            reasoningStrategy: strategy,
             termFactory: this._termFactory,
-            nar: this  // Pass the NAR instance to the cycle for TermLayer access
+            nar: this
         });
+        this._initOptionalComponents(config);
+    }
 
-        // Initialize tool integration if enabled
-        this._toolIntegration = config.tools?.enabled !== false
-            ? new ToolIntegration(config.tools || {})
-            : null;
-
+    _initOptionalComponents(config) {
+        this._toolIntegration = config.tools?.enabled !== false ? new ToolIntegration(config.tools || {}) : null;
         if (this._toolIntegration) {
             this._toolIntegration.connectToReasoningCore(this);
-            this._explanationService = new ExplanationService({
-                lm: this._lm || null,
-                ...config.tools?.explanation
-            });
+            this._explanationService = new ExplanationService({ lm: this._lm || null, ...config.tools?.explanation });
         }
-
-        // Initialize MetricsMonitor for self-optimization
-        this._metricsMonitor = new MetricsMonitor({
-            eventBus: this._eventBus,
-            nar: this,
-            ...config.metricsMonitor
-        });
-
-        // Initialize EmbeddingLayer for semantic reasoning if enabled
-        const embeddingLayerConfig = config.embeddingLayer || { enabled: false };
-        this._embeddingLayer = embeddingLayerConfig.enabled && embeddingLayerConfig.enabled !== false
-            ? new EmbeddingLayer(embeddingLayerConfig)
-            : null;
-
-        // Initialize TermLayer for associative reasoning
-        const termLayerConfig = {
-            capacity: config.termLayer?.capacity || 1000, // Default capacity for AIKR compliance
-            ...config.termLayer
-        };
-        this._termLayer = new TermLayer(termLayerConfig);
-
-        // Initialize ReasoningAboutReasoning component for meta-cognitive reasoning
-        this._reasoningAboutReasoning = new ReasoningAboutReasoning(this, {
-            ...config.reasoningAboutReasoning
-        });
-
-        this._isRunning = false;
-        this._cycleInterval = null;
-
-        // Register all components with the component manager
-        this._registerComponents();
+        this._metricsMonitor = new MetricsMonitor({ eventBus: this._eventBus, nar: this, ...config.metricsMonitor });
+        const embeddingConfig = config.embeddingLayer || { enabled: false };
+        this._embeddingLayer = embeddingConfig.enabled ? new EmbeddingLayer(embeddingConfig) : null;
+        this._termLayer = new TermLayer({ capacity: config.termLayer?.capacity || 1000, ...config.termLayer });
+        this._reasoningAboutReasoning = new ReasoningAboutReasoning(this, { ...config.reasoningAboutReasoning });
     }
 
     get config() {
@@ -144,50 +108,12 @@ export class NAR extends BaseComponent {
         return this._componentManager;
     }
 
-    /**
-     * Get the MetricsMonitor instance
-     */
-    get metricsMonitor() {
-        return this._metricsMonitor;
-    }
-
-    /**
-     * Get the EvaluationEngine instance
-     */
-    get evaluator() {
-        return this._evaluator;
-    }
-
-    /**
-     * Get the RuleEngine instance
-     */
-    get ruleEngine() {
-        return this._ruleEngine;
-    }
-
-    /**
-     * Get the TermLayer instance for associative reasoning
-     */
-    /**
-     * Get the EmbeddingLayer instance for semantic reasoning
-     */
-    get embeddingLayer() {
-        return this._embeddingLayer;
-    }
-
-    /**
-     * Get the TermLayer instance for associative reasoning
-     */
-    get termLayer() {
-        return this._termLayer;
-    }
-
-    /**
-     * Get the ReasoningAboutReasoning instance for meta-cognitive reasoning
-     */
-    get reasoningAboutReasoning() {
-        return this._reasoningAboutReasoning;
-    }
+    get metricsMonitor() { return this._metricsMonitor; }
+    get evaluator() { return this._evaluator; }
+    get ruleEngine() { return this._ruleEngine; }
+    get embeddingLayer() { return this._embeddingLayer; }
+    get termLayer() { return this._termLayer; }
+    get reasoningAboutReasoning() { return this._reasoningAboutReasoning; }
 
     _registerComponents() {
         // Register core components with dependencies

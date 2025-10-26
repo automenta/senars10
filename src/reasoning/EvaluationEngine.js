@@ -316,32 +316,28 @@ export class EvaluationEngine {
         return new Term('compound', termName, safeComponents, safeOperator);
     }
 
-    // Functional evaluation rules
     _reduceAndFunctional(components) {
-        if (!components || components.length === 0) return SYSTEM_ATOMS.True;
-
-        return this._naryBooleanOperation(components, 
-            comp => isFalse(comp), SYSTEM_ATOMS.False,  // If any is False, return False
-            comp => isNull(comp), SYSTEM_ATOMS.Null,   // If any is Null, return Null
-            comp => isTrue(comp), SYSTEM_ATOMS.True,   // If all are True, return True
-            () => new Term('compound', 'AND', components, '&'));  // Otherwise return compound
+        if (!components?.length) return SYSTEM_ATOMS.True;
+        return this._naryBooleanOperation(components,
+            comp => isFalse(comp), SYSTEM_ATOMS.False,
+            comp => isNull(comp), SYSTEM_ATOMS.Null,
+            comp => isTrue(comp), SYSTEM_ATOMS.True,
+            () => new Term('compound', 'AND', components, '&'));
     }
 
     _reduceOrFunctional(components) {
-        if (!components || components.length === 0) return SYSTEM_ATOMS.False;
-
-        return this._naryBooleanOperation(components, 
-            comp => isTrue(comp), SYSTEM_ATOMS.True,   // If any is True, return True
-            comp => isNull(comp), SYSTEM_ATOMS.Null,   // If any is Null, return Null
-            comp => isFalse(comp), SYSTEM_ATOMS.False, // If all are False, return False
-            () => new Term('compound', 'OR', components, '|'));   // Otherwise return compound
+        if (!components?.length) return SYSTEM_ATOMS.False;
+        return this._naryBooleanOperation(components,
+            comp => isTrue(comp), SYSTEM_ATOMS.True,
+            comp => isNull(comp), SYSTEM_ATOMS.Null,
+            comp => isFalse(comp), SYSTEM_ATOMS.False,
+            () => new Term('compound', 'OR', components, '|'));
     }
 
     _reduceNegationFunctional(components) {
-        if (!components || components.length === 0) return SYSTEM_ATOMS.Null;
-
+        if (!components?.length) return SYSTEM_ATOMS.Null;
         const operand = components[0];
-        return this._unaryBooleanOperation(operand, 
+        return this._unaryBooleanOperation(operand,
             val => isTrue(val) ? SYSTEM_ATOMS.False :
                    isFalse(val) ? SYSTEM_ATOMS.True :
                    isNull(val) ? SYSTEM_ATOMS.Null :
@@ -349,23 +345,18 @@ export class EvaluationEngine {
     }
 
     _reduceImplicationFunctional(components) {
-        if (!components || components.length !== 2) return SYSTEM_ATOMS.Null;
-
+        if (!components?.length === 2) return SYSTEM_ATOMS.Null;
         const [antecedent, consequent] = components;
-        // Boolean implication: ~A v B (not A OR B)
         if (isNull(antecedent) || isNull(consequent)) return SYSTEM_ATOMS.Null;
-        
         return (isFalse(antecedent) || isTrue(consequent)) ? SYSTEM_ATOMS.True
             : (isTrue(antecedent) && isFalse(consequent)) ? SYSTEM_ATOMS.False
             : SYSTEM_ATOMS.Null;
     }
 
     _reduceEquivalenceFunctional(components) {
-        if (!components || components.length !== 2) return SYSTEM_ATOMS.Null;
-
+        if (!components?.length === 2) return SYSTEM_ATOMS.Null;
         const [left, right] = components;
         if (isNull(left) || isNull(right)) return SYSTEM_ATOMS.Null;
-        
         return ((isTrue(left) && isTrue(right)) || (isFalse(left) && isFalse(right))) ? SYSTEM_ATOMS.True
             : ((isTrue(left) && isFalse(right)) || (isFalse(left) && isTrue(right))) ? SYSTEM_ATOMS.False
             : SYSTEM_ATOMS.Null;
@@ -897,10 +888,10 @@ export class EvaluationEngine {
     }
     
     _naryBooleanOperation(components, someCheck1, result1, someCheck2, result2, everyCheck, result3, defaultFn) {
-        if (components.some(comp => someCheck1(comp))) return result1;
-        if (components.some(comp => someCheck2(comp))) return result2;
-        if (components.every(comp => everyCheck(comp))) return result3;
-        return defaultFn();
+        return components.some(comp => someCheck1(comp)) ? result1 :
+               components.some(comp => someCheck2(comp)) ? result2 :
+               components.every(comp => everyCheck(comp)) ? result3 :
+               defaultFn();
     }
     
     _naryStructuralOperation(components, filterCond, check1, result1, check2, result2, allCaseResult, operator, termType) {

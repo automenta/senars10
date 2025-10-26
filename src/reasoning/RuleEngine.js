@@ -126,7 +126,14 @@ export class RuleEngine extends BaseComponent {
 
     applyRules(task, ruleIds = null, ruleType = null, memory = null) {
         const rulesToApply = ruleIds ? this._getValidRules(ruleIds) : this.getApplicableRules(task, ruleType);
-        return this._applyRulesWithLogging(rulesToApply, task, memory);
+        return rulesToApply.flatMap(rule => {
+            try {
+                return this.applyRule(rule, task, memory).results;
+            } catch (error) {
+                this.logger.warn(`Rule ${rule.id} failed:`, error);
+                return [];
+            }
+        });
     }
 
     applyLMRules = (task, ruleIds = null, memory = null) => this.applyRules(task, ruleIds, 'lm', memory);
