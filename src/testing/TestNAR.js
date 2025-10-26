@@ -106,9 +106,9 @@ export class TaskMatch {
  * Simplified test framework for NAR
  */
 export class TestNAR {
-    constructor() {
+    constructor(nar = null) {
         this.operations = [];
-        this.nar = null;
+        this.nar = nar;
     }
 
     static _matchesTruth(taskTruth, criteriaTruth) {
@@ -144,10 +144,12 @@ export class TestNAR {
     }
 
     async execute() {
-        // Dynamically import NAR to avoid circular dependencies
-        const {NAR} = await import('../nar/NAR.js');
-        this.nar = new NAR();
-        await this.nar.initialize(); // Initialize the NAR to ensure components are set up
+        if (!this.nar) {
+            // Dynamically import NAR to avoid circular dependencies
+            const {NAR} = await import('../nar/NAR.js');
+            this.nar = new NAR();
+            await this.nar.initialize(); // Initialize the NAR to ensure components are set up
+        }
 
         // Allow for more cycles to ensure reasoning completion
         const maxCycles = 5; // Increase default cycles for reasoning

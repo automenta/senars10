@@ -1,91 +1,92 @@
+/**
+ * @file src/memory/Bag.js
+ * @description A priority-based, size-limited collection for AIKR-compliant memory management.
+ */
 export class Bag {
-    constructor(maxSize) {
-        this._items = new Map();
-        this._maxSize = maxSize;
+    constructor(capacity) {
+        this.maxSize = capacity;
+        this.items = new Map();
     }
 
-    get size() {
-        return this._items.size;
-    }
-
-    get maxSize() {
-        return this._maxSize;
-    }
-
-    add(item) {
-        if (this._items.has(item)) return false;
-
-        if (this.size >= this.maxSize) {
-            this._removeLowestPriorityItem();
+    add(item, priority) {
+        if (this.has(item)) {
+            this.items.set(item, priority);
+            return false; // Item already existed
         }
+        if (this.items.size >= this.maxSize) {
+            this._evict();
+        }
+        this.items.set(item, priority);
+        return true; // Item was added
+    }
 
-        this._items.set(item, item.budget.priority);
-        return true;
+    get(item) {
+        return this.items.get(item);
+    }
+
+    has(item) {
+        return this.items.has(item);
+    }
+
+    delete(item) {
+        return this.items.delete(item);
     }
 
     remove(item) {
-        return this._items.delete(item);
+        return this.delete(item);
     }
 
     contains(item) {
-        return this._items.has(item);
+        return this.has(item);
     }
 
     peek() {
-        if (this.size === 0) return null;
-
-        let highestPriorityItem = null;
-        let highestPriority = -Infinity;
-
-        for (const [item, priority] of this._items.entries()) {
-            if (priority > highestPriority) {
-                highestPriority = priority;
-                highestPriorityItem = item;
-            }
-        }
-
-        return highestPriorityItem;
+        return this.getItemsInPriorityOrder()[0] || null;
     }
 
     getItemsInPriorityOrder() {
-        return [...this._items.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .map(([item]) => item);
-    }
-
-    getAveragePriority() {
-        if (this.size === 0) return 0;
-
-        const priorities = [...this._items.values()];
-        const sum = priorities.reduce((acc, priority) => acc + priority, 0);
-        return sum / this.size;
+        return [...this.items.entries()].sort((a, b) => b[1] - a[1]).map(entry => entry[0]);
     }
 
     getPriority(item) {
-        return this._items.get(item);
+        return this.items.get(item);
+    }
+
+    getAveragePriority() {
+        if (this.items.size === 0) {
+            return 0;
+        }
+        const totalPriority = [...this.items.values()].reduce((sum, priority) => sum + priority, 0);
+        return totalPriority / this.items.size;
     }
 
     applyDecay(decayRate) {
-        for (const [item, priority] of this._items.entries()) {
-            this._items.set(item, priority * (1 - decayRate));
+        for (const [item, priority] of this.items.entries()) {
+            this.items.set(item, priority * (1 - decayRate));
         }
     }
 
-    _removeLowestPriorityItem() {
-        if (this.size > 0) {
-            let lowestPriorityItem = null;
-            let lowestPriority = Infinity;
+    clear() {
+        this.items.clear();
+    }
 
-            for (const [item, priority] of this._items.entries()) {
-                if (priority < lowestPriority) {
-                    lowestPriority = priority;
-                    lowestPriorityItem = item;
-                }
-            }
+    get size() {
+        return this.items.size;
+    }
 
-            if (lowestPriorityItem !== null) {
-                this.remove(lowestPriorityItem);
+    _evict() {
+        let lowestPriority = Infinity;
+        let itemToEvict = null;
+
+        for (const [item, priority] of this.items.entries()) {
+            if (priority < lowestPriority) {
+                lowestPriority = priority;
+                itemToEvict = item;
             }
+        }
+
+        if (itemToEvict) {
+            this.items.delete(itemToEvict);
         }
     }
 }

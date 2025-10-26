@@ -1,12 +1,14 @@
-import { EvaluationEngine as BooleanReductionEngine } from '../../../src/reasoning/EvaluationEngine.js';
+import { EvaluationEngine } from '../../../src/reasoning/EvaluationEngine.js';
 import { Term, TermType } from '../../../src/term/Term.js';
-import {SYSTEM_ATOMS} from '../../../src/reasoning/SystemAtoms.js';
+import { SYSTEM_ATOMS } from '../../../src/reasoning/SystemAtoms.js';
+import { FunctorRegistry } from '../../../src/reasoning/Functor.js';
 
 describe('BooleanReductionEngine (Unified)', () => {
     let reductionEngine;
 
     beforeEach(() => {
-        reductionEngine = new BooleanReductionEngine(); // Using unified engine
+        const functorRegistry = new FunctorRegistry();
+        reductionEngine = new EvaluationEngine(functorRegistry);
     });
 
     test('reduces simple conjunction with True', () => {

@@ -1,40 +1,30 @@
 import {Concept} from './Concept.js';
 import {MemoryIndex} from './MemoryIndex.js';
-import {MemoryConsolidation} from './MemoryConsolidation.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 import {clamp} from '../util/common.js';
+import {Bag} from './Bag.js';
 
 export class Memory extends BaseComponent {
     static SCORING_WEIGHTS = Object.freeze({activation: 0.5, useCount: 0.3, taskCount: 0.2});
     static NORMALIZATION_LIMITS = Object.freeze({useCount: 100, taskCount: 50});
-    static CONSOLIDATION_THRESHOLDS = Object.freeze({
-        activationThreshold: 0.1,
-        minTasksThreshold: 5,
-        decayThreshold: 0.01,
-        minTasksForDecay: 2
-    });
 
     constructor(config = {}) {
         const defaultConfig = Object.freeze({
             priorityThreshold: 0.5,
-            priorityDecayRate: 0.01,
-            consolidationInterval: 10
+            capacity: 1000,
         });
 
         super({...defaultConfig, ...config}, 'Memory');
         this._config = {...this.config, ...config};  // Use BaseComponent's config property
-        this._concepts = new Map();
+        this._concepts = new Bag(this._config.capacity);
         this._focusConcepts = new Set();
         this._index = new MemoryIndex();
-        this._consolidation = new MemoryConsolidation();
         this._stats = {
             totalConcepts: 0,
             totalTasks: 0,
             focusConceptsCount: 0,
             createdAt: Date.now(),
-            lastConsolidation: Date.now()
         };
-        this._cyclesSinceConsolidation = 0;
     }
 
     get config() {
@@ -42,7 +32,7 @@ export class Memory extends BaseComponent {
     }
 
     get concepts() {
-        return new Map(this._concepts);
+        return this._concepts;
     }
 
     get focusConcepts() {
@@ -61,7 +51,12 @@ export class Memory extends BaseComponent {
         if (!task?.term) return false;
 
         const term = task.term;
-        let concept = this._concepts.get(term) || this._createConcept(term);
+        let concept = this.getConcept(term);
+
+        if (!concept) {
+            concept = this._createConcept(term);
+            this._concepts.add(concept, task.budget.priority);
+        }
 
         const added = concept.addTask(task);
         if (added) {
@@ -70,31 +65,31 @@ export class Memory extends BaseComponent {
                 this._focusConcepts.add(concept);
                 this._updateFocusConceptsCount();
             }
+            // Update the priority of the concept in the bag
+            this._concepts.add(concept, concept.activation);
         }
         return added;
     }
 
     _createConcept(term) {
         const concept = new Concept(term, this._config);
-        this._concepts.set(term, concept);
         this._index.addConcept(concept);
         this._stats.totalConcepts++;
         return concept;
     }
 
     getConcept(term) {
-        return !term ? null : this._concepts.get(term) || this._findConceptByEquality(term);
-    }
-
-    _findConceptByEquality(term) {
-        for (const [key, value] of this._concepts) {
-            if (key.equals(term)) return value;
+        if (!term) return null;
+        for (const concept of this._concepts.items.keys()) {
+            if (concept.term.equals(term)) {
+                return concept;
+            }
         }
         return null;
     }
 
     getAllConcepts() {
-        return Array.from(this._concepts.values());
+        return Array.from(this._concepts.items.keys());
     }
 
     getConceptsByCriteria(criteria = {}) {
@@ -327,27 +322,16 @@ export class Memory extends BaseComponent {
     }
 
     removeConcept(term) {
-        const concept = this._concepts.get(term);
+        const concept = this.getConcept(term);
         if (!concept) return false;
 
         this._focusConcepts.delete(concept) && this._updateFocusConceptsCount();
-        this._concepts.delete(term);
+        this._concepts.delete(concept);
         this._index.removeConcept(concept);
         this._stats.totalConcepts--;
         this._stats.totalTasks -= concept.totalTasks;
 
         return true;
-    }
-
-    consolidate(currentTime = Date.now()) {
-        if (this._cyclesSinceConsolidation++ < this._config.consolidationInterval) return;
-
-        this._cyclesSinceConsolidation = 0;
-        this._stats.lastConsolidation = currentTime;
-
-        const results = this._consolidation.consolidate(this, currentTime);
-        this._updateFocusConceptsCount();
-        return results;
     }
 
     boostConceptActivation(term, boostAmount = 0.1) {
@@ -382,10 +366,6 @@ export class Memory extends BaseComponent {
         };
     }
 
-    getHealthMetrics() {
-        return this._consolidation.calculateHealthMetrics(this);
-    }
-
     _updateFocusConceptsCount() {
         this._stats.focusConceptsCount = this._focusConcepts.size;
     }
@@ -399,13 +379,11 @@ export class Memory extends BaseComponent {
             totalTasks: 0,
             focusConceptsCount: 0,
             createdAt: Date.now(),
-            lastConsolidation: Date.now()
         };
-        this._cyclesSinceConsolidation = 0;
     }
 
     hasConcept(term) {
-        return this._concepts.has(term);
+        return this.getConcept(term) !== null;
     }
 
     getTotalTaskCount() {

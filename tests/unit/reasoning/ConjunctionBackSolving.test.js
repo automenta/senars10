@@ -1,12 +1,14 @@
-import { EvaluationEngine as OperationEvaluationEngine } from '../../../src/reasoning/EvaluationEngine.js';
-import {TermFactory} from '../../../src/term/TermFactory.js';
-import {NAR} from '../../../src/nar/NAR.js';
+import { EvaluationEngine } from '../../../src/reasoning/EvaluationEngine.js';
+import { TermFactory } from '../../../src/term/TermFactory.js';
+import { FunctorRegistry } from '../../../src/reasoning/Functor.js';
+import { AgentBuilder } from '../../../src/AgentBuilder.js';
 
 describe('Conjunction Back-Solving Test (Unified)', () => {
     let engine, termFactory;
 
     beforeEach(() => {
-        engine = new OperationEvaluationEngine(); // Using unified engine
+        const functorRegistry = new FunctorRegistry();
+        engine = new EvaluationEngine(functorRegistry);
         termFactory = new TermFactory();
     });
 
@@ -31,7 +33,8 @@ describe('Conjunction Back-Solving Test (Unified)', () => {
     });
 
     test('should test if NAR can process the full example', async () => {
-        const nar = new NAR();
+        const agent = await new AgentBuilder().withCoreFunctors().build();
+        const nar = agent.nar;
 
         // This is what we want to achieve: ((&, (?a=1), (add(?a,?b)=3)) ==> accept(?b)) should reduce to accept(2)
         // Note: This may require more complex rule implementation than currently exists

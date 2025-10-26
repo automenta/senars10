@@ -1,10 +1,10 @@
-import {NAR} from '../../src/nar/NAR.js';
-import {TaskMatch, TestNAR} from '../../src/testing/TestNAR.js';
+import { AgentBuilder } from '../../src/AgentBuilder.js';
+import { TaskMatch, TestNAR } from '../../src/testing/TestNAR.js';
 
 describe('RuleEngine Integration Tests', () => {
     it('should register default rules during NAR initialization', async () => {
-        const nar = new NAR();
-        await nar.initialize();
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const nar = agent.nar;
 
         // Verify rules were registered successfully
         expect(nar._ruleEngine.rules.length).toBeGreaterThan(0);
@@ -18,7 +18,9 @@ describe('RuleEngine Integration Tests', () => {
     });
 
     it('should perform basic modus ponens inference', async () => {
-        const result = await new TestNAR()
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const testNAR = new TestNAR(agent.nar);
+        const result = await testNAR
             .input('(a ==> b)', 0.9, 0.9)
             .input('a', 0.8, 0.8)
             .run(5)  // Run multiple cycles to ensure inference
@@ -29,7 +31,9 @@ describe('RuleEngine Integration Tests', () => {
     });
 
     it('should perform basic syllogistic inference', async () => {
-        const result = await new TestNAR()
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const testNAR = new TestNAR(agent.nar);
+        const result = await testNAR
             .input('(a ==> b)', 0.9, 0.9)
             .input('(b ==> c)', 0.8, 0.8)
             .run(5)  // Run multiple cycles to ensure inference
@@ -40,8 +44,8 @@ describe('RuleEngine Integration Tests', () => {
     });
 
     it('should handle repeated reasoning cycles without errors', async () => {
-        const nar = new NAR();
-        await nar.initialize();
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const nar = agent.nar;
 
         // Add premises
         await nar.input('(x ==> y). %0.8;0.7%');

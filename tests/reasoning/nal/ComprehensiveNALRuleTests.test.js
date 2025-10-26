@@ -4,9 +4,10 @@
  * This suite prepares for Phase 2: NAL Rule Expansion & Reasoning Enhancement
  */
 
-import {TaskMatch, TestNAR} from '../../../src/testing/TestNAR.js';
-import {Truth} from '../../../src/Truth.js';
-import {TruthFunctions} from '../../../src/reasoning/nal/TruthFunctions.js';
+import { AgentBuilder } from '../../../src/AgentBuilder.js';
+import { TaskMatch, TestNAR } from '../../../src/testing/TestNAR.js';
+import { Truth } from '../../../src/Truth.js';
+import { TruthFunctions } from '../../../src/reasoning/nal/TruthFunctions.js';
 import {PatternMatcher} from '../../../src/reasoning/nal/PatternMatcher.js';
 import {Term} from '../../../src/term/Term.js';
 
@@ -131,7 +132,9 @@ describe('Comprehensive NAL Rule Tests - Phase 2 Preparation', () => {
 
     describe('NAL Inference Integration Tests using TestNAR', () => {
         it('should perform basic deduction: a==>b, a |= b', async () => {
-            const result = await new TestNAR()
+            const agent = await new AgentBuilder().withCoreRules().build();
+            const testNAR = new TestNAR(agent.nar);
+            const result = await testNAR
                 .input('(a ==> b)', 0.9, 0.8)  // If a then b
                 .input('a', 0.8, 0.9)         // a is true
                 .run(3)
@@ -142,7 +145,9 @@ describe('Comprehensive NAL Rule Tests - Phase 2 Preparation', () => {
         });
 
         it('should handle conditional syllogism: (a==>b), (b==>c) |= (a==>c)', async () => {
-            const result = await new TestNAR()
+            const agent = await new AgentBuilder().withCoreRules().build();
+            const testNAR = new TestNAR(agent.nar);
+            const result = await testNAR
                 .input('(a ==> b)', 0.8, 0.7)
                 .input('(b ==> c)', 0.7, 0.8)
                 .run(5)
@@ -153,8 +158,10 @@ describe('Comprehensive NAL Rule Tests - Phase 2 Preparation', () => {
         });
 
         it('should process basic statements correctly', async () => {
+            const agent = await new AgentBuilder().withCoreRules().build();
+            const testNAR = new TestNAR(agent.nar);
             // This test verifies that the system can at least store and recall basic facts
-            const result = await new TestNAR()
+            const result = await testNAR
                 .input('test_fact', 0.8, 0.9)
                 .run(2)
                 .expect(new TaskMatch('test_fact'))
@@ -166,8 +173,10 @@ describe('Comprehensive NAL Rule Tests - Phase 2 Preparation', () => {
 
     describe('NAL Statement Preservation Tests', () => {
         it('should maintain original statements', async () => {
+            const agent = await new AgentBuilder().withCoreRules().build();
+            const testNAR = new TestNAR(agent.nar);
             // Verify that input statements are preserved
-            const result = await new TestNAR()
+            const result = await testNAR
                 .input('(input_test --> verification)', 0.9, 0.8)
                 .run(1)
                 .expect(new TaskMatch('(input_test --> verification)'))

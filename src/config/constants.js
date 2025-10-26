@@ -6,6 +6,7 @@ export const TRUTH = {
     EPSILON: 1e-10,
     MIN_PRIORITY: 0.0,
     MAX_PRIORITY: 1.0,
+    PROJECTION_DECAY: 100,
 };
 
 export const PRIORITY = {

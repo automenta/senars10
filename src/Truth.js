@@ -39,6 +39,12 @@ export class Truth {
         return new Truth(Truth.safeDiv(fContra, fContra + (1 - u.f) * t.f), t.c * u.c);
     });
 
+    static projection = (t, timeInterval) => {
+        if (!t) return null;
+        const decay = Math.exp(-timeInterval / TRUTH.PROJECTION_DECAY);
+        return new Truth(t.f, t.c * decay);
+    };
+
     static isStronger = (t1, t2) => Truth.expectation(t1) > Truth.expectation(t2);
     static weak = c => clamp(c / (c + TRUTH.WEAKENING_FACTOR), 0, 1);
     static safeDiv = (num, den) => den === 0 ? 0 : clamp(num / den, 0, 1);

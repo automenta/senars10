@@ -18,6 +18,7 @@ import { Focus } from '../memory/Focus.js';
 import { Task } from '../task/Task.js';
 import { Truth } from '../Truth.js';
 import { EvaluationEngine } from '../reasoning/EvaluationEngine.js';
+import { FunctorRegistry } from '../reasoning/Functor.js';
 
 export class NAR extends BaseComponent {
     constructor(config = {}) {
@@ -34,9 +35,10 @@ export class NAR extends BaseComponent {
         this._parser = new NarseseParser(this._termFactory);
         this._focus = new Focus(this._config.focus);
         this._taskManager = new TaskManager(this._memory, this._focus, this._config.taskManager);
+        this._functorRegistry = new FunctorRegistry();
 
         // Setup core components that are not dependency injected (yet)
-        this._evaluator = new EvaluationEngine(null, this._termFactory);
+        this._evaluator = new EvaluationEngine(this._functorRegistry, this._termFactory);
         this._ruleEngine = new RuleEngine(this._config.ruleEngine || {}, null, this._termFactory);
 
         // Use coordinated reasoning strategy if LM is enabled, otherwise naive strategy
@@ -103,17 +105,6 @@ export class NAR extends BaseComponent {
     }
 
 
-    _setupDefaultRules() {
-        try {
-            this._ruleEngine.register(SyllogisticRule.create(this._termFactory));
-            this._ruleEngine.register(ImplicationSyllogisticRule.create(this._termFactory));
-            this._ruleEngine.register(ModusPonensRule.create(this._termFactory));
-            this._ruleEngine.register(SimilaritySyllogism.create(this._termFactory));
-        } catch (error) {
-            this.logWarn('Error setting up default rules:', error);
-        }
-    }
-
     async input(narseseString) {
         try {
             const parsed = this._parser.parse(narseseString);
@@ -148,10 +139,6 @@ export class NAR extends BaseComponent {
     async initialize() {
         // Initialize all registered components
         const success = await this._componentManager.initializeAll();
-        if (success) {
-            // Set up default rules after initialization
-            this._setupDefaultRules();
-        }
         return success;
     }
 

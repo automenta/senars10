@@ -100,7 +100,7 @@ export class Concept extends ConfigurableComponent {
 
     addTask(task) {
         const storage = this._getStorage(task.type);
-        const added = storage.add(task);
+        const added = storage.add(task, task.budget.priority);
         if (added) {
             this._updateLastAccessed();
             this._useCount++;

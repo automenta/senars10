@@ -41,7 +41,6 @@ export class Cycle extends BaseComponent {
 
         try {
             this._taskManager.processPendingTasks(cycleStartTime);
-            this._memory.consolidate(cycleStartTime);
 
             const focusTasks = this._focus.getTasks(this._config.focusTaskLimit || 10);
             const allConcepts = this._memory.getAllConcepts();

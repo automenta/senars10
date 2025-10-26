@@ -11,8 +11,8 @@ import {VariableBindingUtils} from './VariableBindingUtils.js';
  * Consolidates OperationEvaluationEngine, UnifiedOperatorEvaluator, and BooleanReductionEngine
  */
 export class EvaluationEngine {
-    constructor(functorRegistry = null, termFactory = null) {
-        this.functorRegistry = functorRegistry || new FunctorRegistry();
+    constructor(functorRegistry, termFactory = null) {
+        this.functorRegistry = functorRegistry;
         this.termFactory = termFactory || new TermFactory();
         this.equalitySolver = new EqualitySolver(this.termFactory);
         
@@ -39,7 +39,9 @@ export class EvaluationEngine {
 
     _initializeDefaultFunctors() {
         ['True', 'False', 'Null'].forEach(name => {
-            this.functorRegistry.register(name, () => SYSTEM_ATOMS[name], {arity: 0});
+            if (!this.functorRegistry.has(name)) {
+                this.functorRegistry.register(name, () => SYSTEM_ATOMS[name], {arity: 0});
+            }
         });
 
         this._initializeArithmeticFunctors();
@@ -48,9 +50,13 @@ export class EvaluationEngine {
     _initializeArithmeticFunctors() {
         const ops = [['add', 2, true], ['subtract', 2, false], ['multiply', 2, true], ['divide', 2, false]];
         ops.forEach(([name, arity, isCommutative]) => {
-            this.addFunctor(name, VectorOperations[name], {arity, isCommutative});
+            if (!this.functorRegistry.has(name)) {
+                this.addFunctor(name, VectorOperations[name], {arity, isCommutative});
+            }
         });
-        this.addFunctor('cmp', VectorOperations.compare, {arity: 2});
+        if (!this.functorRegistry.has('cmp')) {
+            this.addFunctor('cmp', VectorOperations.compare, {arity: 2});
+        }
     }
 
     /**
@@ -76,6 +82,9 @@ export class EvaluationEngine {
             case '--':
                 return this.reduce(term);
             default:
+                if (this.functorRegistry.has(term.operator)) {
+                    return this._evaluateFunctor(term.operator, term.components, variableBindings);
+                }
                 return this._evaluateNonOperation(term, context, variableBindings);
         }
     }
@@ -483,13 +492,15 @@ export class EvaluationEngine {
 
     async _evaluateOperation(term, variableBindings) {
         const [functionTerm, argsTerm] = term.components;
-
         const functionName = this._resolveFunctionName(functionTerm, variableBindings);
         if (!functionName) {
             return this._createResult(SYSTEM_ATOMS.Null, false, 'Unbound variable in function position');
         }
-
         const args = this._extractArguments(argsTerm, variableBindings);
+        return this._evaluateFunctor(functionName, args, variableBindings);
+    }
+
+    async _evaluateFunctor(functionName, args, variableBindings) {
         const functor = this.functorRegistry.get(functionName);
 
         if (!functor) {
@@ -503,7 +514,7 @@ export class EvaluationEngine {
                 let processedArg = arg;
 
                 // If argument is a compound operation term, try to evaluate it first
-                if (processedArg.isCompound && processedArg.operator === '^') {
+                if (processedArg.isCompound && (processedArg.operator === '^' || this.functorRegistry.has(processedArg.operator))) {
                     const evalResult = await this.evaluate(processedArg, null, variableBindings);
                     if (!evalResult.success || isNull(evalResult.result)) {
                         return this._createResult(SYSTEM_ATOMS.Null, false, `Failed to evaluate nested operation in argument: ${processedArg.toString()}`);

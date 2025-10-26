@@ -4,11 +4,14 @@
  * Updated to use flexible truth matching for better resilience to implementation changes.
  */
 
-import {TaskMatch, TestNAR} from '../../src/testing/TestNAR.js';
+import { AgentBuilder } from '../../src/AgentBuilder.js';
+import { TaskMatch, TestNAR } from '../../src/testing/TestNAR.js';
 
 describe('Modus Ponens Tests (with new TestNAR)', () => {
     it('should derive b from (a ==> b) and a with correct truth value', async () => {
-        const result = await new TestNAR()
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const testNAR = new TestNAR(agent.nar);
+        const result = await testNAR
             .input('(a ==> b)', 0.9, 0.9)
             .input('a', 0.8, 0.8)
             .run(2)
@@ -22,7 +25,9 @@ describe('Modus Ponens Tests (with new TestNAR)', () => {
     });
 
     it('should not derive without the antecedent', async () => {
-        const result = await new TestNAR()
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const testNAR = new TestNAR(agent.nar);
+        const result = await testNAR
             .input('(a ==> b)', 0.9, 0.9)
             // Missing the antecedent 'a'
             .run(1)
@@ -33,7 +38,9 @@ describe('Modus Ponens Tests (with new TestNAR)', () => {
     });
 
     it('should work with complex terms', async () => {
-        const result = await new TestNAR()
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const testNAR = new TestNAR(agent.nar);
+        const result = await testNAR
             .input('(sunny_day ==> good_mood)', 0.85, 0.9)
             .input('sunny_day', 0.9, 0.85)
             .run(2)

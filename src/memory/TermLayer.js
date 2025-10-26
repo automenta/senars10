@@ -17,7 +17,7 @@ export class TermLayer extends Layer {
         const priority = data.priority ?? 1; // Using nullish coalescing for more robust default
 
         const linkEntry = this._createLinkEntry(source, target, {...data, priority});
-        const added = this.linkBag.add(linkEntry);
+        const added = this.linkBag.add(linkEntry, priority);
 
         if (added) {
             sourceLinks.set(target.name, linkEntry);
@@ -134,7 +134,7 @@ export class TermLayer extends Layer {
         let lowestItem = null;
         let lowestPriority = Infinity;
 
-        for (const [item, priority] of this.linkBag._items.entries()) {
+        for (const [item, priority] of this.linkBag.items.entries()) {
             if (priority < lowestPriority) {
                 lowestPriority = priority;
                 lowestItem = item;

@@ -1,8 +1,12 @@
-import {FunctorRegistry} from './Functor.js';
+import { BaseModule } from './BaseModule.js';
 
-export class CoreFunctorLibrary {
-    constructor(registry = null) {
-        this.registry = registry || new FunctorRegistry();
+export class CoreFunctorModule extends BaseModule {
+    constructor() {
+        super('CoreFunctorModule');
+    }
+
+    register(agent, config) {
+        this.registry = agent.nar._functorRegistry;
         this._initializeCoreFunctors();
     }
 
@@ -100,26 +104,5 @@ export class CoreFunctorLibrary {
     // Check if a value is null or equivalent to null
     _isNullish(value) {
         return value == null || (typeof value === 'number' && isNaN(value));
-    }
-
-    getRegistry() {
-        return this.registry;
-    }
-
-    addFunctor(name, execute, config = {}) {
-        return this.registry.register(name, execute, config.aliases || []);
-    }
-
-    executeFunctor(name, ...args) {
-        try {
-            return this.registry.execute(name, ...args);
-        } catch (error) {
-            console.error(`Error executing functor ${name}: ${error.message}`);
-            return null;
-        }
-    }
-
-    getStats() {
-        return this.registry.getStats();
     }
 }

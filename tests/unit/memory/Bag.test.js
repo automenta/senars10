@@ -20,21 +20,21 @@ describe('Bag', () => {
         });
 
         test('adds an item', () => {
-            const task = new Task({term: createAtom('A')});
-            expect(bag.add(task)).toBe(true);
+            const task = new Task({term: createAtom('A'), budget: {priority: 0.5}});
+            expect(bag.add(task, task.budget.priority)).toBe(true);
             expect(bag.size).toBe(1);
         });
 
         test('does not add a duplicate item', () => {
-            const task = new Task({term: createAtom('A')});
-            bag.add(task);
-            expect(bag.add(task)).toBe(false);
+            const task = new Task({term: createAtom('A'), budget: {priority: 0.5}});
+            bag.add(task, task.budget.priority);
+            expect(bag.add(task, task.budget.priority)).toBe(false);
             expect(bag.size).toBe(1);
         });
 
         test('removes an item', () => {
-            const task = new Task({term: createAtom('A')});
-            bag.add(task);
+            const task = new Task({term: createAtom('A'), budget: {priority: 0.5}});
+            bag.add(task, task.budget.priority);
             expect(bag.remove(task)).toBe(true);
             expect(bag.size).toBe(0);
         });
@@ -46,8 +46,8 @@ describe('Bag', () => {
         beforeEach(() => {
             task1 = new Task({term: createAtom('A'), budget: {priority: 0.5}});
             task2 = new Task({term: createAtom('B'), budget: {priority: 0.8}});
-            bag.add(task1);
-            bag.add(task2);
+            bag.add(task1, task1.budget.priority);
+            bag.add(task2, task2.budget.priority);
         });
 
         test('peeks at the highest priority item', () => {

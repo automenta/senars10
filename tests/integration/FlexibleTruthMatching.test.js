@@ -4,15 +4,18 @@
  * This test shows how to use the enhanced TestNAR with tolerance-based matching
  */
 
-import {TaskMatch, TestNAR} from '../../src/testing/TestNAR.js';
-import {flexible} from '../support/testOrganizer.js';
+import { AgentBuilder } from '../../src/AgentBuilder.js';
+import { TaskMatch, TestNAR } from '../../src/testing/TestNAR.js';
+import { flexible } from '../support/testOrganizer.js';
 
 describe('Flexible Truth Matching Tests', () => {
     it('should match truth values with tolerance using new withFlexibleTruth method', async () => {
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const testNAR = new TestNAR(agent.nar);
         // Use the new flexible truth matching with tolerance
         // The reasoning might produce slightly different values due to floating point precision
         // or algorithmic variations, so we use tolerance-based matching
-        const result = await new TestNAR()
+        const result = await testNAR
             .input('(a ==> b)', 0.9, 0.9)
             .input('a', 0.8, 0.8)
             .run(2)
@@ -26,8 +29,10 @@ describe('Flexible Truth Matching Tests', () => {
     });
 
     it('should still support exact minimum threshold matching for backward compatibility', async () => {
+        const agent = await new AgentBuilder().withCoreRules().build();
+        const testNAR = new TestNAR(agent.nar);
         // This demonstrates that the original functionality is preserved
-        const result = await new TestNAR()
+        const result = await testNAR
             .input('(a ==> b)', 0.9, 0.9)
             .input('a', 0.8, 0.8)
             .run(2)

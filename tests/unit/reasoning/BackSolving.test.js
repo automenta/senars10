@@ -1,11 +1,13 @@
-import { EvaluationEngine as OperationEvaluationEngine } from '../../../src/reasoning/EvaluationEngine.js';
-import {TermFactory} from '../../../src/term/TermFactory.js';
+import { EvaluationEngine } from '../../../src/reasoning/EvaluationEngine.js';
+import { TermFactory } from '../../../src/term/TermFactory.js';
+import { FunctorRegistry } from '../../../src/reasoning/Functor.js';
 
 describe('BackSolving (Unified)', () => {
     let engine, termFactory;
 
     beforeEach(() => {
-        engine = new OperationEvaluationEngine(); // Using unified engine
+        const functorRegistry = new FunctorRegistry();
+        engine = new EvaluationEngine(functorRegistry);
         termFactory = new TermFactory();
     });
 
