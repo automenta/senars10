@@ -166,73 +166,117 @@ The `Agent` is the top-level entity that orchestrates the system's lifecycle. It
 
 ---
 
-### Phase 8: Enhanced Computational Parity & Integration
-*Goal: Implement Prolog/MeTTa computational capabilities as seamless integration with core NARS reasoning, addressing the critical computational gap compared to OpenNARS.*
+### Phase 8: Unified Computational Reasoning Framework
+*Goal: Implement a unified computational reasoning system that seamlessly integrates logical inference, equation solving, pattern matching, and dynamic rule configuration within the core NARS framework, using natural extensions of NARS syntax.*
 
-**Rationale:** SeNARS must achieve computational power equivalent to Prolog systems for deterministic programs, while maintaining the non-axiomatic reasoning capabilities of NARS. This is achieved not as a separate system but as fluid integration with core reasoning, supporting the NARS principles of computational generality and unified control.
+**Rationale:** SeNARS must achieve powerful computational reasoning capabilities while maintaining the non-axiomatic reasoning foundations of NARS. Rather than importing external paradigms (Prolog/MeTTa), this phase extends NARS syntax and semantics to handle computational operations naturally within the existing NARS architecture, preserving the theoretical elegance and real-time properties that make NARS unique.
 
 **Key Initiatives:**
 
-*   **8.1: Prolog Integration Engine:**
-    *   **Action:** Implement full Prolog-style deterministic computation that integrates with NARS control cycle rather than operating as a separate system.
-    *   **Implementation Details:** Extend current PrologParser to handle complex Prolog programs and integrate Prolog execution into NARS Cycle through special operation terms that maintain NARS priority-driven control. Rather than depth-first search with backtracking like traditional Prolog, the system will incorporate Prolog reasoning within the NARS attention mechanism.
-    *   **Outcome:** Can execute complex Prolog programs with NARS reasoning while maintaining real-time NARS properties.
+*   **8.1: Enhanced Computational Operators Within NARS Syntax:**
+    *   **Action:** Extend the existing `=` (equality) and other operators to handle sophisticated pattern matching, equation solving, and computational operations within NARS syntax.
+    *   **Implementation Details:** Enhance the existing `=` operator implementation in EvaluationEngine to support equation solving like `(X + 2) = 5`, equality relations like `(X, Y) = (3, 4)`, and pattern matching like `(parent, ?X) = (?, Bob)` for unification. All operations must integrate with NARS priority-driven control and attention mechanisms rather than operating as separate systems.
+    *   **Technical Considerations:** 
+        - Ensure computational operations respect task priorities and attention focus
+        - Maintain real-time processing properties during complex computations
+        - Handle variable binding and unification within the NARS inference cycle
+        - Preserve truth-value and budget propagation during computational operations
+    *   **Outcome:** Users can express computational relations naturally in NARS syntax while maintaining all NARS properties.
 
-*   **8.2: MeTTa Equals Operator:**
-    *   **Action:** Implement `=` operator for unification and pattern matching that works within NARS architecture.
-    *   **Implementation Details:** Build unification system for MeTTa patterns using existing VariableBindingUtils infrastructure, allowing seamless pattern matching within NARS term processing. This enables higher-order pattern matching like `(Similar, (Human ==> Mortal), (Socrates ==> Mortal))` to work fluidly within the reasoning cycle.
-    *   **Outcome:** Unification patterns work seamlessly with NARS terms, achieving the computational power MeTTa provides.
+*   **8.2: Dynamic Pattern Matching and Unification System:**
+    *   **Action:** Enhance the VariableBindingUtils and PatternMatcher to support sophisticated unification for higher-order reasoning patterns.
+    *   **Implementation Details:** Improve the existing pattern matching system to handle complex patterns like `(Similar, (Human ==> Mortal), (Socrates ==> Mortal))` as NARS terms. This includes support for variable binding across complex term structures, nested pattern matching, and unification with type constraints.
+    *   **Technical Considerations:**
+        - Ensure pattern matching is efficient to avoid performance bottlenecks in the reasoning cycle
+        - Handle variable scoping and binding properly to avoid conflicts
+        - Support both structural and functional evaluation patterns during unification
+        - Maintain consistency with NARS truth-value calculations during pattern matching
+    *   **Outcome:** The system can perform complex pattern matching and variable binding while preserving NARS attention and memory principles.
 
-*   **8.3: Cross-Paradigm Term Processing:**
-    *   **Action:** Enable terms to flow seamlessly between NAL, Prolog, and MeTTa processing within single inferences.
-    *   **Implementation Details:** Create unified term processing pipeline where a single reasoning step can incorporate NAL syllogistic reasoning, Prolog-style unification, and MeTTa-style pattern matching as needed. This creates novel synergies of computation paradigms.
-    *   **Outcome:** Single inferences can leverage multiple computational approaches, creating powerful reasoning synergies.
+*   **8.3: Unified Computational and Inference Processing:**
+    *   **Action:** Integrate computational operations (equation solving, pattern matching) directly into the NARS inference cycle.
+    *   **Implementation Details:** Create seamless interaction between logical inference and computational operations within the same processing pipeline. Computational results should be subject to the same priority evaluation, memory storage, and attention mechanisms as logical inferences.
+    *   **Technical Considerations:**
+        - Ensure computational operations don't disrupt real-time NARS operation
+        - Implement proper resource allocation between computational and logical tasks
+        - Handle computational failures gracefully without crashing the reasoning cycle
+        - Maintain performance metrics for computational operations
+    *   **Outcome:** A single coherent processing pipeline that handles both NARS-style reasoning and computational tasks while preserving all core NARS properties.
 
-*   **8.4: Computational Power Validation:**
-    *   **Action:** Verify the system achieves computational power of equivalent Prolog systems while maintaining NARS properties.
-    *   **Implementation Details:** Create benchmark suite comparing to classical Prolog systems on equivalent problems while verifying that NARS properties (AIKR, attention focus, real-time operation) are preserved.
-    *   **Outcome:** System achieves computational parity without compromising core NARS principles.
+*   **8.4: Higher-Order Term Processing:**
+    *   **Action:** Enable higher-order reasoning where terms representing logical statements can be manipulated as first-class objects within NARS.
+    *   **Implementation Details:** Allow terms like `(Human ==> Mortal)` to be treated as objects that can be bound to variables, compared, and used in meta-level reasoning. This enables powerful meta-cognitive capabilities while maintaining NARS architecture.
+    *   **Technical Considerations:**
+        - Implement proper term representation for higher-order statements
+        - Handle truth-value propagation in higher-order reasoning contexts
+        - Ensure higher-order operations don't create infinite loops or combinatorial explosions
+        - Maintain consistency with NARS type system and constraints
+    *   **Outcome:** The system can reason about patterns of knowledge, not just base facts, enabling sophisticated meta-cognitive operations while preserving NARS properties.
 
 ### Acceptance Criteria for Phase 8:
-- [ ] Complex Prolog programs execute with NARS reasoning while maintaining NARS properties
-- [ ] MeTTa-style unification patterns work seamlessly with NARS terms
-- [ ] Single inferences can incorporate multiple computational paradigms
-- [ ] Computational power benchmarks equivalent to Prolog systems with preserved NARS timing
+- [ ] Equation solving works naturally within NARS syntax: `(X + 3) = 7` derives `X = 4` with proper NARS priority handling
+- [ ] Complex pattern matching operates efficiently: `(Similar, (Human ==> Mortal), (Socrates ==> Mortal))` patterns work within NARS terms
+- [ ] Computational operations maintain NARS real-time properties and attention focus
+- [ ] Higher-order term processing works without disrupting core NARS operation
+- [ ] Performance benchmarks show computational integration doesn't degrade NARS reasoning speed
+- [ ] All computational operations use same memory and attention mechanisms as logical inference
 
 ---
 
-### Phase 9: Flexible Rule Infrastructure
-*Goal: Create infrastructure for defining new rule types, with focus on practical extensibility that supports NARS principles of handling unforeseen reasoning patterns.*
+### Phase 9: Dynamic Rule Configuration and Template Engine
+*Goal: Create advanced infrastructure for defining, configuring, and dynamically loading new rule types through configuration and templates, while maintaining tight integration with the unified computational reasoning framework.*
 
-**Rationale:** Rather than implementing specific rule types that may not be needed, the system needs flexible infrastructure that enables diverse, unforeseen rule types. This supports the NARS principle of adaptability to novel patterns while building upon the solid foundation already established.
+**Rationale:** Rather than hardcoding fixed rule sets, the system needs flexible infrastructure that allows users to define new reasoning patterns through configuration. This supports NARS principles of adaptability while maintaining the theoretical rigor and performance characteristics of the system. The dynamic rule engine must work seamlessly with the computational operations introduced in Phase 8.
 
 **Key Initiatives:**
 
-*   **9.1: Rule Configuration System:**
-    *   **Action:** Enable new NAL rule patterns through configuration rather than code changes.
-    *   **Implementation Details:** Extend existing NALRule architecture to support configuration-based patterns that define matching and application logic. This allows new rules to be added without modifying the core codebase.
-    *   **Outcome:** New rule types definable through configuration while maintaining performance.
+*   **9.1: Configuration-Based Rule Definition:**
+    *   **Action:** Enable creation of new rule types through configuration files rather than code changes.
+    *   **Implementation Details:** Develop a rule configuration system that allows users to define new inference patterns using a structured format. This includes pattern matching templates, truth-value transformation functions, and priority calculations. The configuration system should support both simple NAL patterns and complex computational rules that integrate with Phase 8 capabilities.
+    *   **Technical Considerations:**
+        - Ensure configuration-defined rules maintain same performance characteristics as hardcoded rules
+        - Implement validation for configuration files to prevent invalid rule definitions
+        - Support integration with computational operators from Phase 8 (equation solving, pattern matching)
+        - Maintain proper error handling for malformed rule configurations
+    *   **Outcome:** New reasoning patterns definable through configuration while maintaining high performance and NARS theoretical integrity.
 
-*   **9.2: Template-Based Rule Definition:**
-    *   **Action:** Create pattern templates for common rule types (syllogistic, conditional, temporal).
-    *   **Implementation Details:** Develop rule template system that generates specific rule instances based on pattern configurations. This builds upon existing RuleEngine infrastructure rather than replacing it.
-    *   **Outcome:** Common rule types can be instantiated and modified through templates.
+*   **9.2: Template-Based Rule Generation:**
+    *   **Action:** Create powerful template systems for generating families of related rules.
+    *   **Implementation Details:** Develop template mechanisms that can generate complete rule sets from high-level pattern descriptions. Examples include syllogistic rule templates, temporal pattern templates, and computational pattern templates. Templates should support parameterization and composition to create complex rule families efficiently.
+    *   **Technical Considerations:**
+        - Ensure generated rules are properly optimized for performance
+        - Support template inheritance and specialization
+        - Handle variable binding and truth-value calculations in generated rules
+        - Integrate with pattern matching capabilities from both NAL and computational reasoning
+    *   **Outcome:** Complex families of related rules can be generated automatically from high-level templates while maintaining theoretical correctness.
 
-*   **9.3: Integration with Existing RuleEngine:**
-    *   **Action:** Extend current RuleEngine rather than replacing it, ensuring backward compatibility.
-    *   **Implementation Details:** Enhance existing RuleEngine to process dynamically configured rules alongside existing hardcoded rules, using the same performance optimization and evaluation pathways.
-    *   **Outcome:** All rule types work within single, efficient processing pipeline.
+*   **9.3: Dynamic Rule Loading and Management:**
+    *   **Action:** Implement runtime loading and management of rule configurations and templates.
+    *   **Implementation Details:** Create systems for dynamically loading rule configurations during runtime, enabling rule modification without system restart. Include mechanisms for rule activation/deactivation, performance monitoring, and effectiveness evaluation. Rules should be able to adapt based on performance feedback and user configuration.
+    *   **Technical Considerations:**
+        - Ensure dynamic loading doesn't disrupt ongoing reasoning cycles
+        - Implement safe mechanisms for rule replacement during execution
+        - Track performance metrics for dynamically loaded rules
+        - Support hot-swapping of rule configurations
+    *   **Outcome:** Rules can be added, modified, and removed at runtime without disrupting system operation.
 
-*   **9.4: LM-NAL Rule Synergy:**
-    *   **Action:** Establish common interface for both NAL and LM reasoning patterns.
-    *   **Implementation Details:** Create unified rule processing interface that can handle both symbolic NAL rules and neural LM reasoning patterns, enabling synergistic combinations.
-    *   **Outcome:** NAL and LM reasoning operate through common infrastructure with synergistic capabilities.
+*   **9.4: Integrated Computational Rule Processing:**
+    *   **Action:** Ensure configured and templated rules can seamlessly work with computational operations from Phase 8.
+    *   **Implementation Details:** Enable configuration-defined rules to incorporate equation solving, pattern matching, and higher-order reasoning patterns. This includes rules that can perform equation solving as part of their processing, rules that utilize unification patterns, and rules that operate on higher-order terms.
+    *   **Technical Considerations:**
+        - Maintain performance during complex computational rule processing
+        - Ensure computational rules integrate properly with memory and attention systems
+        - Handle the interaction between configured rules and computational operators
+        - Validate that computational rules maintain NARS theoretical properties
+    *   **Outcome:** Configuration-defined rules can leverage all computational capabilities introduced in Phase 8 while preserving NARS properties.
 
 ### Acceptance Criteria for Phase 9:
 - [ ] New rule types definable through configuration without code changes
-- [ ] Existing rules continue to work unchanged with maintained performance
-- [ ] Template system generates valid, efficient NAL rules
-- [ ] NAL and LM reasoning patterns use common processing interface
+- [ ] Template system generates valid, efficient NAL and computational rules
+- [ ] Rules can be loaded and managed dynamically at runtime
+- [ ] Configuration-defined rules integrate seamlessly with Phase 8 computational operations
+- [ ] Performance for configured rules matches hardcoded rule performance
+- [ ] Configured rules maintain NARS theoretical properties and attention mechanisms
 
 ---
 
@@ -434,46 +478,52 @@ The `Agent` is the top-level entity that orchestrates the system's lifecycle. It
          achievable within the current architecture without needing to replicate the entire 
          atomspace model.
 
-  Phase 8: The Transparent Mind (UX/DX)
+  Phase 8: Unified Computational Reasoning Framework
 
-   * Strengths: The focus on user and developer experience is a sign of a mature project and is 
-     critical for adoption.
+   * Strengths: This phase correctly extends NARS capabilities with computational reasoning while 
+     maintaining theoretical foundations. The focus on unified processing within NARS syntax is
+     architecturally elegant and preserves system coherence.
    * Concerns & Missing Details:
-       * Scope Creep Risk: Building a rich, real-time visualization suite is a full-fledged 
-         front-end application project. This carries a high risk of distracting from core backend 
-         development. The initial version should be strictly scoped to the most critical views: the
-          InputTasks buffer, a simple concept-graph explorer, and a term evaluation tracer.
-       * API Definition: The WebSocket API needs to be designed upfront. A preliminary 
-         specification of the message types, data formats, and interaction patterns is essential 
-         before any implementation begins.
+       * Integration Complexity: Integrating computational operations (equation solving, pattern 
+         matching) into the real-time NARS cycle is non-trivial. The system must maintain its
+         real-time properties while handling potentially complex computational operations. A detailed
+         performance analysis plan is needed to ensure computational operations don't disrupt
+         the NARS reasoning cycle.
+       * Variable Binding Sophistication: The enhanced pattern matching system needs careful design
+         to handle complex variable scoping and binding scenarios without creating performance
+         bottlenecks or combinatorial explosions. The VariableBindingUtils infrastructure needs
+         thorough validation for complex cases.
+       * Truth-Value Integration: Computational operations must properly integrate with NARS'
+         truth-value system. The relationship between computational results and truth-values
+         needs clear specification.
 
-  Phase 9: Production & Emergent Autonomy
+  Phase 9: Dynamic Rule Configuration and Template Engine
 
-   * Strengths: This phase correctly identifies the ultimate goals of the project.
+   * Strengths: This phase provides essential flexibility for extending the system without code
+     changes, which is crucial for long-term maintainability and research applications.
    * Concerns & Missing Details:
-       * The "Cognition-Action Bridge": This is the biggest missing piece in the entire roadmap. 
-         The plan states the agent will form goals to improve itself (e.g., "investigate why the 
-         deduction rule has a low success rate"). But how does it act on this? The system needs a 
-         set of meta-cognitive functors/tools—operations that can inspect and modify the agent's 
-         own internal state. For example:
-           * get_rule_stats("deduction")
-           * set_rule_priority("deduction", 0.5)
-           * enable_rule_set("temporal")
-           * query_memory_for_contradictions()
-       * Without this bridge from self-reflection to self-modification, true autonomy is 
-         impossible. The design and implementation of this secure, internal API is a critical 
-         prerequisite for this phase.
+       * Performance of Configured Rules: Configuration-defined rules must maintain performance
+         comparable to hardcoded rules. The template generation system needs careful optimization
+         to avoid runtime overhead. Benchmarking against hardcoded equivalents is essential.
+       * Validation of Dynamic Rules: A comprehensive validation system is needed to ensure
+         dynamically loaded rules conform to NARS theoretical requirements and don't introduce
+         inconsistencies or performance issues.
+       * Integration with Computational Framework: Configured rules must seamlessly integrate
+         with the computational operators from Phase 8. This requires careful API design for
+         rules to access computational capabilities without breaking encapsulation.
 
   Summary of Recommendations
 
    1. Refine Vague Goals: Replace ambiguous terms like "Parity" with specific, measurable, and 
-      achievable engineering goals (e.g., "Pass a suite of declarative logic tests," "Support 
-      higher-order term binding").
+      achievable engineering goals (e.g., "Equation solving works within NARS syntax," 
+      "Support for higher-order term binding").
    2. Define Interfaces First: Before implementing Phases 5, 6, and 8, first design the key APIs: 
       the Agent-NAR interface, the Module-Registration/Eventing API, and the WebSocket API.
    3. Break Down Large Initiatives: Decompose massive tasks like "Implement all NAL rules" into 
       smaller, staged deliverables.
-   4. Design the Meta-Cognitive API: Explicitly add a task to Phase 8 or early Phase 9 to design and
+   4. Performance Validation: For Phases 8 and 9 specifically, implement comprehensive performance
+      monitoring to ensure computational operations and dynamic rules don't degrade NARS real-time
+      properties. This includes benchmarks for computational complexity and rule execution speed.
        implement the internal "self-modification" API that is necessary for true autonomous 
       behavior.
 
