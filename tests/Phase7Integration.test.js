@@ -132,4 +132,3 @@ describe('Phase 7: NARS & MeTTa Theoretical Parity Integration Tests', () => {
     });
 });
 
-export default {};
