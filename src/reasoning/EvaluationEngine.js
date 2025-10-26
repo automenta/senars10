@@ -12,11 +12,31 @@ import {HigherOrderReasoningEngine} from './nal/HigherOrderReasoningEngine.js';
  * Consolidates OperationEvaluationEngine, UnifiedOperatorEvaluator, and BooleanReductionEngine
  */
 export class EvaluationEngine {
-    constructor(functorRegistry = null, termFactory = null) {
+    constructor(functorRegistry = null, termFactory = null, config = {}) {
         this.functorRegistry = functorRegistry || new FunctorRegistry();
         this.termFactory = termFactory || new TermFactory();
         this.equalitySolver = new EqualitySolver(this.termFactory);
         this.higherOrderEngine = new HigherOrderReasoningEngine();
+        
+        // Advanced features configuration
+        this.config = {
+            enableCaching: config.enableCaching !== false,
+            enableOptimization: config.enableOptimization !== false,
+            enableBacktracking: config.enableBacktracking !== false,
+            maxRecursionDepth: config.maxRecursionDepth || 10,
+            enableTypeChecking: config.enableTypeChecking !== false,
+            ...config
+        };
+        
+        // Evaluation caches
+        if (this.config.enableCaching) {
+            this._evaluationCache = new Map();
+            this._cacheHits = 0;
+            this._cacheMisses = 0;
+        }
+        
+        // Current recursion depth tracking
+        this._recursionDepth = 0;
         
         // Rules for functional evaluation (when all arguments are boolean values)
         this.functionalRules = {
@@ -59,33 +79,67 @@ export class EvaluationEngine {
      * Unified evaluation method that combines all evaluation capabilities
      */
     async evaluate(term, context, variableBindings = new Map()) {
-        if (!term.isCompound) {
-            return this._evaluateNonOperation(term, context, variableBindings);
+        // Check recursion depth to prevent infinite loops
+        if (this._recursionDepth > this.config.maxRecursionDepth) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Maximum recursion depth exceeded');
         }
+        this._recursionDepth++;
 
-        // Check for higher-order reasoning patterns before standard evaluation
-        const higherOrderResult = this.higherOrderEngine.processHigherOrderTerm(term, context);
-        if (higherOrderResult.success) {
-            return this._createResult(higherOrderResult.result, true, `Higher-order reasoning: ${higherOrderResult.message}`, 
-                higherOrderResult.bindings ? {bindings: higherOrderResult.bindings} : {});
-        }
+        try {
+            // Generate cache key if caching is enabled
+            let cacheKey = null;
+            if (this.config.enableCaching) {
+                cacheKey = this._generateCacheKey(term, variableBindings);
+                const cachedResult = this._evaluationCache.get(cacheKey);
+                if (cachedResult) {
+                    this._cacheHits++;
+                    return cachedResult;
+                }
+            }
 
-        switch (term.operator) {
-            case '&':
-            case '|':
-            case '==>':
-            case '<=>':
-                return this._evaluateUnifiedOperator(term, context, variableBindings);
-            case '^':
-                return term.components.length !== 2 
-                    ? this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format')
-                    : await this._evaluateOperation(term, variableBindings);
-            case '=':
-                return await this._evaluateEquality(term, context, variableBindings);
-            case '--':
-                return this.reduce(term);
-            default:
-                return this._evaluateNonOperation(term, context, variableBindings);
+            if (!term.isCompound) {
+                const result = this._evaluateNonOperation(term, context, variableBindings);
+                this._setCacheResult(cacheKey, result);
+                return result;
+            }
+
+            // Check for higher-order reasoning patterns before standard evaluation
+            const higherOrderResult = this.higherOrderEngine.processHigherOrderTerm(term, context);
+            if (higherOrderResult.success) {
+                const result = this._createResult(higherOrderResult.result, true, `Higher-order reasoning: ${higherOrderResult.message}`, 
+                    higherOrderResult.bindings ? {bindings: higherOrderResult.bindings} : {});
+                this._setCacheResult(cacheKey, result);
+                return result;
+            }
+
+            let result;
+            switch (term.operator) {
+                case '&':
+                case '|':
+                case '==>':
+                case '<=>':
+                    result = await this._evaluateUnifiedOperator(term, context, variableBindings);
+                    break;
+                case '^':
+                    result = term.components.length !== 2 
+                        ? this._createResult(SYSTEM_ATOMS.Null, false, 'Invalid operation format')
+                        : await this._evaluateOperation(term, variableBindings);
+                    break;
+                case '=':
+                    result = await this._evaluateEquality(term, context, variableBindings);
+                    break;
+                case '--':
+                    result = this.reduce(term);
+                    break;
+                default:
+                    result = this._evaluateNonOperation(term, context, variableBindings);
+                    break;
+            }
+
+            this._setCacheResult(cacheKey, result);
+            return result;
+        } finally {
+            this._recursionDepth--;
         }
     }
 
@@ -894,5 +948,138 @@ export class EvaluationEngine {
 
     getFunctorRegistry() {
         return this.functorRegistry;
+    }
+
+    /**
+     * Generate a cache key for term evaluation
+     */
+    _generateCacheKey(term, variableBindings) {
+        const termKey = term.toString();
+        const bindingsKey = Array.from(variableBindings.entries())
+            .map(([key, val]) => `${key}:${val.toString()}`)
+            .sort()
+            .join('|');
+        return `${termKey}#${bindingsKey}`;
+    }
+
+    /**
+     * Set result in cache if caching is enabled
+     */
+    _setCacheResult(cacheKey, result) {
+        if (this.config.enableCaching && cacheKey) {
+            this._evaluationCache.set(cacheKey, result);
+            this._cacheMisses++;
+            
+            // Limit cache size to prevent memory issues
+            if (this._evaluationCache.size > 1000) {
+                // Remove oldest entries (simple FIFO)
+                const firstKey = this._evaluationCache.keys().next().value;
+                if (firstKey) {
+                    this._evaluationCache.delete(firstKey);
+                }
+            }
+        }
+    }
+
+    /**
+     * Get cache statistics
+     */
+    getCacheStats() {
+        if (!this.config.enableCaching) {
+            return null;
+        }
+        const total = this._cacheHits + this._cacheMisses;
+        const hitRate = total > 0 ? this._cacheHits / total : 0;
+        return {
+            hits: this._cacheHits,
+            misses: this._cacheMisses,
+            hitRate,
+            cacheSize: this._evaluationCache.size
+        };
+    }
+
+    /**
+     * Clear the evaluation cache
+     */
+    clearCache() {
+        if (this.config.enableCaching) {
+            this._evaluationCache.clear();
+            this._cacheHits = 0;
+            this._cacheMisses = 0;
+        }
+    }
+
+    /**
+     * Advanced term analysis and type checking if enabled
+     */
+    analyzeTerm(term) {
+        if (!this.config.enableTypeChecking) {
+            return { isValid: true, type: 'unknown' };
+        }
+
+        // Perform type analysis on the term
+        const analysis = {
+            isValid: true,
+            type: term.isAtomic ? 'atomic' : 'compound',
+            operator: term.operator || null,
+            componentCount: term.components?.length || 0,
+            complexity: this._calculateTermComplexity(term),
+            hasVariables: this._hasVariables(term),
+            isWellFormed: this._isWellFormed(term)
+        };
+
+        return analysis;
+    }
+
+    /**
+     * Calculate term complexity
+     */
+    _calculateTermComplexity(term) {
+        if (!term.isCompound) return 1;
+        
+        let complexity = 1; // Base complexity for the term itself
+        if (term.components) {
+            for (const comp of term.components) {
+                complexity += this._calculateTermComplexity(comp);
+            }
+        }
+        return complexity;
+    }
+
+    /**
+     * Check if term contains variables
+     */
+    _hasVariables(term) {
+        if (term.name?.startsWith('?')) return true;
+        
+        if (term.isCompound && term.components) {
+            return term.components.some(comp => this._hasVariables(comp));
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if term is well-formed according to NAL syntax rules
+     */
+    _isWellFormed(term) {
+        // Basic well-formedness check
+        if (term.operator === '-->') {
+            // Inheritance relation should have 2 components
+            return term.components?.length === 2;
+        } else if (term.operator === '==>') {
+            // Implication should have 2 components
+            return term.components?.length === 2;
+        } else if (['&', '|', '<=>'].includes(term.operator)) {
+            // These operators should have 2 or more components
+            return term.components?.length >= 2;
+        }
+        
+        // For other terms, just check if components are valid
+        if (term.components) {
+            return term.components.every(comp => comp !== undefined);
+        }
+        
+        return true;
     }
 }

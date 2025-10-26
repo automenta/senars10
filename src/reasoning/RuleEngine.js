@@ -66,10 +66,16 @@ export class RuleEngine extends BaseComponent {
         if (!(rule instanceof Rule)) throw new Error('Invalid rule type');
 
         if (rule instanceof LMRule && !rule.lm && this._lm) {
-            this._rules.set(rule.id, rule.clone({lm: this._lm}));
-        } else {
-            this._rules.set(rule.id, rule);
+            rule = rule.clone({lm: this._lm});
         }
+        
+        this._rules.set(rule.id, rule);
+        
+        // Index the rule if performance optimizer has indexing enabled
+        if (this._performanceOptimizer) {
+            this._performanceOptimizer.indexRule(rule);
+        }
+        
         return this;
     }
 
@@ -99,7 +105,15 @@ export class RuleEngine extends BaseComponent {
     }
 
     getApplicableRules(task, ruleType = null) {
-        const applicable = this.rules.filter(rule => rule.canApply(task));
+        // If performance optimizer has indexing enabled, use it to find candidates
+        let candidateRules;
+        if (this._performanceOptimizer) {
+            candidateRules = this._performanceOptimizer.getCandidateRules(task, this.rules);
+        } else {
+            candidateRules = this.rules;
+        }
+        
+        const applicable = candidateRules.filter(rule => rule.canApply(task));
         return this._filterByType(applicable, ruleType).sort((a, b) => b.priority - a.priority);
     }
 
@@ -120,6 +134,12 @@ export class RuleEngine extends BaseComponent {
             this._rules.set(rule.id, updatedRule);
             success = true;
             this._incrementTypeMetric(rule);
+            
+            // Update rule effectiveness if performance optimizer is available
+            if (this._performanceOptimizer) {
+                this._performanceOptimizer.updateRuleEffectiveness(rule.id, success, results?.length || 0);
+            }
+            
             return {results, rule: updatedRule};
         } catch (error) {
             if (error.rule) this._rules.set(rule.id, error.rule);
@@ -231,6 +251,12 @@ export class RuleEngine extends BaseComponent {
             this._rules.set(rule.id, updatedRule);
             success = true;
             this._incrementTypeMetric(rule);
+            
+            // Update rule effectiveness
+            if (this._performanceOptimizer) {
+                this._performanceOptimizer.updateRuleEffectiveness(rule.id, success, results?.length || 0);
+            }
+            
             return {results, rule: updatedRule};
         } catch (error) {
             if (error.rule) this._rules.set(rule.id, error.rule);

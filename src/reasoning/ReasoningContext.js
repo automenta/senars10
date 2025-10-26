@@ -1,5 +1,5 @@
 /**
- * Abstract base class for all reasoning contexts
+ * Enhanced ReasoningContext with sophisticated reasoning capabilities
  * Provides a unified interface for context management across different reasoning strategies
  */
 export class ReasoningContext {
@@ -13,16 +13,28 @@ export class ReasoningContext {
             timestamp: Date.now(),
             reasoningDepth: 0,
             maxDepth: config.maxDepth || 10,
+            reasoningPath: [], // Track the path of reasoning for debugging
+            goalStack: [], // Track active goals for goal-oriented reasoning
+            beliefStack: [], // Track active beliefs for consistency checking
+            attentionFocus: null, // Current focus of attention
+            attentionSpan: config.attentionSpan || 5, // How many steps to maintain focus
             ...config
         };
 
-        // Additional context properties
+        // Enhanced context properties
         this._properties = new Map();
         this._history = [];
+        this._beliefBase = new Map(); // Track consistent beliefs
+        this._conflictTracker = new Map(); // Track conflicting beliefs
+        this._relevanceScores = new Map(); // Track relevance of concepts/terms
+        this._inferenceChains = []; // Track chains of inference
         this._metrics = {
             tasksProcessed: 0,
             rulesApplied: 0,
             inferencesMade: 0,
+            beliefsAdded: 0,
+            conflictsDetected: 0,
+            goalsAchieved: 0,
             startTime: Date.now()
         };
     }
@@ -59,6 +71,18 @@ export class ReasoningContext {
         this._config.reasoningDepth = Math.min(depth, this._config.maxDepth);
     }
 
+    get reasoningPath() {
+        return [...this._config.reasoningPath];
+    }
+
+    get goalStack() {
+        return [...this._config.goalStack];
+    }
+
+    get currentGoal() {
+        return this._config.goalStack[this._config.goalStack.length - 1] || null;
+    }
+
     /**
      * Create a context from an existing task and memory state
      */
@@ -67,6 +91,7 @@ export class ReasoningContext {
             memory,
             task,
             timestamp: Date.now(),
+            reasoningPath: [task?.term?.toString() || 'initial'],
             ...config
         });
     }
@@ -86,6 +111,7 @@ export class ReasoningContext {
             memory,
             termFactory,
             ruleEngine,
+            reasoningPath: [],
             ...config
         });
     }
@@ -98,6 +124,7 @@ export class ReasoningContext {
             memory,
             termFactory,
             strategy,
+            reasoningPath: [],
             ...config
         });
     }
@@ -130,7 +157,8 @@ export class ReasoningContext {
     addToHistory(entry) {
         this._history.push({
             ...entry,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            depth: this._config.reasoningDepth
         });
 
         // Limit history size to prevent memory issues
@@ -173,7 +201,9 @@ export class ReasoningContext {
             ...this._metrics,
             reasoningDepth: this._config.reasoningDepth,
             uptime: Date.now() - this._metrics.startTime,
-            historySize: this._history.length
+            historySize: this._history.length,
+            beliefCount: this._beliefBase.size,
+            conflictCount: this._conflictTracker.size
         };
     }
 
@@ -196,23 +226,182 @@ export class ReasoningContext {
     }
 
     /**
+     * Push a goal onto the goal stack
+     */
+    pushGoal(goal) {
+        this._config.goalStack.push(goal);
+        return this;
+    }
+
+    /**
+     * Pop a goal from the goal stack
+     */
+    popGoal() {
+        return this._config.goalStack.pop();
+    }
+
+    /**
+     * Check if a goal exists on the stack
+     */
+    hasGoal(goal) {
+        return this._config.goalStack.includes(goal);
+    }
+
+    /**
+     * Add a belief to the belief base
+     */
+    addBelief(term, truth) {
+        const key = term.toString();
+        this._beliefBase.set(key, { term, truth, timestamp: Date.now() });
+        this.incrementMetric('beliefsAdded');
+        return this;
+    }
+
+    /**
+     * Check if a belief exists in the belief base
+     */
+    hasBelief(term) {
+        return this._beliefBase.has(term.toString());
+    }
+
+    /**
+     * Get a belief from the belief base
+     */
+    getBelief(term) {
+        return this._beliefBase.get(term.toString());
+    }
+
+    /**
+     * Track a conflict between beliefs
+     */
+    trackConflict(term1, term2, details = {}) {
+        const conflictKey = `${term1.toString()}:${term2.toString()}`;
+        this._conflictTracker.set(conflictKey, {
+            term1, term2, details, timestamp: Date.now()
+        });
+        this.incrementMetric('conflictsDetected');
+        return this;
+    }
+
+    /**
+     * Check for conflicts with a given term
+     */
+    getConflictsFor(term) {
+        const termStr = term.toString();
+        return [...this._conflictTracker.entries()]
+            .filter(([key, conflict]) => 
+                conflict.term1.toString() === termStr || conflict.term2.toString() === termStr
+            )
+            .map(([key, conflict]) => conflict);
+    }
+
+    /**
+     * Set relevance score for a concept/term
+     */
+    setRelevance(term, score) {
+        this._relevanceScores.set(term.toString(), {
+            score,
+            timestamp: Date.now()
+        });
+        return this;
+    }
+
+    /**
+     * Get relevance score for a concept/term
+     */
+    getRelevance(term) {
+        return this._relevanceScores.get(term.toString())?.score || 0;
+    }
+
+    /**
+     * Track an inference chain
+     */
+    addInferenceChain(premises, conclusion, ruleName) {
+        this._inferenceChains.push({
+            premises: premises.map(p => p.toString()),
+            conclusion: conclusion.toString(),
+            rule: ruleName,
+            timestamp: Date.now(),
+            depth: this._config.reasoningDepth
+        });
+        return this;
+    }
+
+    /**
+     * Get recent inference chains
+     */
+    getInferenceChains(limit = 10) {
+        return this._inferenceChains.slice(-limit);
+    }
+
+    /**
+     * Add current reasoning step to the path
+     */
+    addToReasoningPath(step) {
+        this._config.reasoningPath.push(step);
+        if (this._config.reasoningPath.length > 20) { // Limit path length
+            this._config.reasoningPath = this._config.reasoningPath.slice(-10);
+        }
+        return this;
+    }
+
+    /**
+     * Check if current reasoning path contains a specific step
+     */
+    hasInPath(step) {
+        return this._config.reasoningPath.includes(step);
+    }
+
+    /**
+     * Get the current attention focus
+     */
+    getAttentionFocus() {
+        return this._config.attentionFocus;
+    }
+
+    /**
+     * Set the attention focus
+     */
+    setAttentionFocus(term) {
+        this._config.attentionFocus = term;
+        this._config.attentionFocusStart = Date.now();
+        return this;
+    }
+
+    /**
+     * Check if attention is still focused
+     */
+    hasAttentionFocus() {
+        if (!this._config.attentionFocus) return false;
+        const elapsed = Date.now() - (this._config.attentionFocusStart || 0);
+        return elapsed < (this._config.attentionSpan * 1000); // Convert to milliseconds
+    }
+
+    /**
      * Create a child context with additional properties
      */
     createChildContext(additionalConfig = {}) {
         const childConfig = {
             ...this._config,
             ...additionalConfig,
-            reasoningDepth: this._config.reasoningDepth + 1
+            reasoningDepth: this._config.reasoningDepth + 1,
+            reasoningPath: [...this._config.reasoningPath],
+            goalStack: [...this._config.goalStack]
         };
 
         const childContext = new ReasoningContext(childConfig);
 
-        // Copy properties and history to child
+        // Copy properties and state to child
         for (const [key, value] of this._properties.entries()) {
             childContext.setProperty(key, value);
         }
 
-        childContext._history = [...this._history]; // Share history by reference
+        childContext._history = [...this._history];
+        childContext._beliefBase = new Map(this._beliefBase);
+        childContext._conflictTracker = new Map(this._conflictTracker);
+        childContext._relevanceScores = new Map(this._relevanceScores);
+        childContext._inferenceChains = [...this._inferenceChains];
+        childContext._metrics = {...this._metrics};
 
         return childContext;
     }
@@ -222,17 +411,20 @@ export class ReasoningContext {
      */
     copy(config = {}) {
         // Create a new context with merged configuration
-        // Use a deep merge approach for nested objects
         const mergedConfig = this._deepMerge(this._config, config);
 
         const newContext = new ReasoningContext(mergedConfig);
 
-        // Copy properties and history to the new context
+        // Copy all state to the new context
         for (const [key, value] of this._properties.entries()) {
             newContext.setProperty(key, value);
         }
 
         newContext._history = [...this._history];
+        newContext._beliefBase = new Map(this._beliefBase);
+        newContext._conflictTracker = new Map(this._conflictTracker);
+        newContext._relevanceScores = new Map(this._relevanceScores);
+        newContext._inferenceChains = [...this._inferenceChains];
         newContext._metrics = {...this._metrics};
 
         return newContext;
@@ -275,7 +467,66 @@ export class ReasoningContext {
             },
             properties: Object.fromEntries(this._properties),
             historyCount: this._history.length,
+            beliefCount: this._beliefBase.size,
+            conflictCount: this._conflictTracker.size,
+            relevanceCount: this._relevanceScores.size,
+            inferenceChainCount: this._inferenceChains.length,
             metrics: this.getMetrics()
         };
+    }
+
+    /**
+     * Check for consistency in the belief base
+     */
+    checkConsistency() {
+        let inconsistencies = [];
+        
+        // Check for direct contradictions in the belief base
+        for (const [key1, belief1] of this._beliefBase.entries()) {
+            for (const [key2, belief2] of this._beliefBase.entries()) {
+                if (key1 !== key2) {
+                    // This is a simplified contradiction check - in a real system,
+                    // we'd have more sophisticated logic to detect contradictions
+                    if (this._areContradictory(belief1.term, belief2.term)) {
+                        inconsistencies.push({
+                            term1: key1,
+                            term2: key2,
+                            belief1: belief1,
+                            belief2: belief2
+                        });
+                    }
+                }
+            }
+        }
+        
+        return inconsistencies;
+    }
+
+    /**
+     * Simple check if two terms are contradictory
+     */
+    _areContradictory(term1, term2) {
+        // This is a very basic implementation - a real system would have more sophisticated logic
+        const str1 = term1.toString();
+        const str2 = term2.toString();
+        
+        // Check for simple negation patterns
+        return (str1 === `~${str2}` || str2 === `~${str1}`);
+    }
+
+    /**
+     * Get beliefs related to a specific term
+     */
+    getRelatedBeliefs(term) {
+        const termStr = term.toString();
+        const related = [];
+        
+        for (const [key, belief] of this._beliefBase.entries()) {
+            if (key.includes(termStr)) {
+                related.push(belief);
+            }
+        }
+        
+        return related;
     }
 }

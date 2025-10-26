@@ -1,4 +1,120 @@
 /**
+ * RuleIndex: Indexes rules by their matching patterns for faster lookup
+ */
+export class RuleIndex {
+    constructor() {
+        this._operatorIndex = new Map(); // Index by term operators
+        this._categoryIndex = new Map(); // Index by rule category
+        this._complexityIndex = new Map(); // Index by term complexity
+        this._lastAccess = new Map(); // Track when rules were last accessed
+    }
+
+    /**
+     * Index a rule based on its characteristics
+     */
+    indexRule(rule) {
+        // Add to category index
+        const category = rule.category || 'general';
+        if (!this._categoryIndex.has(category)) {
+            this._categoryIndex.set(category, []);
+        }
+        this._categoryIndex.get(category).push(rule);
+
+        // Index by expected operators if available
+        if (rule._matches && typeof rule._matches === 'function') {
+            // Try to infer patterns - for now, we'll use a simple approach
+            this._tryInferPatterns(rule);
+        }
+    }
+
+    /**
+     * Infer patterns based on rule matching logic
+     */
+    _tryInferPatterns(rule) {
+        // For common NAL rule types, we can infer their patterns
+        const ruleName = rule.constructor.name.toLowerCase();
+        
+        if (ruleName.includes('deduction')) {
+            // Deduction rules typically match --> and specific patterns
+            this._addOperatorRule('-->', rule);
+            this._addOperatorRule('==>', rule);
+        } else if (ruleName.includes('induction')) {
+            this._addOperatorRule('-->', rule);
+        } else if (ruleName.includes('abduction')) {
+            this._addOperatorRule('-->', rule);
+        } else if (ruleName.includes('equivalence')) {
+            this._addOperatorRule('<=>', rule);
+        } else if (ruleName.includes('implication')) {
+            this._addOperatorRule('==>', rule);
+        } else if (ruleName.includes('conjunction')) {
+            this._addOperatorRule('&', rule);
+        } else if (ruleName.includes('disjunction')) {
+            this._addOperatorRule('|', rule);
+        } else if (ruleName.includes('conversion')) {
+            this._addOperatorRule('-->', rule);
+        }
+    }
+
+    /**
+     * Helper to add a rule to operator index
+     */
+    _addOperatorRule(operator, rule) {
+        if (!this._operatorIndex.has(operator)) {
+            this._operatorIndex.set(operator, []);
+        }
+        this._operatorIndex.get(operator).push(rule);
+    }
+
+    /**
+     * Get candidate rules for a task based on indexing
+     */
+    getCandidates(task) {
+        const candidates = new Set();
+        const now = Date.now();
+
+        // Get candidates by term operator
+        if (task.term?.operator) {
+            const opRules = this._operatorIndex.get(task.term.operator);
+            if (opRules) {
+                opRules.forEach(rule => {
+                    candidates.add(rule);
+                    this._lastAccess.set(rule.id, now); // Update access time
+                });
+            }
+        }
+
+        // Get candidates by general term structure
+        const termType = task.term?.isCompound ? 'compound' : 'atomic';
+        const categoryRules = this._categoryIndex.get(termType) || [];
+        categoryRules.forEach(rule => {
+            candidates.add(rule);
+            this._lastAccess.set(rule.id, now);
+        });
+
+        // If term is compound, check for specific compound categories
+        if (task.term?.isCompound) {
+            const compoundRules = this._categoryIndex.get('compound') || [];
+            compoundRules.forEach(rule => {
+                candidates.add(rule);
+                this._lastAccess.set(rule.id, now);
+            });
+        }
+
+        return Array.from(candidates);
+    }
+
+    /**
+     * Clear the index
+     */
+    clear() {
+        this._operatorIndex.clear();
+        this._categoryIndex.clear();
+        this._complexityIndex.clear();
+        this._lastAccess.clear();
+    }
+}
+
+/**
  * RuleCache: Caches rule application results for improved performance
  */
 export class RuleCache {
@@ -124,17 +240,40 @@ export class PerformanceOptimizer {
         this.config = {
             enableCaching: config.enableCaching !== false,
             enableBatching: config.enableBatching !== false,
+            enableIndexing: config.enableIndexing !== false,
+            enablePrioritization: config.enablePrioritization !== false,
             maxBatchSize: config.maxBatchSize || 50,
             enableProfiling: config.enableProfiling !== false,
             ...config
         };
 
         this.ruleCache = this.config.enableCaching ? new RuleCache(config.cache || {}) : null;
+        this.ruleIndex = this.config.enableIndexing ? new RuleIndex() : null;
         this.profiles = new Map(); // Performance profiles by rule ID
+        this._rulePriorities = new Map(); // Dynamic rule priorities based on effectiveness
     }
 
     /**
-     * Optimize rule application with caching
+     * Index a rule if indexing is enabled
+     */
+    indexRule(rule) {
+        if (this.ruleIndex) {
+            this.ruleIndex.indexRule(rule);
+        }
+    }
+
+    /**
+     * Get candidate rules for a task using indexing (if enabled)
+     */
+    getCandidateRules(task, allRules) {
+        if (this.ruleIndex) {
+            return this.ruleIndex.getCandidates(task);
+        }
+        return allRules; // Fall back to all rules if indexing disabled
+    }
+
+    /**
+     * Optimize rule application with caching and indexing
      */
     async applyRuleWithOptimization(rule, task, context) {
         if (!this.config.enableCaching || !this.ruleCache) {
@@ -162,6 +301,67 @@ export class PerformanceOptimizer {
 
         this.ruleCache.set(rule.id, task, memoryState, result);
         return result;
+    }
+
+    /**
+     * Apply multiple rules with optimization, including prioritization
+     */
+    async applyRulesWithOptimization(rules, task, context) {
+        let applicableRules = rules.filter(rule => rule.canApply && rule.canApply(task));
+        
+        // Apply prioritization if enabled
+        if (this.config.enablePrioritization) {
+            applicableRules = this._prioritizeRules(applicableRules);
+        }
+
+        const results = [];
+        for (const rule of applicableRules) {
+            try {
+                const ruleResult = await this.applyRuleWithOptimization(rule, task, context);
+                results.push(...ruleResult.results);
+            } catch (error) {
+                console.warn(`Optimized rule ${rule.id} failed:`, error);
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Prioritize rules based on their effectiveness and other factors
+     */
+    _prioritizeRules(rules) {
+        return rules.sort((a, b) => {
+            // Get stored priority for each rule (default to base priority)
+            const priorityA = this._rulePriorities.get(a.id) ?? a.priority;
+            const priorityB = this._rulePriorities.get(b.id) ?? b.priority;
+            
+            // Sort by priority (higher first)
+            return priorityB - priorityA;
+        });
+    }
+
+    /**
+     * Update a rule's priority based on its effectiveness
+     */
+    updateRuleEffectiveness(ruleId, success, resultCount) {
+        if (!this.config.enablePrioritization) return;
+
+        let currentStats = this._rulePriorities.get(ruleId) || { 
+            totalApplications: 0, 
+            successfulApplications: 0,
+            avgResultCount: 0
+        };
+
+        currentStats.totalApplications++;
+        if (success) currentStats.successfulApplications++;
+        currentStats.avgResultCount = (currentStats.avgResultCount * (currentStats.totalApplications - 1) + resultCount) / currentStats.totalApplications;
+
+        // Calculate a composite effectiveness score
+        const successRate = currentStats.successfulApplications / currentStats.totalApplications;
+        const effectiveness = successRate * Math.max(1, currentStats.avgResultCount);
+
+        this._rulePriorities.set(ruleId, effectiveness);
     }
 
     /**
@@ -237,9 +437,13 @@ export class PerformanceOptimizer {
         return {
             cacheStats: this.ruleCache ? this.ruleCache.getStats() : null,
             profileCount: this.profiles.size,
+            indexedRules: this.ruleIndex ? 
+                Array.from(this.ruleIndex._categoryIndex.values()).flat().length : 0,
             hasProfiling: this.config.enableProfiling,
             hasCaching: this.config.enableCaching,
-            hasBatching: this.config.enableBatching
+            hasIndexing: this.config.enableIndexing,
+            hasBatching: this.config.enableBatching,
+            hasPrioritization: this.config.enablePrioritization
         };
     }
 
@@ -263,6 +467,9 @@ export class PerformanceOptimizer {
     clearCache() {
         if (this.ruleCache) {
             this.ruleCache.clear();
+        }
+        if (this.ruleIndex) {
+            this.ruleIndex.clear();
         }
         this.profiles.clear();
     }

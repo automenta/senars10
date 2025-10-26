@@ -96,7 +96,11 @@ export const createMemoryConfig = () => ({
     priorityDecayRate: 0.9,
     maxConcepts: 1000,
     maxTasksPerConcept: 100,
-    forgetPolicy: 'priority'
+    forgetPolicy: 'priority',
+    activationDecayRate: 0.005,
+    enableAdaptiveForgetting: true,
+    memoryPressureThreshold: 0.8,
+    resourceBudget: 10000
 });
 
 /**

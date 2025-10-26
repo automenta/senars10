@@ -22,7 +22,11 @@ export class Memory extends BaseComponent {
             consolidationInterval: 10,
             maxConcepts: 1000,  // AIKR capacity limit
             maxTasksPerConcept: 100,  // AIKR capacity limit per concept
-            forgetPolicy: 'priority'  // How to forget when limits reached
+            forgetPolicy: 'priority',  // How to forget when limits reached
+            resourceBudget: 10000,  // Total resource budget for AIKR
+            activationDecayRate: 0.005,  // Rate at which concept activation decays
+            memoryPressureThreshold: 0.8,  // Threshold for memory pressure (80% full)
+            enableAdaptiveForgetting: true  // Enable adaptive forgetting based on memory pressure
         });
 
         super({...defaultConfig, ...config}, 'Memory');
@@ -41,9 +45,16 @@ export class Memory extends BaseComponent {
             createdAt: Date.now(),
             lastConsolidation: Date.now(),
             conceptsForgotten: 0,
-            tasksForgotten: 0
+            tasksForgotten: 0,
+            totalResourceUsage: 0,  // Track total resource usage
+            peakResourceUsage: 0,   // Track peak resource usage
+            memoryPressureEvents: 0 // Track memory pressure events
         };
         this._cyclesSinceConsolidation = 0;
+        
+        // Resource tracking
+        this._resourceTracker = new Map(); // Track resource usage by concept
+        this._lastConsolidationTime = Date.now();
     }
 
     get config() {
@@ -81,9 +92,18 @@ export class Memory extends BaseComponent {
         const added = concept.addTask(task);
         if (added) {
             this._stats.totalTasks++;
+            
+            // Update resource tracking
+            this._updateResourceUsage(concept, 1);
+            
             if (task.budget.priority >= this._config.priorityThreshold) {
                 this._focusConcepts.add(concept);
                 this._updateFocusConceptsCount();
+            }
+            
+            // Check for memory pressure and trigger adaptive forgetting if needed
+            if (this._config.enableAdaptiveForgetting && this._isUnderMemoryPressure()) {
+                this._applyAdaptiveForgetting();
             }
         }
         return added;
@@ -426,8 +446,16 @@ export class Memory extends BaseComponent {
 
         this._cyclesSinceConsolidation = 0;
         this._stats.lastConsolidation = currentTime;
+        this._lastConsolidationTime = currentTime;
 
         const results = this._consolidation.consolidate(this, currentTime);
+        
+        // Apply activation decay during consolidation
+        this.applyActivationDecay();
+        
+        // Clean up resource tracker for deleted concepts
+        this._cleanupResourceTracker();
+        
         this._updateFocusConceptsCount();
         return results;
     }
@@ -498,5 +526,111 @@ export class Memory extends BaseComponent {
         return this.getAllConcepts().filter(concept =>
             concept.getTasksByType('BELIEF').some(task => task.term.equals(pattern))
         );
+    }
+
+    /**
+     * Update resource usage for a concept
+     */
+    _updateResourceUsage(concept, change) {
+        const conceptKey = concept.term.toString();
+        const currentUsage = this._resourceTracker.get(conceptKey) || 0;
+        const newUsage = Math.max(0, currentUsage + change);
+        
+        this._resourceTracker.set(conceptKey, newUsage);
+        this._stats.totalResourceUsage += change;
+        
+        if (this._stats.totalResourceUsage > this._stats.peakResourceUsage) {
+            this._stats.peakResourceUsage = this._stats.totalResourceUsage;
+        }
+    }
+
+    /**
+     * Check if the memory is under pressure
+     */
+    _isUnderMemoryPressure() {
+        const conceptPressure = this._stats.totalConcepts / this._config.maxConcepts;
+        const resourcePressure = this._stats.totalResourceUsage / this._config.resourceBudget;
+        const taskPressure = this._stats.totalTasks / (this._config.maxConcepts * this._config.maxTasksPerConcept);
+        
+        return Math.max(conceptPressure, resourcePressure, taskPressure) >= this._config.memoryPressureThreshold;
+    }
+
+    /**
+     * Apply adaptive forgetting based on memory pressure
+     */
+    _applyAdaptiveForgetting() {
+        this._stats.memoryPressureEvents++;
+        
+        // Increase forgetting rate when under pressure
+        const conceptsToForget = Math.min(
+            Math.floor(this._stats.totalConcepts * 0.1), // Forget 10% of concepts when under pressure
+            5 // But no more than 5 at a time
+        );
+        
+        for (let i = 0; i < conceptsToForget; i++) {
+            this._applyConceptForgetting();
+        }
+    }
+
+    /**
+     * Get memory pressure statistics
+     */
+    getMemoryPressureStats() {
+        const totalPossibleTasks = this._config.maxConcepts * this._config.maxTasksPerConcept;
+        return {
+            conceptPressure: this._stats.totalConcepts / this._config.maxConcepts,
+            taskPressure: this._stats.totalTasks / totalPossibleTasks,
+            resourcePressure: this._stats.totalResourceUsage / this._config.resourceBudget,
+            memoryPressureEvents: this._stats.memoryPressureEvents,
+            isUnderPressure: this._isUnderMemoryPressure(),
+            resourceBudget: this._config.resourceBudget,
+            currentResourceUsage: this._stats.totalResourceUsage,
+            peakResourceUsage: this._stats.peakResourceUsage
+        };
+    }
+
+    /**
+     * Apply decay to concept activations
+     */
+    applyActivationDecay() {
+        const decayRate = this._config.activationDecayRate;
+        for (const concept of this._concepts.values()) {
+            concept.applyDecay(decayRate);
+        }
+    }
+
+    /**
+     * Get concepts ordered by resource usage
+     */
+    getConceptsByResourceUsage(ascending = false) {
+        const concepts = Array.from(this._concepts.entries()).map(([term, concept]) => ({
+            term,
+            concept,
+            resourceUsage: this._resourceTracker.get(term.toString()) || 0
+        }));
+        
+        concepts.sort((a, b) => ascending ? a.resourceUsage - b.resourceUsage : b.resourceUsage - a.resourceUsage);
+        return concepts;
+    }
+
+    /**
+     * Clean up resource tracker for concepts that no longer exist
+     */
+    _cleanupResourceTracker() {
+        for (const [termStr, usage] of this._resourceTracker.entries()) {
+            // Find if there's still a concept with this term
+            let conceptExists = false;
+            for (const [key,] of this._concepts) {
+                if (key.toString() === termStr) {
+                    conceptExists = true;
+                    break;
+                }
+            }
+            
+            if (!conceptExists) {
+                this._resourceTracker.delete(termStr);
+                this._stats.totalResourceUsage -= usage;
+            }
+        }
     }
 }
