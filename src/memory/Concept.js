@@ -53,6 +53,10 @@ export class Concept extends ConfigurableComponent {
         return this._quality;
     }
 
+    get priority() {
+        return this._activation;  // Use activation as priority for AIKR caching
+    }
+
     get beliefs() {
         return this._beliefs;
     }

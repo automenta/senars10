@@ -80,10 +80,6 @@ export class EvaluationEngine {
         }
     }
 
-    /**
-     * Evaluate unified operators that can serve both structural and functional purposes
-     * This method combines logic from both OperationEvaluationEngine and UnifiedOperatorEvaluator
-     */
     async _evaluateUnifiedOperator(term, context, variableBindings) {
         // Check if all arguments are Boolean atoms (True, False, Null) for functional evaluation
         const isFunctionalEvaluation = this._areAllBooleanValues(term.components, variableBindings);
@@ -118,61 +114,31 @@ export class EvaluationEngine {
     }
 
     _evaluateAndFunction(term, variableBindings) {
-        const values = term.components.map(comp => 
-            this._valueFromSubstitutedTerm(comp, variableBindings)
-        );
-
-        // Boolean AND evaluation: if any component is False, return False; if all are True, return True; otherwise return null
-        return this._createBooleanResult(
-            values.some(val => val === false) ? SYSTEM_ATOMS.False :
-            values.every(val => val === true) ? SYSTEM_ATOMS.True :
-            SYSTEM_ATOMS.Null,
-            values.some(val => val === false) 
-                ? 'Boolean AND evaluation: contains False' 
-                : values.every(val => val === true) 
-                    ? 'Boolean AND evaluation: all True' 
-                    : 'Boolean AND evaluation: cannot determine'
-        );
+        const values = term.components.map(comp => this._valueFromSubstitutedTerm(comp, variableBindings));
+        const hasFalse = values.some(val => val === false);
+        const allTrue = values.every(val => val === true);
+        const result = hasFalse ? SYSTEM_ATOMS.False : allTrue ? SYSTEM_ATOMS.True : SYSTEM_ATOMS.Null;
+        const message = hasFalse ? 'Boolean AND evaluation: contains False' : allTrue ? 'Boolean AND evaluation: all True' : 'Boolean AND evaluation: cannot determine';
+        return this._createBooleanResult(result, message);
     }
 
     _evaluateOrFunction(term, variableBindings) {
-        const values = term.components.map(comp => 
-            this._valueFromSubstitutedTerm(comp, variableBindings)
-        );
-
-        // Boolean OR evaluation: if any component is True, return True; if all are False, return False
-        return this._createBooleanResult(
-            values.some(val => val === true) ? SYSTEM_ATOMS.True :
-            values.every(val => val === false) ? SYSTEM_ATOMS.False :
-            SYSTEM_ATOMS.Null,
-            values.some(val => val === true) 
-                ? 'Boolean OR evaluation: contains True' 
-                : values.every(val => val === false) 
-                    ? 'Boolean OR evaluation: all False' 
-                    : 'Boolean OR evaluation: cannot determine'
-        );
+        const values = term.components.map(comp => this._valueFromSubstitutedTerm(comp, variableBindings));
+        const hasTrue = values.some(val => val === true);
+        const allFalse = values.every(val => val === false);
+        const result = hasTrue ? SYSTEM_ATOMS.True : allFalse ? SYSTEM_ATOMS.False : SYSTEM_ATOMS.Null;
+        const message = hasTrue ? 'Boolean OR evaluation: contains True' : allFalse ? 'Boolean OR evaluation: all False' : 'Boolean OR evaluation: cannot determine';
+        return this._createBooleanResult(result, message);
     }
 
     _evaluateImplicationFunction(term, variableBindings) {
-        if (term.components.length !== 2) {
-            return this._createResult(SYSTEM_ATOMS.Null, false, 'Implication requires exactly 2 arguments');
-        }
-
-        const [antVal, consVal] = term.components.map(comp => 
-            this._valueFromSubstitutedTerm(comp, variableBindings)
-        );
-
-        // Boolean implication: not A OR B
-        return this._createBooleanResult(
-            (antVal === true && consVal === false) ? SYSTEM_ATOMS.False :
-            (antVal === false || consVal === true) ? SYSTEM_ATOMS.True :
-            SYSTEM_ATOMS.Null,
-            (antVal === true && consVal === false) 
-                ? 'Boolean implication: true => false = false' 
-                : (antVal === false || consVal === true) 
-                    ? 'Boolean implication: false => X or X => true = true' 
-                    : 'Boolean implication: cannot determine with non-boolean values'
-        );
+        if (term.components.length !== 2) return this._createResult(SYSTEM_ATOMS.Null, false, 'Implication requires exactly 2 arguments');
+        const [antVal, consVal] = term.components.map(comp => this._valueFromSubstitutedTerm(comp, variableBindings));
+        const isFalse = antVal === true && consVal === false;
+        const isTrue = antVal === false || consVal === true;
+        const result = isFalse ? SYSTEM_ATOMS.False : isTrue ? SYSTEM_ATOMS.True : SYSTEM_ATOMS.Null;
+        const message = isFalse ? 'Boolean implication: true => false = false' : isTrue ? 'Boolean implication: false => X or X => true = true' : 'Boolean implication: cannot determine with non-boolean values';
+        return this._createBooleanResult(result, message);
     }
 
     _evaluateEquivalenceFunction(term, variableBindings) {

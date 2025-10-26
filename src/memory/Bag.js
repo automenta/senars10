@@ -19,7 +19,7 @@ export class Bag {
             this._removeLowestPriorityItem();
         }
 
-        this._items.set(item, item.budget.priority);
+        this._items.set(item, item.budget?.priority || 0);
         return true;
     }
 
@@ -87,5 +87,9 @@ export class Bag {
                 this.remove(lowestPriorityItem);
             }
         }
+    }
+
+    clear() {
+        this._items.clear();
     }
 }

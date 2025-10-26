@@ -1,6 +1,7 @@
 import {Concept} from './Concept.js';
 import {MemoryIndex} from './MemoryIndex.js';
 import {MemoryConsolidation} from './MemoryConsolidation.js';
+import {Bag} from './Bag.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 import {clamp} from '../util/common.js';
 
@@ -23,7 +24,7 @@ export class Memory extends BaseComponent {
 
         super({...defaultConfig, ...config}, 'Memory');
         this._config = {...this.config, ...config};  // Use BaseComponent's config property
-        this._concepts = new Map();
+        this._concepts = new Map();  // Keep as Map for backward compatibility
         this._focusConcepts = new Set();
         this._index = new MemoryIndex();
         this._consolidation = new MemoryConsolidation();
@@ -61,7 +62,7 @@ export class Memory extends BaseComponent {
         if (!task?.term) return false;
 
         const term = task.term;
-        let concept = this._concepts.get(term) || this._createConcept(term);
+        let concept = this.getConcept(term) || this._createConcept(term);
 
         const added = concept.addTask(task);
         if (added) {
@@ -327,7 +328,7 @@ export class Memory extends BaseComponent {
     }
 
     removeConcept(term) {
-        const concept = this._concepts.get(term);
+        const concept = this.getConcept(term);
         if (!concept) return false;
 
         this._focusConcepts.delete(concept) && this._updateFocusConceptsCount();

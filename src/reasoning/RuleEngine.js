@@ -93,6 +93,11 @@ export class RuleEngine extends BaseComponent {
         return ruleSet;
     }
 
+    createSetByCategory(category) {
+        const rules = this.rules.filter(rule => rule.config?.category === category);
+        return this.createSet(`${category}-rules`, rules.map(r => r.id));
+    }
+
     getApplicableRules(task, ruleType = null) {
         const applicable = this.rules.filter(rule => rule.canApply(task));
         return this._filterByType(applicable, ruleType).sort((a, b) => b.priority - a.priority);

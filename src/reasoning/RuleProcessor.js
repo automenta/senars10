@@ -61,4 +61,21 @@ export class RuleProcessor {
     canProcess(ruleType, taskType) {
         return true;
     }
+
+    /**
+     * Common method to apply a single rule to a task and update metrics
+     */
+    async _applyRuleToTask(rule, task, context) {
+        if (!rule.canApply || !rule.canApply(task)) return [];
+
+        try {
+            const {results: ruleResults} = await rule.apply(task, context);
+            context.incrementMetric('rulesApplied');
+            context.incrementMetric('inferencesMade', ruleResults.length);
+            return ruleResults;
+        } catch (error) {
+            console.warn(`Rule ${rule.id} failed:`, error);
+            return [];
+        }
+    }
 }

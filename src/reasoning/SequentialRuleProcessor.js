@@ -24,18 +24,8 @@ export class SequentialRuleProcessor extends RuleProcessor {
         // Apply each rule to each task
         for (const rule of rules) {
             for (const task of tasks) {
-                if (rule.canApply && rule.canApply(task)) {
-                    try {
-                        const {results: ruleResults} = await rule.apply(task, context);
-                        results.push(...ruleResults);
-
-                        // Update context metrics
-                        context.incrementMetric('rulesApplied');
-                        context.incrementMetric('inferencesMade', ruleResults.length);
-                    } catch (error) {
-                        console.warn(`Rule ${rule.id} failed:`, error);
-                    }
-                }
+                const ruleResults = await this._applyRuleToTask(rule, task, context);
+                results.push(...ruleResults);
             }
         }
 

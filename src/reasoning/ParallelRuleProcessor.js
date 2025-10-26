@@ -36,10 +36,7 @@ export class ParallelRuleProcessor extends RuleProcessor {
         // Create task-rule combinations
         for (const rule of rules) {
             for (const task of tasks) {
-                if (rule.canApply && rule.canApply(task)) {
-                    // Limit concurrency by creating chunks
-                    allPromises.push(this._applyRuleToTask(rule, task, context));
-                }
+                allPromises.push(this._applyRuleToTask(rule, task, context));
             }
         }
 
@@ -55,23 +52,6 @@ export class ParallelRuleProcessor extends RuleProcessor {
         return allResults;
     }
 
-    /**
-     * Apply a single rule to a task
-     */
-    async _applyRuleToTask(rule, task, context) {
-        try {
-            const {results: ruleResults} = await rule.apply(task, context);
-
-            // Update context metrics
-            context.incrementMetric('rulesApplied');
-            context.incrementMetric('inferencesMade', ruleResults.length);
-
-            return ruleResults;
-        } catch (error) {
-            console.warn(`Rule ${rule.id} failed:`, error);
-            return [];
-        }
-    }
 
     /**
      * Create batches of items
