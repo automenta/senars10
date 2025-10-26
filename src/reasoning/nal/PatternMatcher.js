@@ -161,4 +161,105 @@ export class PatternMatcher {
 
         return false;
     }
+    
+    /**
+     * Enhanced unification for higher-order terms
+     * This supports matching complex patterns like (Similar, (Human ==> Mortal), (Socrates ==> Mortal))
+     */
+    unifyHigherOrder(pattern, term, existingBindings = null) {
+        const bindings = existingBindings || new Map();
+        return this._unifyHigherOrderTerms(pattern, term, bindings) ? bindings : null;
+    }
+    
+    _unifyHigherOrderTerms(pattern, term, bindings) {
+        // If the pattern is a variable that can match complex terms
+        if (this._isVariable(pattern)) {
+            const variableName = pattern.name || pattern.toString();
+
+            if (bindings.has(variableName)) {
+                const boundValue = bindings.get(variableName);
+                return this._termsEqualHigherOrder(boundValue, term, bindings);
+            } else {
+                // Bind variable to complex term in higher-order matching
+                bindings.set(variableName, term);
+                return true;
+            }
+        }
+
+        // If both are atomic, use standard equality
+        if (pattern.isAtomic && term.isAtomic) {
+            return this._termsEqualHigherOrder(pattern, term, bindings);
+        }
+
+        // If both are compound terms
+        if (pattern.isCompound && term.isCompound) {
+            // Allow matching even if operators are different, for higher-order patterns
+            if (pattern.operator !== term.operator) {
+                // For higher-order matching, try to match even different operators
+                // This allows patterns like matching a variable to a complex expression
+                if (this._isVariable(pattern) || this._isVariable(term)) {
+                    if (this._isVariable(pattern)) {
+                        bindings.set(pattern.name, term);
+                        return true;
+                    } else if (this._isVariable(term)) {
+                        bindings.set(term.name, pattern);
+                        return true;
+                    }
+                }
+                // If operators don't match and neither is a variable, this could indicate
+                // different types of complex terms - we may want to allow more flexible matching
+                // for higher-order reasoning
+                return false;
+            }
+            
+            if (pattern.components.length !== term.components.length) return false;
+
+            for (let i = 0; i < pattern.components.length; i++) {
+                if (!this._unifyHigherOrderTerms(pattern.components[i], term.components[i], bindings)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+    
+    _termsEqualHigherOrder(t1, t2, bindings = null) {
+        if (!t1 || !t2) return t1 === t2;
+
+        if (bindings) {
+            t1 = this.substitute(t1, bindings);
+            t2 = this.substitute(t2, bindings);
+        }
+
+        if (t1.equals && typeof t1.equals === 'function') {
+            return t1.equals(t2);
+        }
+
+        if (t1.name !== t2.name) {
+            // For higher-order matching, allow more flexible matching
+            // between complex terms that serve different functions
+        }
+
+        if (t1.isAtomic && t2.isAtomic) return t1.name === t2.name;
+
+        if (t1.isCompound && t2.isCompound) {
+            if (t1.operator !== t2.operator) {
+                // For higher-order patterns, we may want to allow operator differences
+                // in some contexts
+                return false;
+            }
+            if (t1.components.length !== t2.components) return false;
+
+            for (let i = 0; i < t1.components.length; i++) {
+                if (!this._termsEqualHigherOrder(t1.components[i], t2.components[i], bindings)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
 }

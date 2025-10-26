@@ -223,7 +223,7 @@ export class EvaluationEngine {
     }
 
     /**
-     * Enhanced equality evaluation that supports bidirectional evaluation
+     * Enhanced equality evaluation that supports pattern matching and equation solving
      */
     async _evaluateEquality(term, context, variableBindings) {
         if (term.components.length !== 2) {
@@ -235,6 +235,13 @@ export class EvaluationEngine {
         // Check for variable bindings in both directions
         const leftBound = this._substituteVariables(left, variableBindings);
         const rightBound = this._substituteVariables(right, variableBindings);
+
+        // Check if this is a computational equation that needs solving
+        // e.g., (X + 3) = 7 where we need to solve for X
+        const equationResult = await this._attemptEquationSolving(leftBound, rightBound, variableBindings);
+        if (equationResult && equationResult.success) {
+            return equationResult;
+        }
 
         // If both are atomic values, compare them directly
         if (leftBound.isAtomic && rightBound.isAtomic) {
@@ -256,8 +263,120 @@ export class EvaluationEngine {
             return this._createResult(SYSTEM_ATOMS.True, true, 'Equality: structures match', {bindings});
         }
 
-        // If no match found, return False
-        return this._createResult(SYSTEM_ATOMS.False, false, 'Equality: structures do not match');
+        // If no match found, return False - but this is still a successful evaluation
+        return this._createResult(SYSTEM_ATOMS.False, true, 'Equality: structures do not match');
+    }
+
+    /**
+     * Attempt to solve computational equations like (X + 2) = 5
+     */
+    async _attemptEquationSolving(left, right, variableBindings) {
+        // Case 1: Simple equation like (X + 3) = 7
+        if (this._isOperationWithVariable(left) && this._isAtomicOrNumeric(right)) {
+            return await this._solveForVariableInOperation(left, right, variableBindings);
+        }
+        
+        // Case 2: Reverse equation like 7 = (X + 3)
+        if (this._isOperationWithVariable(right) && this._isAtomicOrNumeric(left)) {
+            return await this._solveForVariableInOperation(right, left, variableBindings);
+        }
+        
+        // Case 3: Both sides are operations, like (X + 2) = (3 + Y)
+        if (this._isOperationWithVariable(left) && this._isOperationWithVariable(right)) {
+            return await this._solveOperationOperationEquation(left, right, variableBindings);
+        }
+        
+        return null; // No equation to solve
+    }
+
+    /**
+     * Check if a term is an operation that contains variables
+     */
+    _isOperationWithVariable(term) {
+        // Check if the term is an operation with variables that could be solved
+        if (term.isCompound && term.operator === '^') {
+            // Check if any argument contains a variable
+            if (term.components && term.components.length === 2) {
+                const args = term.components[1]; // Second component is typically arguments
+                if (args.isCompound && args.operator === ',') {
+                    // Check if any argument is a variable
+                    return args.components.some(arg => arg.name?.startsWith('?'));
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if a term is atomic or represents a numeric value
+     */
+    _isAtomicOrNumeric(term) {
+        if (term.isAtomic) return true;
+        
+        // Check if it's a numeric compound like (3,4) or a simple number
+        const value = this._termToValue(term);
+        return typeof value === 'number' || (Array.isArray(value) && value.every(v => typeof v === 'number'));
+    }
+
+    /**
+     * Solve for a variable in an operation like (X + 3) = 5
+     */
+    async _solveForVariableInOperation(operation, target, variableBindings) {
+        // This is similar to the _solveOperationEquation method but tailored for the equality context
+        if (!operation.isCompound || operation.operator !== '^' || operation.components.length !== 2) {
+            return null;
+        }
+
+        const [functionTerm, argsTerm] = operation.components;
+        const functionName = this._resolveFunctionName(functionTerm, variableBindings);
+        
+        if (!functionName) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Unbound variable in function position');
+        }
+
+        const targetValue = this._termToValue(target);
+        if (targetValue === null || (typeof targetValue !== 'number' && !Array.isArray(targetValue))) {
+            return this._createResult(SYSTEM_ATOMS.Null, false, 'Target value cannot be determined for equation solving');
+        }
+
+        const args = this._extractArguments(argsTerm, variableBindings);
+        const variableIndex = args.findIndex(arg => arg.name?.startsWith('?'));
+        
+        if (variableIndex === -1) {
+            // No variable to solve for, just evaluate the operation
+            return await this._evaluateOperation(operation, variableBindings);
+        }
+
+        // Try to solve the equation - _solveArithmeticEquation returns an object like result
+        const equationResult = this._solveArithmeticEquation(functionName, args, variableIndex, targetValue);
+        
+        if (equationResult.success) {
+            const solvedValue = equationResult.result;
+            if (solvedValue && !isNull(solvedValue)) {
+                // Create a binding for the solved variable
+                const newBindings = new Map(variableBindings);
+                newBindings.set(args[variableIndex].name, solvedValue);
+                
+                // Return both the solved value and True (indicating successful equation solving)
+                return this._createResult(
+                    SYSTEM_ATOMS.True, 
+                    true, 
+                    `Variable ${args[variableIndex].name} solved to ${solvedValue.name || solvedValue.toString()}`, 
+                    { solvedVariable: args[variableIndex].name, solvedValue, bindings: newBindings }
+                );
+            }
+        }
+        
+        return null; // Could not solve
+    }
+
+    /**
+     * Solve equations where both sides are operations like (X + 2) = (3 + Y)
+     */
+    async _solveOperationOperationEquation(leftOperation, rightOperation, variableBindings) {
+        // This would require more complex symbolic manipulation
+        // For now, we'll return null, but in the future could handle more complex symbolic solving
+        return null;
     }
 
     /**

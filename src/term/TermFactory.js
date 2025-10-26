@@ -118,7 +118,12 @@ export class TermFactory {
             }
 
             if (COMMUTATIVE_OPERATORS.has(operator)) {
-                normalizedComponents = this._normalizeCommutative(normalizedComponents);
+                if (operator === '=') {
+                    // Special handling for '=' - sort but don't remove redundancy
+                    normalizedComponents = normalizedComponents.sort((a, b) => this._compareTermsAlphabetically(a, b));
+                } else {
+                    normalizedComponents = this._normalizeCommutative(normalizedComponents);
+                }
             }
 
             // Handle nested operators with same precedence
@@ -219,12 +224,24 @@ export class TermFactory {
 
         // Handle commutative operators with a default approach
         if (COMMUTATIVE_OPERATORS.has(operator)) {
-            return (components) => {
-                let canonicalComponents = [...components];
-                canonicalComponents = this._removeRedundancy(canonicalComponents);
-                canonicalComponents = this._normalizeCommutative(canonicalComponents);
-                return canonicalComponents;
-            };
+            // Special case for '=' operator: don't remove redundancy
+            // because (5=5) and (5=3) both need 2 components
+            if (operator === '=') {
+                return (components) => {
+                    let canonicalComponents = [...components];
+                    // Don't remove redundancy for equality - keep both operands
+                    // But still sort for consistent ordering
+                    canonicalComponents = canonicalComponents.sort((a, b) => this._compareTermsAlphabetically(a, b));
+                    return canonicalComponents;
+                };
+            } else {
+                return (components) => {
+                    let canonicalComponents = [...components];
+                    canonicalComponents = this._removeRedundancy(canonicalComponents);
+                    canonicalComponents = this._normalizeCommutative(canonicalComponents);
+                    return canonicalComponents;
+                };
+            }
         }
 
         return canonicalizers[operator] || null;

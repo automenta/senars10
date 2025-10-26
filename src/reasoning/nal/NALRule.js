@@ -73,6 +73,16 @@ export class NALRule extends Rule {
     _unify(pattern, term) {
         return this._patternMatcher.unify(pattern, term);
     }
+    
+    /**
+     * Unify two terms using higher-order pattern matching
+     * @param {Term} pattern - The pattern term
+     * @param {Term} term - The actual term
+     * @returns {Map|null} - Map of variable bindings or null if unification fails
+     */
+    _unifyHigherOrder(pattern, term) {
+        return this._patternMatcher.unifyHigherOrder(pattern, term);
+    }
 
     /**
      * Apply variable substitutions to a term
