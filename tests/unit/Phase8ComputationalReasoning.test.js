@@ -4,6 +4,7 @@ import { TermFactory } from '../../src/term/TermFactory.js';
 import { Term } from '../../src/term/Term.js';
 import { SYSTEM_ATOMS } from '../../src/reasoning/SystemAtoms.js';
 import { PatternMatcher } from '../../src/reasoning/nal/PatternMatcher.js';
+import { runCycleLimitedTest, CycleLimitedTester } from '../../src/testing/CycleLimitedTest.js';
 
 describe('Phase 8: Unified Computational Reasoning Framework', () => {
     let engine;
