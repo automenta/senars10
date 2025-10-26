@@ -11,7 +11,7 @@ This plan codifies key architectural principles and technology choices to ensure
 
 To align with the JavaScript platform and modern development practices, we will adhere to the following principles:
 
-1.  **JSON for Configuration:** We will standardize on **JSON** for all configuration files (`config.json`, manifests). It is native to the JavaScript ecosystem, requiring no external parsers and ensuring seamless integration. This is analogous to choosing platform-native solutions over external dependencies where possible.
+1.  **Flexible Configuration:** Configuration can be provided via inline JSON within `.js` initialization code, overriding sane defaults. For sensitive information like API keys, `.env` files (or similar conventions) will be consulted. This approach simplifies testing by unifying configuration within the code, while still allowing for external configuration files in application-level functionality.
 
 2.  **Jest for Testing:** The project will standardize on the **Jest** testing framework. Instead of building custom test runners or fluent APIs, we will leverage Jest's powerful ecosystem for assertions, mocking, and coverage reporting, which is already established in the project.
 
@@ -53,7 +53,7 @@ To align with the JavaScript platform and modern development practices, we will 
         ```
 
 *   **9.4: Define and Implement the Formal Plugin API:**
-    *   **Action:** Specify a formal `SeNARSPlugin` interface and integrate it into the `AgentBuilder`.
+    *   **Action:** Specify a formal `Plugin` interface and integrate it into the `AgentBuilder`.
 
 *   **9.5: Create a Core Agent Factory:**
     *   **Action:** Develop a simple factory function (e.g., `createAgent(config)`) that abstracts the `AgentBuilder` for common use cases, making it easier for researchers to start experiments.
