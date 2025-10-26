@@ -111,6 +111,26 @@ export class Concept extends ConfigurableComponent {
         }
         return added;
     }
+    
+    /**
+     * Enforce capacity constraints on the concept's task storage
+     */
+    enforceCapacity(maxTasksPerType, forgetPolicy = 'priority') {
+        // Apply capacity limits to each task type separately
+        this._enforceBagCapacity(this._beliefs, maxTasksPerType * 0.6);  // 60% for beliefs
+        this._enforceBagCapacity(this._goals, maxTasksPerType * 0.3);    // 30% for goals
+        this._enforceBagCapacity(this._questions, maxTasksPerType * 0.1); // 10% for questions
+    }
+    
+    _enforceBagCapacity(bag, maxCount) {
+        // This method ensures the bag doesn't exceed maxCount
+        if (bag.size > maxCount) {
+            // Remove excess items based on the forget policy
+            while (bag.size > maxCount) {
+                bag._removeLowestPriorityItem();
+            }
+        }
+    }
 
     getTask(taskId) {
         for (const bag of [this._beliefs, this._goals, this._questions]) {

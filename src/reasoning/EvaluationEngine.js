@@ -5,6 +5,7 @@ import {isNull, isTrue, isFalse, SYSTEM_ATOMS} from './SystemAtoms.js';
 import {VectorOperations} from './VectorOperations.js';
 import {EqualitySolver} from './EqualitySolver.js';
 import {VariableBindingUtils} from './VariableBindingUtils.js';
+import {HigherOrderReasoningEngine} from './nal/HigherOrderReasoningEngine.js';
 
 /**
  * Unified EvaluationEngine for SeNARS v10 - Phase 5
@@ -15,6 +16,7 @@ export class EvaluationEngine {
         this.functorRegistry = functorRegistry || new FunctorRegistry();
         this.termFactory = termFactory || new TermFactory();
         this.equalitySolver = new EqualitySolver(this.termFactory);
+        this.higherOrderEngine = new HigherOrderReasoningEngine();
         
         // Rules for functional evaluation (when all arguments are boolean values)
         this.functionalRules = {
@@ -59,6 +61,13 @@ export class EvaluationEngine {
     async evaluate(term, context, variableBindings = new Map()) {
         if (!term.isCompound) {
             return this._evaluateNonOperation(term, context, variableBindings);
+        }
+
+        // Check for higher-order reasoning patterns before standard evaluation
+        const higherOrderResult = this.higherOrderEngine.processHigherOrderTerm(term, context);
+        if (higherOrderResult.success) {
+            return this._createResult(higherOrderResult.result, true, `Higher-order reasoning: ${higherOrderResult.message}`, 
+                higherOrderResult.bindings ? {bindings: higherOrderResult.bindings} : {});
         }
 
         switch (term.operator) {

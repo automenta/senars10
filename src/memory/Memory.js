@@ -19,12 +19,18 @@ export class Memory extends BaseComponent {
         const defaultConfig = Object.freeze({
             priorityThreshold: 0.5,
             priorityDecayRate: 0.01,
-            consolidationInterval: 10
+            consolidationInterval: 10,
+            maxConcepts: 1000,  // AIKR capacity limit
+            maxTasksPerConcept: 100,  // AIKR capacity limit per concept
+            forgetPolicy: 'priority'  // How to forget when limits reached
         });
 
         super({...defaultConfig, ...config}, 'Memory');
         this._config = {...this.config, ...config};  // Use BaseComponent's config property
-        this._concepts = new Map();  // Keep as Map for backward compatibility
+        
+        // Use a Bag instead of Map to enforce capacity limits per concept
+        this._concepts = new Map();  // Keep as Map for backward compatibility but with AIKR constraints
+        this._conceptBag = new Bag(this._config.maxConcepts, this._config.forgetPolicy);
         this._focusConcepts = new Set();
         this._index = new MemoryIndex();
         this._consolidation = new MemoryConsolidation();
@@ -33,7 +39,9 @@ export class Memory extends BaseComponent {
             totalTasks: 0,
             focusConceptsCount: 0,
             createdAt: Date.now(),
-            lastConsolidation: Date.now()
+            lastConsolidation: Date.now(),
+            conceptsForgotten: 0,
+            tasksForgotten: 0
         };
         this._cyclesSinceConsolidation = 0;
     }
@@ -64,6 +72,12 @@ export class Memory extends BaseComponent {
         const term = task.term;
         let concept = this.getConcept(term) || this._createConcept(term);
 
+        // Add capacity enforcement at the concept level
+        if (concept && concept.totalTasks >= this._config.maxTasksPerConcept) {
+            // If concept is at capacity, we need to apply forgetting policy
+            concept.enforceCapacity(this._config.maxTasksPerConcept, this._config.forgetPolicy);
+        }
+
         const added = concept.addTask(task);
         if (added) {
             this._stats.totalTasks++;
@@ -76,6 +90,12 @@ export class Memory extends BaseComponent {
     }
 
     _createConcept(term) {
+        // Check if we're at the maximum number of concepts
+        if (this._stats.totalConcepts >= this._config.maxConcepts) {
+            // Apply forgetting policy - remove the lowest priority concept
+            this._applyConceptForgetting();
+        }
+
         const concept = new Concept(term, this._config);
         this._concepts.set(term, concept);
         this._index.addConcept(concept);
@@ -87,6 +107,67 @@ export class Memory extends BaseComponent {
         return !term ? null : this._concepts.get(term) || this._findConceptByEquality(term);
     }
 
+    _applyConceptForgetting() {
+        // Find the concept to remove based on the forget policy
+        if (this._config.forgetPolicy === 'priority') {
+            // Find the concept with the lowest priority
+            let lowestPriorityConcept = null;
+            let lowestPriority = Infinity;
+            
+            for (const [term, concept] of this._concepts) {
+                // Calculate concept priority based on average task priority or other metrics
+                const conceptPriority = concept.activation || 0.1; // Use activation or default low value
+                
+                if (conceptPriority < lowestPriority) {
+                    lowestPriority = conceptPriority;
+                    lowestPriorityConcept = {term, concept};
+                }
+            }
+            
+            if (lowestPriorityConcept) {
+                this._removeConceptInternal(lowestPriorityConcept.term);
+                this._stats.conceptsForgotten++;
+            }
+        } else if (this._config.forgetPolicy === 'lru') {
+            // For LRU, we would need to track access times - implementing a simple version
+            let oldestConcept = null;
+            let oldestTime = Infinity;
+            
+            for (const [term, concept] of this._concepts) {
+                if (concept.lastAccessed < oldestTime) {
+                    oldestTime = concept.lastAccessed;
+                    oldestConcept = {term, concept};
+                }
+            }
+            
+            if (oldestConcept) {
+                this._removeConceptInternal(oldestConcept.term);
+                this._stats.conceptsForgotten++;
+            }
+        } else if (this._config.forgetPolicy === 'fifo') {
+            // For FIFO, we would track insertion order - using a simple approach
+            const firstEntry = this._concepts.entries().next().value;
+            if (firstEntry) {
+                const [term, concept] = firstEntry;
+                this._removeConceptInternal(term);
+                this._stats.conceptsForgotten++;
+            }
+        }
+    }
+    
+    _removeConceptInternal(term) {
+        const concept = this._concepts.get(term);
+        if (!concept) return false;
+
+        this._focusConcepts.delete(concept) && this._updateFocusConceptsCount();
+        this._concepts.delete(term);
+        this._index.removeConcept(concept);
+        this._stats.totalConcepts--;
+        this._stats.totalTasks -= concept.totalTasks;
+        
+        return true;
+    }
+    
     _findConceptByEquality(term) {
         for (const [key, value] of this._concepts) {
             if (key.equals(term)) return value;

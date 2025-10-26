@@ -93,7 +93,10 @@ export const createTask = (overrides = {}) => {
 export const createMemoryConfig = () => ({
     priorityThreshold: 0.5,
     consolidationInterval: 10,
-    priorityDecayRate: 0.9
+    priorityDecayRate: 0.9,
+    maxConcepts: 1000,
+    maxTasksPerConcept: 100,
+    forgetPolicy: 'priority'
 });
 
 /**

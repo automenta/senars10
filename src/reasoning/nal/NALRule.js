@@ -12,6 +12,7 @@ export class NALRule extends Rule {
         this._patternMatcher = config.patternMatcher || new PatternMatcher();
         this._truthFunction = config.truthFunction || TruthFunctions.deduction;
         this._variableBindings = new Map();
+        this.category = config.category || 'general'; // Add category property
     }
 
     /**
