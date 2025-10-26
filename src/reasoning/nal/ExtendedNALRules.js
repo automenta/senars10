@@ -35,16 +35,10 @@ export class ExtendedNALRule extends NALRule {
         if (!term1 || !term2) return false;
         if (term1.operator !== term2.operator) return false;
         if ((term1.components?.length || 0) !== (term2.components?.length || 0)) return false;
-
-        if (term1.components && term2.components) {
-            for (let i = 0; i < term1.components.length; i++) {
-                if (!this._structuralEquivalence(term1.components[i], term2.components[i])) {
-                    return false;
-                }
-            }
-        }
-
-        return term1.name === term2.name;
+        if (term1.name !== term2.name) return false;
+        
+        return !term1.components || term1.components.every((comp, i) => 
+            this._structuralEquivalence(comp, term2.components[i]));
     }
 
     /**
@@ -55,31 +49,16 @@ export class ExtendedNALRule extends NALRule {
         if (!truth1) return truth2;
         if (!truth2) return truth1;
 
-        let frequency, confidence;
+        const operations = {
+            intersection: (t1, t2) => ({ f: t1.frequency * t2.frequency, c: t1.confidence * t2.confidence }),
+            union: (t1, t2) => ({ f: t1.frequency + t2.frequency - (t1.frequency * t2.frequency), c: t1.confidence * t2.confidence }),
+            difference: (t1, t2) => ({ f: Math.max(0, t1.frequency - t2.frequency), c: t1.confidence * t2.confidence }),
+            comparison: (t1, t2) => ({ f: Math.min(t1.frequency, t2.frequency) / Math.max(t1.frequency, t2.frequency || 0.001), c: t1.confidence * t2.confidence }),
+            default: (t1, t2) => ({ f: (t1.frequency + t2.frequency) / 2, c: Math.min(t1.confidence, t2.confidence) })
+        };
 
-        switch (operation) {
-            case 'intersection':
-                frequency = truth1.frequency * truth2.frequency;
-                confidence = truth1.confidence * truth2.confidence;
-                break;
-            case 'union':
-                frequency = truth1.frequency + truth2.frequency - (truth1.frequency * truth2.frequency);
-                confidence = truth1.confidence * truth2.confidence;
-                break;
-            case 'difference':
-                frequency = Math.max(0, truth1.frequency - truth2.frequency);
-                confidence = truth1.confidence * truth2.confidence;
-                break;
-            case 'comparison':
-                frequency = Math.min(truth1.frequency, truth2.frequency) / Math.max(truth1.frequency, truth2.frequency || 0.001);
-                confidence = truth1.confidence * truth2.confidence;
-                break;
-            default:
-                frequency = (truth1.frequency + truth2.frequency) / 2;
-                confidence = Math.min(truth1.confidence, truth2.confidence);
-        }
-
-        return new Truth(frequency, confidence);
+        const {f, c} = (operations[operation] || operations.default)(truth1, truth2);
+        return new Truth(f, c);
     }
 
     /**

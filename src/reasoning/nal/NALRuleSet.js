@@ -15,21 +15,27 @@ import {
 } from './ExtendedNALRules.js';
 
 /**
- * Collection of all NAL rules
+ * Collection of all NAL rules with extensible architecture
  */
 export class NALRuleSet {
+    // Registry for dynamically registered rules
+    static _ruleRegistry = new Map();
+    
+    static _defaultRules = [
+        ...SyllogisticRules.getRules(),
+        ...ConditionalRules.getRules(),
+        ...TemporalRules.getRules(),
+        new HigherOrderRule(),
+        new ConversionRule(),
+        new EquivalenceRule(),
+        new NegationRule(),
+        new ConjunctionRule(),
+        new DisjunctionRule()
+    ];
+    
     static getAllRules() {
-        return [
-            ...SyllogisticRules.getRules(),
-            ...ConditionalRules.getRules(),
-            ...TemporalRules.getRules(),
-            new HigherOrderRule(),
-            new ConversionRule(),
-            new EquivalenceRule(),
-            new NegationRule(),
-            new ConjunctionRule(),
-            new DisjunctionRule()
-        ];
+        // Combine default rules with any dynamically registered rules
+        return [...this._defaultRules, ...this._ruleRegistry.values()];
     }
 
     static getSyllogisticRules() {
@@ -56,5 +62,34 @@ export class NALRuleSet {
             new ConjunctionRule(),
             new DisjunctionRule()
         ];
+    }
+    
+    /**
+     * Register a new rule type for dynamic inclusion
+     * Allows for extensibility without modifying core code
+     */
+    static registerRule(name, ruleInstance) {
+        this._ruleRegistry.set(name, ruleInstance);
+    }
+    
+    /**
+     * Unregister a rule by name
+     */
+    static unregisterRule(name) {
+        return this._ruleRegistry.delete(name);
+    }
+    
+    /**
+     * Get a specific registered rule by name
+     */
+    static getRuleByName(name) {
+        return this._ruleRegistry.get(name);
+    }
+    
+    /**
+     * Get rules by category
+     */
+    static getRulesByCategory(category) {
+        return this.getAllRules().filter(rule => rule.category === category);
     }
 }
