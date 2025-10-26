@@ -8,11 +8,8 @@ import { LM } from '../lm/LM.js';
 import { ToolIntegration } from '../tools/ToolIntegration.js';
 import { EmbeddingLayer } from '../lm/EmbeddingLayer.js';
 import { SystemConfig } from './SystemConfig.js';
+import { PluginManager } from '../util/Plugin.js';
 
-/**
- * AgentBuilder - A builder class for creating Agent instances with configurable subsystems
- * Implements dependency injection and modular architecture as per Phase 6 of UPGRADE.md
- */
 export class AgentBuilder {
     constructor() {
         this.config = {
@@ -26,6 +23,63 @@ export class AgentBuilder {
             }
         };
         this.dependencies = new Map();
+    }
+
+    /**
+     * Create an agent with the specified configuration (factory method)
+     */
+    static createAgent(config = {}) {
+        const builder = new AgentBuilder();
+        
+        if (config) {
+            if (config.metrics !== undefined) builder.withMetrics(config.metrics);
+            if (config.embeddingLayer !== undefined) builder.withEmbeddings(config.embeddingLayer);
+            if (config.functors !== undefined) builder.withFunctors(config.functors);
+            if (config.rules !== undefined) builder.withRules(config.rules);
+            if (config.tools !== undefined) builder.withTools(config.tools);
+            if (config.lm !== undefined) builder.withLM(config.lm);
+            
+            if (config.plugins) {
+                builder.withConfig({ subsystems: { ...builder.config.subsystems, plugins: config.plugins } });
+            }
+            
+            builder.withConfig(config);
+        }
+        
+        return builder.build();
+    }
+
+    /**
+     * Create a basic agent with default configuration (factory method)
+     */
+    static createBasicAgent() {
+        return AgentBuilder.createAgent({
+            subsystems: {
+                metrics: true,
+                embeddingLayer: false,
+                functors: ['core-arithmetic'],
+                rules: ['syllogistic-core'],
+                tools: false,
+                lm: false
+            }
+        });
+    }
+
+    /**
+     * Create an advanced agent with LM and tools enabled (factory method)
+     */
+    static createAdvancedAgent(config = {}) {
+        return AgentBuilder.createAgent({
+            subsystems: {
+                metrics: true,
+                embeddingLayer: true,
+                functors: ['core-arithmetic', 'set-operations'],
+                rules: ['syllogistic-core', 'temporal'],
+                tools: true,
+                lm: { enabled: true }
+            },
+            ...config
+        });
     }
 
     /**
@@ -128,6 +182,21 @@ export class AgentBuilder {
             nar,
             ...this.config.agent
         });
+
+        // Create and set up plugin manager
+        const pluginManager = new PluginManager({
+            nar,
+            agent,
+            eventBus: nar._eventBus || nar.eventBus
+        });
+        
+        // Register plugins if configured
+        if (this.config.subsystems.plugins) {
+            this._registerPlugins(pluginManager, this.config.subsystems.plugins);
+        }
+        
+        // Store the plugin manager in the agent
+        agent._pluginManager = pluginManager;
 
         // Register configured functors
         if (this.config.subsystems.functors) {
@@ -370,14 +439,54 @@ export class AgentBuilder {
      * @param {Agent} agent - Agent instance
      * @param {NAR} nar - NAR instance
      */
+    /**
+     * Register plugins with the plugin manager
+     * @param {PluginManager} pluginManager - Plugin manager instance
+     * @param {Array|Object} pluginConfig - Plugin configuration
+     */
+    _registerPlugins(pluginManager, pluginConfig) {
+        if (Array.isArray(pluginConfig)) {
+            pluginConfig.forEach(pluginSpec => {
+                if (pluginSpec && pluginSpec.instance) {
+                    pluginManager.registerPlugin(pluginSpec.instance);
+                } else if (pluginSpec && pluginSpec.constructor) {
+                    const plugin = new pluginSpec.constructor(
+                        pluginSpec.id || pluginSpec.constructor.name.toLowerCase(), 
+                        pluginSpec.config || {}
+                    );
+                    pluginManager.registerPlugin(plugin);
+                }
+            });
+        } else if (typeof pluginConfig === 'object') {
+            Object.entries(pluginConfig)
+                .filter(([, config]) => config && config.enabled !== false)
+                .forEach(([pluginId, config]) => {
+                    if (config.instance) {
+                        pluginManager.registerPlugin(config.instance);
+                    } else if (config.constructor) {
+                        const plugin = new config.constructor(pluginId, config.config || {});
+                        pluginManager.registerPlugin(plugin);
+                    }
+                });
+        }
+    }
+
     _initializeSubsystems(agent, nar) {
-        // Initialize tools if enabled
         if (this.config.subsystems.tools) {
-            // Initialize tools and handle any errors gracefully to prevent console messages
-            // The ToolIntegration now handles its own errors internally, so we just await without catching
-            agent.getNAR().initializeTools().catch(() => {
-                // Intentionally suppress any errors to prevent console output
-                // Tool integration handles its own error reporting internally now
+            agent.getNAR().initializeTools().catch(() => {});
+        }
+        
+        if (agent._pluginManager) {
+            agent._pluginManager.initializeAll().then(success => {
+                if (success) {
+                    agent._pluginManager.startAll().catch(error => {
+                        console.error('Failed to start plugins:', error);
+                    });
+                } else {
+                    console.error('Failed to initialize plugins');
+                }
+            }).catch(error => {
+                console.error('Failed to initialize plugins:', error);
             });
         }
     }

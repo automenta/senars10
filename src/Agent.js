@@ -139,4 +139,5 @@ export class Agent {
     getEmbeddingLayer() { return this.nar.embeddingLayer || null; }
     getTermLayer() { return this.nar.termLayer || null; }
     getTools() { return this.nar.tools || null; }
+    getPluginManager() { return this._pluginManager || null; }
 }

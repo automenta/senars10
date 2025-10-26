@@ -1,3 +1,5 @@
+import { TraceId } from './TraceId.js';
+
 export class EventBus {
     constructor(options = {}) {
         this._listeners = new Map();
@@ -53,23 +55,39 @@ export class EventBus {
         return this;
     }
 
+    removeMiddleware(middleware) {
+        const index = this._middleware.indexOf(middleware);
+        if (index !== -1) {
+            this._middleware.splice(index, 1);
+        }
+        return this;
+    }
+
     onError(handler) {
         if (typeof handler === 'function') this._errorHandlers.add(handler);
         return this;
     }
 
-    async emit(eventName, data, options = {}) {
+    async emit(eventName, data = {}, options = {}) {
         if (!this._enabled) return;
 
         this._stats.eventsEmitted++;
 
-        let processedData = {...data, eventName};
+        // Ensure traceId exists
+        const traceId = options.traceId || TraceId.generate();
+        
+        let processedData = {
+            ...data,
+            eventName,
+            traceId
+        };
+        
         for (const middleware of this._middleware) {
             try {
                 processedData = await middleware(processedData);
                 if (processedData === null) return;
             } catch (error) {
-                this._handleError('middleware', error, {eventName, data});
+                this._handleError('middleware', error, {eventName, data, traceId});
                 return;
             }
         }
@@ -93,7 +111,7 @@ export class EventBus {
                     this._stats.errors++;
 
                     if (attempts >= this._deliveryGuarantees.maxRetries) {
-                        this._handleError('listener', error, {eventName, data, listener});
+                        this._handleError('listener', error, {eventName, data, traceId, listener});
                     } else {
                         this._stats.retries++;
                         await this._delay(this._deliveryGuarantees.retryDelay * attempts);

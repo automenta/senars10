@@ -90,3 +90,14 @@ main().catch(error => {
     console.error('Application error:', error);
     process.exit(1);
 });
+
+// Export the main factory functions and classes for external use
+export {
+    AgentBuilder,
+    Agent,
+    NAR,
+    InputTasks,
+    EvaluationEngine,
+    PrologParser,
+    PrologParity
+};

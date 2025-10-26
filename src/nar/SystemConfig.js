@@ -4,7 +4,7 @@
  */
 
 import {deepFreeze} from '../util/common.js';
-import {validateConfig} from '../config/ConfigValidator.js';
+import {validateConfigWithDefaults} from '../config/ConfigValidator.js';
 
 // Simple default configuration
 const DEFAULT_CONFIG = deepFreeze({
@@ -74,34 +74,12 @@ const DEFAULT_CONFIG = deepFreeze({
  */
 export class SystemConfig {
     constructor(userConfig = {}) {
-        // Validate the configuration using JOI
-        const validation = validateConfig(userConfig);
-        if (validation.error) {
-            const errorDetails = validation.error.details.map(detail => detail.message).join(', ');
-            throw new Error(`Configuration validation failed: ${errorDetails}`);
-        }
-
-        this._config = this._deepMerge(DEFAULT_CONFIG, validation.value);
+        // Validate the configuration using Zod
+        this._config = validateConfigWithDefaults(userConfig);
     }
 
     static from(userConfig = {}) {
         return new SystemConfig(userConfig);
-    }
-
-    // Simple deep merge implementation
-    _deepMerge(target, source) {
-        const result = {...target};
-
-        for (const [key, value] of Object.entries(source)) {
-            if (value && typeof value === 'object' && !Array.isArray(value) &&
-                result[key] && typeof result[key] === 'object') {
-                result[key] = this._deepMerge(result[key], value);
-            } else {
-                result[key] = value;
-            }
-        }
-
-        return result;
     }
 
     get(path) {

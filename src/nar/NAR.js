@@ -160,7 +160,7 @@ export class NAR extends BaseComponent {
         }
     }
 
-    async input(narseseString) {
+    async input(narseseString, options = {}) {
         try {
             const parsed = this._parser.parse(narseseString);
             if (!parsed?.term) throw new Error('Invalid parse result');
@@ -169,12 +169,12 @@ export class NAR extends BaseComponent {
             const added = this._taskManager.addTask(task);
 
             if (added) {
-                this._eventBus.emit('task.input', {task, source: 'user', originalInput: narseseString, parsed});
-                await this._processPendingTasks();
+                this._eventBus.emit('task.input', {task, source: 'user', originalInput: narseseString, parsed}, {traceId: options.traceId});
+                await this._processPendingTasks(options.traceId);
             }
             return added;
         } catch (error) {
-            this._eventBus.emit('input.error', {error: error.message, input: narseseString});
+            this._eventBus.emit('input.error', {error: error.message, input: narseseString}, {traceId: options.traceId});
             throw error;
         }
     }
@@ -201,7 +201,7 @@ export class NAR extends BaseComponent {
         return success;
     }
 
-    start() {
+    start(options = {}) {
         if (this._isRunning) {
             this.logWarn('NAR already running');
             return false;
@@ -211,19 +211,19 @@ export class NAR extends BaseComponent {
         this._startComponentsAsync();
 
         this._isRunning = true;
-        this._processPendingTasks();
+        this._processPendingTasks(options.traceId);
 
         this._cycleInterval = setInterval(async () => {
             try {
                 const result = await this._cycle.execute();
-                this._eventBus.emit('cycle.completed', result);
+                this._eventBus.emit('cycle.completed', result, {traceId: options.traceId});
             } catch (error) {
                 this.logError('Error in reasoning cycle:', error);
-                this._eventBus.emit('cycle.error', {error: error.message});
+                this._eventBus.emit('cycle.error', {error: error.message}, {traceId: options.traceId});
             }
         }, this._config.get('cycle.delay'));
 
-        this._eventBus.emit('system.started', {timestamp: Date.now()});
+        this._eventBus.emit('system.started', {timestamp: Date.now()}, {traceId: options.traceId});
         this.logInfo('NAR started successfully');
         return true;
     }
@@ -239,7 +239,7 @@ export class NAR extends BaseComponent {
         }
     }
 
-    stop() {
+    stop(options = {}) {
         if (!this._isRunning) {
             this.logWarn('NAR not running');
             return false;
@@ -251,7 +251,7 @@ export class NAR extends BaseComponent {
         // Stop all registered components asynchronously but return immediately
         this._stopComponentsAsync();
 
-        this._eventBus.emit('system.stopped', {timestamp: Date.now()});
+        this._eventBus.emit('system.stopped', {timestamp: Date.now()}, {traceId: options.traceId});
         this.logInfo('NAR stopped successfully');
         return true;
     }
@@ -267,24 +267,24 @@ export class NAR extends BaseComponent {
         }
     }
 
-    async step() {
+    async step(options = {}) {
         try {
-            await this._processPendingTasks();
+            await this._processPendingTasks(options.traceId);
             const result = await this._cycle.execute();
-            this._eventBus.emit('cycle.completed', result);
+            this._eventBus.emit('cycle.completed', result, {traceId: options.traceId});
             return result;
         } catch (error) {
-            this._eventBus.emit('cycle.error', {error: error.message});
+            this._eventBus.emit('cycle.error', {error: error.message}, {traceId: options.traceId});
             this.logError('Error in reasoning step:', error);
             throw error;
         }
     }
 
-    async runCycles(count) {
+    async runCycles(count, options = {}) {
         const results = [];
         for (let i = 0; i < count; i++) {
             try {
-                results.push(await this.step());
+                results.push(await this.step({...options, cycleNumber: i + 1}));
             } catch (error) {
                 results.push({error: error.message, cycleNumber: i + 1});
             }
@@ -317,12 +317,12 @@ export class NAR extends BaseComponent {
         return this._taskManager.findTasksByType('QUESTION');
     }
 
-    reset() {
+    reset(options = {}) {
         this.stop();
         this._memory.clear();
         this._taskManager.clearPendingTasks();
         this._cycle.reset();
-        this._eventBus.emit('system.reset', {timestamp: Date.now()});
+        this._eventBus.emit('system.reset', {timestamp: Date.now()}, {traceId: options.traceId});
         this.logInfo('NAR reset completed');
     }
 
@@ -389,9 +389,9 @@ export class NAR extends BaseComponent {
         return Math.min(1.0, basePriority + confidenceBoost + typeBoost);
     }
 
-    async _processPendingTasks() {
+    async _processPendingTasks(traceId) {
         for (const task of this._taskManager.processPendingTasks(Date.now())) {
-            this._eventBus.emit('task.added', {task});
+            this._eventBus.emit('task.added', {task}, {traceId});
         }
     }
 

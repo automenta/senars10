@@ -431,14 +431,15 @@ export class BaseComponent {
      * Emits an event through the event bus
      * @param {string} event - Event name
      * @param {Object} data - Event data
+     * @param {Object} options - Event options
      */
-    emitEvent(event, data) {
+    emitEvent(event, data, options = {}) {
         this._eventBus.emit(event, {
             timestamp: Date.now(),
             component: this._name,
             uptime: this.uptime,
             ...data
-        });
+        }, options);
     }
 
     /**

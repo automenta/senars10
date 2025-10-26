@@ -53,6 +53,8 @@ export const DEFAULT_CONFIG = {
 /**
  * Configuration validator
  */
+import { validateConfigWithDefaults } from './ConfigValidator.js';
+
 export class ConfigValidator {
     /**
      * Validates a configuration object against the schema
@@ -60,69 +62,12 @@ export class ConfigValidator {
      * @returns {Array} - Array of validation errors
      */
     static validate(config) {
-        const errors = [];
-
-        if (typeof config !== 'object' || config === null) {
-            errors.push('Configuration must be an object');
-            return errors;
+        try {
+            validateConfigWithDefaults(config);
+            return [];
+        } catch (error) {
+            return [error.message];
         }
-
-        // Validate term factory config
-        if (config.termFactory) {
-            if (typeof config.termFactory.maxCacheSize !== 'number' || config.termFactory.maxCacheSize <= 0) {
-                errors.push('termFactory.maxCacheSize must be a positive number');
-            }
-        }
-
-        // Validate memory config
-        if (config.memory) {
-            if (typeof config.memory.focusCapacity !== 'number' || config.memory.focusCapacity <= 0) {
-                errors.push('memory.focusCapacity must be a positive number');
-            }
-            if (typeof config.memory.bagCapacity !== 'number' || config.memory.bagCapacity <= 0) {
-                errors.push('memory.bagCapacity must be a positive number');
-            }
-            if (typeof config.memory.forgettingThreshold !== 'number' ||
-                config.memory.forgettingThreshold < 0 || config.memory.forgettingThreshold > 1) {
-                errors.push('memory.forgettingThreshold must be a number between 0 and 1');
-            }
-        }
-
-        // Validate reasoning config
-        if (config.reasoning) {
-            if (typeof config.reasoning.maxSteps !== 'number' || config.reasoning.maxSteps <= 0) {
-                errors.push('reasoning.maxSteps must be a positive number');
-            }
-            if (typeof config.reasoning.priorityThreshold !== 'number' ||
-                config.reasoning.priorityThreshold < 0 || config.reasoning.priorityThreshold > 1) {
-                errors.push('reasoning.priorityThreshold must be a number between 0 and 1');
-            }
-        }
-
-        // Validate system config
-        if (config.system) {
-            if (typeof config.system.enableLogging !== 'boolean') {
-                errors.push('system.enableLogging must be a boolean');
-            }
-            if (typeof config.system.enableMetrics !== 'boolean') {
-                errors.push('system.enableMetrics must be a boolean');
-            }
-            if (!['DEBUG', 'INFO', 'WARN', 'ERROR'].includes(config.system.logLevel)) {
-                errors.push('system.logLevel must be one of: DEBUG, INFO, WARN, ERROR');
-            }
-        }
-
-        // Validate functor config
-        if (config.functors) {
-            if (typeof config.functors.maxExecutionTime !== 'number' || config.functors.maxExecutionTime <= 0) {
-                errors.push('functors.maxExecutionTime must be a positive number');
-            }
-            if (typeof config.functors.enableSafety !== 'boolean') {
-                errors.push('functors.enableSafety must be a boolean');
-            }
-        }
-
-        return errors;
     }
 
     /**
@@ -131,29 +76,12 @@ export class ConfigValidator {
      * @returns {Object} - Merged configuration
      */
     static mergeWithDefaults(userConfig) {
-        return this.deepMerge(DEFAULT_CONFIG, userConfig || {});
-    }
-
-    /**
-     * Deep merge two objects
-     * @param {Object} target - Target object
-     * @param {Object} source - Source object
-     * @returns {Object} - Merged object
-     */
-    static deepMerge(target, source) {
-        const result = {...target};
-
-        for (const key in source) {
-            if (source.hasOwnProperty(key)) {
-                if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-                    result[key] = this.deepMerge(result[key] || {}, source[key]);
-                } else {
-                    result[key] = source[key];
-                }
-            }
+        try {
+            return validateConfigWithDefaults(userConfig || {});
+        } catch (error) {
+            // If validation fails, return defaults merged with user config
+            return {...DEFAULT_CONFIG, ...userConfig};
         }
-
-        return result;
     }
 }
 
