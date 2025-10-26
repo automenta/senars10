@@ -1,79 +1,67 @@
-# SeNARS Complete Development Plan (Final, Reprioritized)
+# SeNARS Complete Development Plan (Final, Enhanced)
 
 ## Introduction
 
 This document presents the complete, reprioritized development plan for SeNARS. It has been revised to prioritize the development and validation of a correct, reliable, and secure core reasoning system using ephemeral test cases *before* implementing end-user functionality such as persistence or visualization UIs.
 
-Each phase includes a stated **"Agile Focus"** that defines the most critical deliverable for that stage. Initiatives within each phase are ordered by priority.
+This plan codifies key architectural principles and technology choices to ensure a robust, maintainable, and agile foundation for research and development. Each phase includes a stated **"Agile Focus"** and initiatives ordered by priority.
 
 ---
-### Architectural Principle: Functional Core, Imperative Shell
-*Throughout this roadmap, a key design principle is the separation of a **pure, functional core** from an **impure, imperative shell**. The reasoning engine, evaluation logic, and truth-value functions will be implemented as pure functions that are deterministic and easily testable. The "shell" consists of components that manage state, interact with the outside world (I/O), and handle events. This separation is critical for testability, reliability, and clarity.*
+## Core Development Principles & Technology Choices
+
+To align with the JavaScript platform and modern development practices, we will adhere to the following principles:
+
+1.  **JSON for Configuration:** We will standardize on **JSON** for all configuration files (`config.json`, manifests). It is native to the JavaScript ecosystem, requiring no external parsers and ensuring seamless integration. This is analogous to choosing platform-native solutions over external dependencies where possible.
+
+2.  **Jest for Testing:** The project will standardize on the **Jest** testing framework. Instead of building custom test runners or fluent APIs, we will leverage Jest's powerful ecosystem for assertions, mocking, and coverage reporting, which is already established in the project.
+
+3.  **Zod for Validation:** For all data validation (configuration schemas, API inputs, event payloads), we will use **Zod**. Its schema-first approach provides robust, static, and runtime type safety with minimal boilerplate, improving reliability and developer experience.
+
+4.  **Lightweight Event Emitter:** The `EventBus` will be implemented using a minimal, well-tested library like `mitt` or `tiny-emitter`. This avoids reinventing core eventing logic and ensures high performance.
+
+5.  **Functional Core, Imperative Shell:** The reasoning engine, evaluation logic, and truth-value functions will be implemented as **pure functions**. The "shell" will manage state and side effects (I/O, etc.). This separation is critical for testability and reliability.
+
+6.  **Configuration as Code:** All agent behaviors, rule sets, and plugin configurations will be defined declaratively in the `config.json`, not hard-coded. The `AgentBuilder` is the mechanism that enforces this principle.
+
 ---
 
 ### Phase 9: Observability & Foundational Engineering
-*Goal: Establish a comprehensive, unified observability framework and a formal plugin architecture. This phase is a foundational prerequisite for all subsequent reliability, security, and feature development.*
+*Goal: Establish a comprehensive, unified observability framework and a formal plugin architecture.*
 
-**Agile Focus:** Establish the event-driven backbone and implement the minimum viable logging necessary to observe and debug the core reasoning loop.
+**Agile Focus:** Establish the event-driven backbone and implement the minimum viable logging and developer tools necessary to observe and debug the core reasoning loop.
 
 **Key Initiatives (In Priority Order):**
 
 *   **9.1: Enforce Event-Driven Communication & Define Ubiquitous Language:**
-    *   **Action:** Mandate the use of the `EventBus` for all cross-component communication. Refactor the `NAR.js` cycle and `Agent.js` loop to publish events. Establish a formal dictionary of core events.
+    *   **Action:** Mandate the use of the `EventBus` for all cross-component communication. Refactor to publish events.
     *   **Implementation Details:**
-        *   **Ubiquitous Language Examples**: `task.new`, `cycle.start`, `rule.evaluated`, `lm.request`, `lm.response`, `memory.belief.updated`, `cycle.end`.
-    *   **Pattern:**
-        ```javascript
-        // FROM: this.memory.store(result);
-        // TO:
-        this.eventBus.publish('belief.derived', {
-          belief: result,
-          traceId: context.traceId
-        });
-        ```
+        *   **Ubiquitous Language**: Events (`task.new`, `cycle.start`, etc.) will carry a `traceId` to allow for tracing a single causal chain of operations through the asynchronous system.
 
 *   **9.2: Implement Basic Structured Logging:**
-    *   **Action:** Create a single `LoggingSubscriber` that listens to all events on the bus and outputs structured JSON logs (with `timestamp`, `level`, `component`, `traceId`) to the console.
+    *   **Action:** Create a single `LoggingSubscriber` that listens to all events on the bus and outputs structured JSON logs to the console.
 
-*   **9.3: Establish a Unified Configuration Schema:**
-    *   **Action:** Consolidate all configuration into a single, hierarchical JSON schema, managed and validated by the `AgentBuilder`.
+*   **9.3: Establish a Unified Configuration Schema with Zod:**
+    *   **Action:** Consolidate all configuration into a single, hierarchical JSON schema. Use **Zod** to parse and validate the configuration object at startup.
     *   **Example Snippet (`config.json`):**
         ```json
         {
           "agent": {
-            "observability": {
-              "logging": {
-                "level": "info"
-              }
-            },
-            "plugins": [
-              {
-                "name": "my-plugin",
-                "config": {
-                  "apiKey": "${ENV_VAR}"
-                }
-              }
-            ]
+            "observability": { "logging": { "level": "info" } },
+            "plugins": [ { "name": "my-plugin", "config": { "apiKey": "${ENV_VAR}" } } ]
           }
         }
         ```
 
 *   **9.4: Define and Implement the Formal Plugin API:**
     *   **Action:** Specify a formal `SeNARSPlugin` interface and integrate it into the `AgentBuilder`.
-    *   **Pattern:**
-        ```javascript
-        interface SeNARSPlugin {
-          readonly name: string;
-          initialize(agent: Agent, config: PluginConfig): Promise<void>;
-          shutdown(): Promise<void>;
-        }
-        ```
+
+*   **9.5: Create a Core Agent Factory:**
+    *   **Action:** Develop a simple factory function (e.g., `createAgent(config)`) that abstracts the `AgentBuilder` for common use cases, making it easier for researchers to start experiments.
 
 **Acceptance Criteria:**
-- [ ] All core reasoning loop communication is mediated by the `EventBus`.
+- [ ] All core reasoning loop communication is mediated by the `EventBus` and includes a `traceId`.
 - [ ] A `LoggingSubscriber` outputs structured logs for all core events.
-- [ ] All system configuration is managed through a single, validated JSON schema.
-- [ ] A formal `SeNARSPlugin` interface is defined and integrated.
+- [ ] All system configuration is managed through a single, Zod-validated JSON schema.
 
 ---
 
@@ -96,18 +84,17 @@ Each phase includes a stated **"Agile Focus"** that defines the most critical de
         ```
 
 *   **10.2: Implement Circuit Breakers for External Dependencies:**
-    *   **Action:** Wrap all external calls (especially to LM providers) in a Circuit Breaker pattern to prevent cascading failures.
+    *   **Action:** Wrap all external calls (especially to LM providers) in a Circuit Breaker pattern.
 
 *   **10.3: Design and Implement Fallback Strategies:**
     *   **Action:** Develop intelligent fallback mechanisms, such as degrading to pure NAL reasoning when an LM is unavailable.
 
-*   **10.4: Memory Corruption Detection and Recovery:**
+*   **10.4: Memory Corruption Detection:**
     *   **Action:** Implement checksums or other validation mechanisms for critical memory structures. (Note: Recovery will depend on persistence, but detection can be implemented first).
 
 **Acceptance Criteria:**
 - [ ] All reasoning tasks are subject to configurable resource and time bounds.
 - [ ] All external API calls are protected by a configurable circuit breaker.
-- [ ] The reasoning engine can gracefully degrade to a pure NAL mode when the LM is unavailable.
 
 ---
 
@@ -120,41 +107,37 @@ Each phase includes a stated **"Agile Focus"** that defines the most critical de
 
 *   **11.1: Design a Capability-Based Security Model:**
     *   **Action:** Implement a security model where tools and plugins are granted specific, limited capabilities defined in a manifest.
-    *   **Example: `plugin-manifest.json`**
-        ```json
-        {
-          "name": "weather-plugin",
-          "capabilities": {
-            "network": { "allowedHosts": ["api.weather.com"] }
-          }
-        }
-        ```
 
 *   **11.2: Implement a Sandboxed Tool Execution Environment:**
     *   **Action:** Execute all external tools in a sandboxed environment with strict resource limits.
 
 *   **11.3: Implement Property-Based Testing for NAL Rules:**
-    *   **Action:** Use a property-based testing framework to test the logical invariants of the NAL rule engine and truth-value functions.
+    *   **Action:** Use **Jest** with a library like `fast-check` to test the logical invariants of the NAL rule engine and truth-value functions.
 
-*   **11.4: Develop a Hybrid Reasoning Validation Framework:**
-    *   **Action:** Create a dedicated test harness for validating the *quality* of NAL-LM hybrid reasoning against a curated set of complex, ephemeral problems.
-    *   **Validation Scenario Example:**
-        *   **Input:** "A Tesla is a type of car. My car is a Tesla. Cars need electricity. Does my car need electricity?"
-        *   **Expected Hybrid Output:** A "Yes" answer accompanied by a complete, verifiable reasoning chain.
+*   **11.4: Establish a Reasoning Benchmark Suite:**
+    *   **Action:** Create a dedicated test harness and a suite of complex, ephemeral problems stored in JSON files. The CI pipeline will run these benchmarks to validate the *quality* and *correctness* of NAL-LM hybrid reasoning and catch regressions.
+    *   **Validation Scenario Example (`/benchmarks/tesla_premise.json`):**
+        ```json
+        {
+          "name": "Tesla Premise Injection",
+          "input": [
+            "(<my_car> --> <Tesla>).",
+            "(<Tesla> --> <car>).",
+            "<my_car> needs electricity?"
+          ],
+          "expected": {
+            "answer": "(<my_car> --> <needs_electricity>).",
+            "trace": [ "lm.request", "nal.deduction" ]
+          }
+        }
+        ```
 
 *   **11.5: Introduce Chaos Engineering for Reliability Validation:**
     *   **Action:** Build a "chaos testing" suite that intentionally injects failures to test the resilience features built in Phase 10.
 
-*   **11.6: Create an Audit Logging System:**
-    *   **Action:** Implement a secure, append-only audit log for all sensitive actions.
-
-*   **11.7: Establish Performance Regression Benchmarks:**
-    *   **Action:** Create a suite of performance benchmarks that run automatically in CI.
-
 **Acceptance Criteria:**
 - [ ] Tools and plugins operate under a capability-based security model.
-- [ ] All tool code is executed within a resource-limited sandbox.
-- [ ] The quality and correctness of hybrid reasoning are validated against a benchmark suite.
+- [ ] The quality and correctness of hybrid reasoning are validated against a JSON-based benchmark suite.
 - [ ] NAL rules are validated by property-based tests.
 
 ---
@@ -173,7 +156,7 @@ Each phase includes a stated **"Agile Focus"** that defines the most critical de
     *   **Action:** Implement a secure WebSocket endpoint that streams key events and metrics from the observability pipeline.
 
 *   **12.3: Build an Interactive Visualization Suite:**
-    *   **Action:** Develop a web-based UI that connects to the WebSocket API to provide a real-time view into the agent's mind (concept graph, evaluation traces, metrics).
+    *   **Action:** Develop a web-based UI that connects to the WebSocket API to provide a real-time view into the agent's mind.
 
 **Acceptance Criteria:**
 - [ ] The agent can persist its state to disk and successfully recover from a restart.
@@ -181,7 +164,7 @@ Each phase includes a stated **"Agile Focus"** that defines the most critical de
 
 ---
 
-### Phase 13: Advanced Coordination & Autonomy
+### Phase 13: Advanced Autonomy & Coordination
 *Goal: Cultivate the conditions for emergent, autonomous intelligence by enabling the agent to reason about itself and coordinate with others.*
 
 **Agile Focus:** Implement the foundational capabilities for self-directed behavior and multi-agent systems.
@@ -189,26 +172,13 @@ Each phase includes a stated **"Agile Focus"** that defines the most critical de
 **Key Initiatives:**
 
 *   **13.1: Implement a Meta-Goal System:**
-    *   **Action:** Allow the agent to pursue high-level, abstract objectives (e.g., "increase knowledge," "maintain logical consistency").
+    *   **Action:** Allow the agent to pursue high-level, abstract objectives (e.g., "increase knowledge").
 
 *   **13.2: Integrate Self-Monitoring with the Goal System:**
     *   **Action:** Connect the observability pipeline to the goal system, allowing the agent to reason about its own performance and generate goals for self-improvement.
 
 *   **13.3: Multi-Agent Coordination Foundations:**
     *   **Action:** Define and implement a preliminary agent-to-agent communication protocol.
-    *   **Message Format Example:**
-        ```json
-        {
-          "protocolVersion": "1.0",
-          "messageId": "uuid-v4",
-          "senderId": "agent-alpha",
-          "type": "BELIEF_SHARE",
-          "payload": {
-            "term": "(A ==> B)",
-            "truth": { "f": 0.8, "c": 0.95 }
-          }
-        }
-        ```
 
 **Acceptance Criteria:**
 - [ ] The system can be given an abstract meta-goal and generate a tree of actionable sub-tasks to pursue it.
@@ -224,7 +194,7 @@ Each phase includes a stated **"Agile Focus"** that defines the most critical de
 **Key Initiatives:**
 
 *   **14.1: Develop a Curiosity Mechanism:**
-    *   **Action:** Implement a mechanism for the system to autonomously generate questions to explore gaps in its knowledge, driven by its memory and semantic embeddings.
+    *   **Action:** Implement a mechanism for the system to autonomously generate questions to explore gaps in its knowledge.
 
 **Acceptance Criteria:**
 - [ ] The system can demonstrate self-improvement by identifying a performance issue and creating a goal to address it.
