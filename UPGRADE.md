@@ -166,117 +166,83 @@ The `Agent` is the top-level entity that orchestrates the system's lifecycle. It
 
 ---
 
-### Phase 8: Unified Computational Reasoning Framework
-*Goal: Implement a unified computational reasoning system that seamlessly integrates logical inference, equation solving, pattern matching, and dynamic rule configuration within the core NARS framework, using natural extensions of NARS syntax.*
+### Phase 8: NAL-LM Hybrid Reasoning Excellence
+*Goal: Complete and refine the hybrid NAL-LM reasoning system to exemplify the synergistic capabilities that define and distinguish SeNARS, focusing on functional coherence over premature performance optimization.*
 
-**Rationale:** SeNARS must achieve powerful computational reasoning capabilities while maintaining the non-axiomatic reasoning foundations of NARS. Rather than importing external paradigms (Prolog/MeTTa), this phase extends NARS syntax and semantics to handle computational operations naturally within the existing NARS architecture, preserving the theoretical elegance and real-time properties that make NARS unique.
+**Rationale:** The core innovation of SeNARS lies in the synergistic integration of NAL (Non-Axiomatic Logic) and LM (Language Model) reasoning capabilities. This phase prioritizes the refinement of hybrid reasoning patterns, cross-validation between reasoning types, and practical demonstration of the NAL-LM synergy that creates unique value. Rather than pursuing theoretical completeness, we focus on a stable, functional system that clearly exemplifies the advantages of combining symbolic and neural reasoning.
 
 **Key Initiatives:**
 
-*   **8.1: Enhanced Computational Operators Within NARS Syntax:**
-    *   **Action:** Extend the existing `=` (equality) and other operators to handle sophisticated pattern matching, equation solving, and computational operations within NARS syntax.
-    *   **Implementation Details:** Enhance the existing `=` operator implementation in EvaluationEngine to support equation solving like `(X + 2) = 5`, equality relations like `(X, Y) = (3, 4)`, and pattern matching like `(parent, ?X) = (?, Bob)` for unification. All operations must integrate with NARS priority-driven control and attention mechanisms rather than operating as separate systems.
-    *   **Technical Considerations:** 
-        - Ensure computational operations respect task priorities and attention focus
-        - Maintain real-time processing properties during complex computations
-        - Handle variable binding and unification within the NARS inference cycle
-        - Preserve truth-value and budget propagation during computational operations
-    *   **Outcome:** Users can express computational relations naturally in NARS syntax while maintaining all NARS properties.
+*   **8.1: Enhanced NAL-LM Cooperation:**
+    *   **Action:** Refine the CooperationEngine to better leverage synergies between NAL and LM reasoning patterns.
+    *   **Implementation Details:** Improve cross-validation mechanisms where LM-generated hypotheses are validated by NAL reasoning, and NAL inferences are enriched by LM contextual understanding. This includes enhanced feedback loops between reasoning types that strengthen or adjust conclusions based on cross-type validation.
+    *   **Technical Considerations:** Ensure bidirectional enhancement where each reasoning type can improve the other's results, with appropriate confidence adjustments when one type validates the results of another.
+    *   **Outcome:** Demonstrable synergy where combined NAL-LM reasoning produces results superior to either approach alone.
 
-*   **8.2: Dynamic Pattern Matching and Unification System:**
-    *   **Action:** Enhance the VariableBindingUtils and PatternMatcher to support sophisticated unification for higher-order reasoning patterns.
-    *   **Implementation Details:** Improve the existing pattern matching system to handle complex patterns like `(Similar, (Human ==> Mortal), (Socrates ==> Mortal))` as NARS terms. This includes support for variable binding across complex term structures, nested pattern matching, and unification with type constraints.
-    *   **Technical Considerations:**
-        - Ensure pattern matching is efficient to avoid performance bottlenecks in the reasoning cycle
-        - Handle variable scoping and binding properly to avoid conflicts
-        - Support both structural and functional evaluation patterns during unification
-        - Maintain consistency with NARS truth-value calculations during pattern matching
-    *   **Outcome:** The system can perform complex pattern matching and variable binding while preserving NARS attention and memory principles.
+*   **8.2: Practical Hybrid Reasoning Applications:**
+    *   **Action:** Develop and refine practical applications that showcase NAL-LM synergy.
+    *   **Implementation Details:** Create exemplar applications where NAL reasoning provides logical consistency and temporal reasoning while LM reasoning provides contextual understanding and common-sense knowledge. Examples include complex query answering, multi-step reasoning chains, and domain-specific problem solving.
+    *   **Technical Considerations:** Focus on real-world scenarios rather than artificial benchmarks, ensuring the system can handle ambiguity, incomplete information, and mixed symbolic/probabilistic reasoning seamlessly.
+    *   **Outcome:** Clear demonstration of SeNARS' unique value proposition through practical applications.
 
-*   **8.3: Unified Computational and Inference Processing:**
-    *   **Action:** Integrate computational operations (equation solving, pattern matching) directly into the NARS inference cycle.
-    *   **Implementation Details:** Create seamless interaction between logical inference and computational operations within the same processing pipeline. Computational results should be subject to the same priority evaluation, memory storage, and attention mechanisms as logical inferences.
-    *   **Technical Considerations:**
-        - Ensure computational operations don't disrupt real-time NARS operation
-        - Implement proper resource allocation between computational and logical tasks
-        - Handle computational failures gracefully without crashing the reasoning cycle
-        - Maintain performance metrics for computational operations
-    *   **Outcome:** A single coherent processing pipeline that handles both NARS-style reasoning and computational tasks while preserving all core NARS properties.
+*   **8.3: Coordinated Reasoning Strategy Refinement:**
+    *   **Action:** Optimize the CoordinatedReasoningStrategy for practical use cases rather than theoretical completeness.
+    *   **Implementation Details:** Implement adaptive coordination that determines when NAL reasoning, LM reasoning, or hybrid approaches are most appropriate for a given task. Include contextual switching based on problem type, complexity, and required confidence levels.
+    *   **Technical Considerations:** Focus on practical heuristics for determining reasoning type rather than complex algorithmic optimization that may not provide proportional real-world value.
+    *   **Outcome:** A reasoning system that intelligently selects and combines approaches based on practical effectiveness.
 
-*   **8.4: Higher-Order Term Processing:**
-    *   **Action:** Enable higher-order reasoning where terms representing logical statements can be manipulated as first-class objects within NARS.
-    *   **Implementation Details:** Allow terms like `(Human ==> Mortal)` to be treated as objects that can be bound to variables, compared, and used in meta-level reasoning. This enables powerful meta-cognitive capabilities while maintaining NARS architecture.
-    *   **Technical Considerations:**
-        - Implement proper term representation for higher-order statements
-        - Handle truth-value propagation in higher-order reasoning contexts
-        - Ensure higher-order operations don't create infinite loops or combinatorial explosions
-        - Maintain consistency with NARS type system and constraints
-    *   **Outcome:** The system can reason about patterns of knowledge, not just base facts, enabling sophisticated meta-cognitive operations while preserving NARS properties.
+*   **8.4: Truth-Value Integration and Confidence Management:**
+    *   **Action:** Implement coherent truth-value handling between NAL and LM reasoning components.
+    *   **Implementation Details:** Develop mechanisms for translating and combining confidence values from LM reasoning with NAL truth-values, enabling consistent belief revision and priority handling across reasoning types.
+    *   **Technical Considerations:** Ensure that confidence adjustments from cross-validation are properly propagated through the system without creating instability.
+    *   **Outcome:** A unified confidence and truth-value system that works consistently across both reasoning types.
 
 ### Acceptance Criteria for Phase 8:
-- [ ] Equation solving works naturally within NARS syntax: `(X + 3) = 7` derives `X = 4` with proper NARS priority handling
-- [ ] Complex pattern matching operates efficiently: `(Similar, (Human ==> Mortal), (Socrates ==> Mortal))` patterns work within NARS terms
-- [ ] Computational operations maintain NARS real-time properties and attention focus
-- [ ] Higher-order term processing works without disrupting core NARS operation
-- [ ] Performance benchmarks show computational integration doesn't degrade NARS reasoning speed
-- [ ] All computational operations use same memory and attention mechanisms as logical inference
+- [ ] NAL-LM cross-validation mechanisms demonstrate clear synergistic benefits
+- [ ] Practical applications successfully showcase hybrid reasoning advantages
+- [ ] Coordinated reasoning adaptively selects appropriate approaches for different problem types
+- [ ] Truth-value and confidence management works consistently across both reasoning types
+- [ ] Hybrid system demonstrates capabilities exceeding either NAL or LM alone
 
 ---
 
-### Phase 9: Dynamic Rule Configuration and Template Engine
-*Goal: Create advanced infrastructure for defining, configuring, and dynamically loading new rule types through configuration and templates, while maintaining tight integration with the unified computational reasoning framework.*
+### Phase 9: Production-Ready NAL-LM System
+*Goal: Prepare the NAL-LM hybrid reasoner for real-world deployment and practical applications, focusing on reliability and functionality over premature optimization.*
 
-**Rationale:** Rather than hardcoding fixed rule sets, the system needs flexible infrastructure that allows users to define new reasoning patterns through configuration. This supports NARS principles of adaptability while maintaining the theoretical rigor and performance characteristics of the system. The dynamic rule engine must work seamlessly with the computational operations introduced in Phase 8.
+**Rationale:** After establishing the core NAL-LM synergy, the system needs to be hardened for production use and made accessible for practical applications. This phase focuses on reliability, usability, and the practical aspects of deploying the hybrid reasoning system rather than advanced theoretical features. Performance optimization should be data-driven based on real usage rather than speculative.
 
 **Key Initiatives:**
 
-*   **9.1: Configuration-Based Rule Definition:**
-    *   **Action:** Enable creation of new rule types through configuration files rather than code changes.
-    *   **Implementation Details:** Develop a rule configuration system that allows users to define new inference patterns using a structured format. This includes pattern matching templates, truth-value transformation functions, and priority calculations. The configuration system should support both simple NAL patterns and complex computational rules that integrate with Phase 8 capabilities.
-    *   **Technical Considerations:**
-        - Ensure configuration-defined rules maintain same performance characteristics as hardcoded rules
-        - Implement validation for configuration files to prevent invalid rule definitions
-        - Support integration with computational operators from Phase 8 (equation solving, pattern matching)
-        - Maintain proper error handling for malformed rule configurations
-    *   **Outcome:** New reasoning patterns definable through configuration while maintaining high performance and NARS theoretical integrity.
+*   **9.1: Stability and Reliability:**
+    *   **Action:** Ensure the NAL-LM hybrid system operates reliably under varied conditions.
+    *   **Implementation Details:** Implement comprehensive error handling, graceful degradation, and recovery mechanisms. Address the infinite loop and stability issues that can occur in complex reasoning scenarios. Focus on making the system robust in real-world usage.
+    *   **Technical Considerations:** Prioritize correctness and stability over performance optimization at this stage. Design recovery mechanisms that allow the system to continue operation even when some reasoning paths fail.
+    *   **Outcome:** A stable, reliable system that handles edge cases gracefully without crashing or entering infinite loops.
 
-*   **9.2: Template-Based Rule Generation:**
-    *   **Action:** Create powerful template systems for generating families of related rules.
-    *   **Implementation Details:** Develop template mechanisms that can generate complete rule sets from high-level pattern descriptions. Examples include syllogistic rule templates, temporal pattern templates, and computational pattern templates. Templates should support parameterization and composition to create complex rule families efficiently.
-    *   **Technical Considerations:**
-        - Ensure generated rules are properly optimized for performance
-        - Support template inheritance and specialization
-        - Handle variable binding and truth-value calculations in generated rules
-        - Integrate with pattern matching capabilities from both NAL and computational reasoning
-    *   **Outcome:** Complex families of related rules can be generated automatically from high-level templates while maintaining theoretical correctness.
+*   **9.2: Practical Deployment Capabilities:**
+    *   **Action:** Implement features necessary for real-world deployment of the hybrid reasoner.
+    *   **Implementation Details:** Containerization, configuration management, and operational capabilities needed for deployment in various environments. Focus on making deployment straightforward for different use cases.
+    *   **Technical Considerations:** Ensure the system can be deployed with different LM backends, memory configurations, and operational requirements. Include monitoring and logging capabilities that are practical for operations teams.
+    *   **Outcome:** Straightforward deployment process with operational capabilities for real-world use.
 
-*   **9.3: Dynamic Rule Loading and Management:**
-    *   **Action:** Implement runtime loading and management of rule configurations and templates.
-    *   **Implementation Details:** Create systems for dynamically loading rule configurations during runtime, enabling rule modification without system restart. Include mechanisms for rule activation/deactivation, performance monitoring, and effectiveness evaluation. Rules should be able to adapt based on performance feedback and user configuration.
-    *   **Technical Considerations:**
-        - Ensure dynamic loading doesn't disrupt ongoing reasoning cycles
-        - Implement safe mechanisms for rule replacement during execution
-        - Track performance metrics for dynamically loaded rules
-        - Support hot-swapping of rule configurations
-    *   **Outcome:** Rules can be added, modified, and removed at runtime without disrupting system operation.
+*   **9.3: Developer and User Experience:**
+    *   **Action:** Create interfaces and tools that make the NAL-LM system accessible and useful.
+    *   **Implementation Details:** Develop clear APIs, comprehensive documentation, and development tools that allow others to build on and extend the system. Focus on making the NAL-LM synergy accessible to users without requiring deep understanding of internal mechanisms.
+    *   **Technical Considerations:** Design APIs that expose the power of hybrid reasoning while hiding complexity. Create tools that help understand and debug the reasoning processes.
+    *   **Outcome:** Clear pathways for others to use and extend the hybrid reasoning capabilities.
 
-*   **9.4: Integrated Computational Rule Processing:**
-    *   **Action:** Ensure configured and templated rules can seamlessly work with computational operations from Phase 8.
-    *   **Implementation Details:** Enable configuration-defined rules to incorporate equation solving, pattern matching, and higher-order reasoning patterns. This includes rules that can perform equation solving as part of their processing, rules that utilize unification patterns, and rules that operate on higher-order terms.
-    *   **Technical Considerations:**
-        - Maintain performance during complex computational rule processing
-        - Ensure computational rules integrate properly with memory and attention systems
-        - Handle the interaction between configured rules and computational operators
-        - Validate that computational rules maintain NARS theoretical properties
-    *   **Outcome:** Configuration-defined rules can leverage all computational capabilities introduced in Phase 8 while preserving NARS properties.
+*   **9.4: Functional Testing and Validation:**
+    *   **Action:** Validate system functionality with real-world scenarios rather than theoretical benchmarks.
+    *   **Implementation Details:** Create test suites based on actual use cases that demonstrate the NAL-LM synergy. Focus on functional correctness and practical utility over synthetic performance metrics.
+    *   **Technical Considerations:** Prioritize tests that demonstrate real value over abstract theoretical requirements. Include tests that verify the system handles complex, real-world reasoning scenarios.
+    *   **Outcome:** Confidence that the system works correctly for practical applications.
 
 ### Acceptance Criteria for Phase 9:
-- [ ] New rule types definable through configuration without code changes
-- [ ] Template system generates valid, efficient NAL and computational rules
-- [ ] Rules can be loaded and managed dynamically at runtime
-- [ ] Configuration-defined rules integrate seamlessly with Phase 8 computational operations
-- [ ] Performance for configured rules matches hardcoded rule performance
-- [ ] Configured rules maintain NARS theoretical properties and attention mechanisms
+- [ ] System operates reliably without infinite loops or crashes in varied conditions
+- [ ] Straightforward deployment process with operational capabilities
+- [ ] Clear APIs and tools for accessing NAL-LM hybrid reasoning
+- [ ] Validation through real-world use cases demonstrating practical value
+- [ ] System maintains hybrid reasoning capabilities during operation
 
 ---
 
@@ -478,52 +444,52 @@ The `Agent` is the top-level entity that orchestrates the system's lifecycle. It
          achievable within the current architecture without needing to replicate the entire 
          atomspace model.
 
-  Phase 8: Unified Computational Reasoning Framework
+  Phase 8: NAL-LM Hybrid Reasoning Excellence
 
-   * Strengths: This phase correctly extends NARS capabilities with computational reasoning while 
-     maintaining theoretical foundations. The focus on unified processing within NARS syntax is
-     architecturally elegant and preserves system coherence.
+   * Strengths: This phase properly focuses on the core innovation of SeNARS - the synergistic 
+     integration of NAL and LM reasoning. The emphasis on practical applications over theoretical
+     completeness is well-aligned with business objectives and creates clear value proposition.
    * Concerns & Missing Details:
-       * Integration Complexity: Integrating computational operations (equation solving, pattern 
-         matching) into the real-time NARS cycle is non-trivial. The system must maintain its
-         real-time properties while handling potentially complex computational operations. A detailed
-         performance analysis plan is needed to ensure computational operations don't disrupt
-         the NARS reasoning cycle.
-       * Variable Binding Sophistication: The enhanced pattern matching system needs careful design
-         to handle complex variable scoping and binding scenarios without creating performance
-         bottlenecks or combinatorial explosions. The VariableBindingUtils infrastructure needs
-         thorough validation for complex cases.
-       * Truth-Value Integration: Computational operations must properly integrate with NARS'
-         truth-value system. The relationship between computational results and truth-values
-         needs clear specification.
+       * Coordinated Reasoning Quality: Ensuring that NAL-LM cross-validation mechanisms actually
+         produce demonstrably better results than either approach alone requires careful design
+         and validation with real-world examples.
+       * Truth-Value Integration: The mechanisms for translating and combining confidence values
+         from LM reasoning with NAL truth-values need thorough validation to ensure consistency
+         and prevent instability in the belief revision process.
+       * Adaptive Strategy Effectiveness: The heuristics for determining when to use NAL, LM, or
+         hybrid approaches should be validated with diverse problem types to ensure practical
+         effectiveness.
 
-  Phase 9: Dynamic Rule Configuration and Template Engine
+  Phase 9: Production-Ready NAL-LM System
 
-   * Strengths: This phase provides essential flexibility for extending the system without code
-     changes, which is crucial for long-term maintainability and research applications.
+   * Strengths: This phase appropriately prioritizes stability, reliability, and practical 
+     deployment over premature optimization. The focus on real-world validation rather than
+     synthetic benchmarks aligns well with business objectives.
    * Concerns & Missing Details:
-       * Performance of Configured Rules: Configuration-defined rules must maintain performance
-         comparable to hardcoded rules. The template generation system needs careful optimization
-         to avoid runtime overhead. Benchmarking against hardcoded equivalents is essential.
-       * Validation of Dynamic Rules: A comprehensive validation system is needed to ensure
-         dynamically loaded rules conform to NARS theoretical requirements and don't introduce
-         inconsistencies or performance issues.
-       * Integration with Computational Framework: Configured rules must seamlessly integrate
-         with the computational operators from Phase 8. This requires careful API design for
-         rules to access computational capabilities without breaking encapsulation.
+       * Stability Validation: The comprehensive error handling and recovery mechanisms need to 
+         be validated with complex, real-world reasoning scenarios to ensure they're effective
+         at preventing infinite loops and system crashes.
+       * Deployment Simplicity: Ensuring the system can be deployed with different LM backends
+         and configurations requires careful design of abstract interfaces and configuration
+         management systems.
+       * Functional Testing Approach: The focus on real-world use cases for validation is correct,
+         but the specific test scenarios should be defined to ensure they adequately cover the
+         core value proposition of NAL-LM synergy.
 
   Summary of Recommendations
 
-   1. Refine Vague Goals: Replace ambiguous terms like "Parity" with specific, measurable, and 
-      achievable engineering goals (e.g., "Equation solving works within NARS syntax," 
-      "Support for higher-order term binding").
-   2. Define Interfaces First: Before implementing Phases 5, 6, and 8, first design the key APIs: 
-      the Agent-NAR interface, the Module-Registration/Eventing API, and the WebSocket API.
-   3. Break Down Large Initiatives: Decompose massive tasks like "Implement all NAL rules" into 
-      smaller, staged deliverables.
-   4. Performance Validation: For Phases 8 and 9 specifically, implement comprehensive performance
-      monitoring to ensure computational operations and dynamic rules don't degrade NARS real-time
-      properties. This includes benchmarks for computational complexity and rule execution speed.
+   1. Focus on Core Value: Prioritize the NAL-LM hybrid reasoning capabilities that distinguish 
+      SeNARS over additional computational paradigms. The synergistic integration of symbolic
+      and neural reasoning should remain the primary focus.
+   2. Practical Validation: Emphasize real-world use cases and functional testing over theoretical
+      completeness or synthetic benchmarks. Validate the system with scenarios that demonstrate
+      the unique value of NAL-LM integration.
+   3. Stability Before Performance: Prioritize system reliability and stability over premature
+      optimization. Ensure the hybrid reasoning system operates reliably before pursuing performance
+      enhancements.
+   4. Usability and Deployment: Focus on making the system practical for real-world deployment
+      and accessible to users. Clear APIs, good documentation, and operational capabilities
+      should take precedence over advanced theoretical features.
        implement the internal "self-modification" API that is necessary for true autonomous 
       behavior.
 
