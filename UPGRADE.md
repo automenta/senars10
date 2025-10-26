@@ -166,54 +166,194 @@ The `Agent` is the top-level entity that orchestrates the system's lifecycle. It
 
 ---
 
-### Phase 8: The Transparent Mind (UX/DX)
+### Phase 8: Enhanced Computational Parity & Integration
+*Goal: Implement Prolog/MeTTa computational capabilities as seamless integration with core NARS reasoning, addressing the critical computational gap compared to OpenNARS.*
+
+**Rationale:** SeNARS must achieve computational power equivalent to Prolog systems for deterministic programs, while maintaining the non-axiomatic reasoning capabilities of NARS. This is achieved not as a separate system but as fluid integration with core reasoning, supporting the NARS principles of computational generality and unified control.
+
+**Key Initiatives:**
+
+*   **8.1: Prolog Integration Engine:**
+    *   **Action:** Implement full Prolog-style deterministic computation that integrates with NARS control cycle rather than operating as a separate system.
+    *   **Implementation Details:** Extend current PrologParser to handle complex Prolog programs and integrate Prolog execution into NARS Cycle through special operation terms that maintain NARS priority-driven control. Rather than depth-first search with backtracking like traditional Prolog, the system will incorporate Prolog reasoning within the NARS attention mechanism.
+    *   **Outcome:** Can execute complex Prolog programs with NARS reasoning while maintaining real-time NARS properties.
+
+*   **8.2: MeTTa Equals Operator:**
+    *   **Action:** Implement `=` operator for unification and pattern matching that works within NARS architecture.
+    *   **Implementation Details:** Build unification system for MeTTa patterns using existing VariableBindingUtils infrastructure, allowing seamless pattern matching within NARS term processing. This enables higher-order pattern matching like `(Similar, (Human ==> Mortal), (Socrates ==> Mortal))` to work fluidly within the reasoning cycle.
+    *   **Outcome:** Unification patterns work seamlessly with NARS terms, achieving the computational power MeTTa provides.
+
+*   **8.3: Cross-Paradigm Term Processing:**
+    *   **Action:** Enable terms to flow seamlessly between NAL, Prolog, and MeTTa processing within single inferences.
+    *   **Implementation Details:** Create unified term processing pipeline where a single reasoning step can incorporate NAL syllogistic reasoning, Prolog-style unification, and MeTTa-style pattern matching as needed. This creates novel synergies of computation paradigms.
+    *   **Outcome:** Single inferences can leverage multiple computational approaches, creating powerful reasoning synergies.
+
+*   **8.4: Computational Power Validation:**
+    *   **Action:** Verify the system achieves computational power of equivalent Prolog systems while maintaining NARS properties.
+    *   **Implementation Details:** Create benchmark suite comparing to classical Prolog systems on equivalent problems while verifying that NARS properties (AIKR, attention focus, real-time operation) are preserved.
+    *   **Outcome:** System achieves computational parity without compromising core NARS principles.
+
+### Acceptance Criteria for Phase 8:
+- [ ] Complex Prolog programs execute with NARS reasoning while maintaining NARS properties
+- [ ] MeTTa-style unification patterns work seamlessly with NARS terms
+- [ ] Single inferences can incorporate multiple computational paradigms
+- [ ] Computational power benchmarks equivalent to Prolog systems with preserved NARS timing
+
+---
+
+### Phase 9: Flexible Rule Infrastructure
+*Goal: Create infrastructure for defining new rule types, with focus on practical extensibility that supports NARS principles of handling unforeseen reasoning patterns.*
+
+**Rationale:** Rather than implementing specific rule types that may not be needed, the system needs flexible infrastructure that enables diverse, unforeseen rule types. This supports the NARS principle of adaptability to novel patterns while building upon the solid foundation already established.
+
+**Key Initiatives:**
+
+*   **9.1: Rule Configuration System:**
+    *   **Action:** Enable new NAL rule patterns through configuration rather than code changes.
+    *   **Implementation Details:** Extend existing NALRule architecture to support configuration-based patterns that define matching and application logic. This allows new rules to be added without modifying the core codebase.
+    *   **Outcome:** New rule types definable through configuration while maintaining performance.
+
+*   **9.2: Template-Based Rule Definition:**
+    *   **Action:** Create pattern templates for common rule types (syllogistic, conditional, temporal).
+    *   **Implementation Details:** Develop rule template system that generates specific rule instances based on pattern configurations. This builds upon existing RuleEngine infrastructure rather than replacing it.
+    *   **Outcome:** Common rule types can be instantiated and modified through templates.
+
+*   **9.3: Integration with Existing RuleEngine:**
+    *   **Action:** Extend current RuleEngine rather than replacing it, ensuring backward compatibility.
+    *   **Implementation Details:** Enhance existing RuleEngine to process dynamically configured rules alongside existing hardcoded rules, using the same performance optimization and evaluation pathways.
+    *   **Outcome:** All rule types work within single, efficient processing pipeline.
+
+*   **9.4: LM-NAL Rule Synergy:**
+    *   **Action:** Establish common interface for both NAL and LM reasoning patterns.
+    *   **Implementation Details:** Create unified rule processing interface that can handle both symbolic NAL rules and neural LM reasoning patterns, enabling synergistic combinations.
+    *   **Outcome:** NAL and LM reasoning operate through common infrastructure with synergistic capabilities.
+
+### Acceptance Criteria for Phase 9:
+- [ ] New rule types definable through configuration without code changes
+- [ ] Existing rules continue to work unchanged with maintained performance
+- [ ] Template system generates valid, efficient NAL rules
+- [ ] NAL and LM reasoning patterns use common processing interface
+
+---
+
+### Phase 10: Observation & Performance System Enhancement
+*Goal: Enhance existing metrics and monitoring without creating redundant systems, focusing on actionable insights.*
+
+**Rationale:** The system needs better visibility into its operation for optimization and understanding, but this should enhance existing infrastructure rather than create new, potentially conflicting systems. This supports system self-improvement while maintaining architectural coherence.
+
+**Key Initiatives:**
+
+*   **10.1: Metrics Integration:**
+    *   **Action:** Consolidate existing metrics from multiple components into coherent view.
+    *   **Implementation Details:** Enhance existing MetricsMonitor to aggregate cross-component data from Cycle, Memory, RuleEngine, and other components into unified dashboard while maintaining current metrics.
+    *   **Outcome:** Single interface for all system metrics without redundant systems.
+
+*   **10.2: Performance Monitoring Tools:**
+    *   **Action:** Build on existing MetricsMonitor rather than replacing it with new system.
+    *   **Implementation Details:** Add aggregation, visualization, and alerting capabilities to current metrics infrastructure without changing the underlying collection mechanism.
+    *   **Outcome:** Enhanced visibility through existing, proven metrics system.
+
+*   **10.3: Cycle Performance Analysis:**
+    *   **Action:** Enhance current cycle statistics for better insight.
+    *   **Implementation Details:** Add granular performance counters and bottleneck detection to existing Cycle implementation, enabling identification of optimization opportunities.
+    *   **Outcome:** Detailed performance visibility for cycle optimization.
+
+*   **10.4: Resource Utilization Tracking:**
+    *   **Action:** Monitor actual resource usage and bottlenecks based on existing infrastructure.
+    *   **Implementation Details:** Add resource tracking to current memory, computation, and evaluation pathways to provide actionable resource usage insights.
+    *   **Outcome:** Clear visibility into actual resource consumption patterns.
+
+### Acceptance Criteria for Phase 10:
+- [ ] Single interface consolidates all system metrics from existing components
+- [ ] Clear visibility into system performance bottlenecks
+- [ ] Existing monitoring continues to work with enhanced capabilities
+- [ ] Resource usage tracking provides actionable optimization data
+
+---
+
+### Phase 11: Cycle Enhancement & Control Refinement
+*Goal: Refine the existing reasoning cycle for better integration of new capabilities without changing fundamental NARS architecture.*
+
+**Rationale:** The reasoning cycle should be enhanced to better orchestrate the new computational capabilities added in previous phases, but maintaining the proven NARS design principles of priority-driven control and attention focus.
+
+**Key Initiatives:**
+
+*   **11.1: Enhanced Cycle Orchestration:**
+    *   **Action:** Improve current cycle to better handle new reasoning types from Phases 8-9.
+    *   **Implementation Details:** Extend current Cycle.js with new orchestration capabilities that can efficiently process Prolog, MeTTa, and dynamic rule types while maintaining NARS priority-driven scheduling.
+    *   **Outcome:** Cycle handles all reasoning types effectively with maintained performance.
+
+*   **11.2: Adaptive Control Strategies:**
+    *   **Action:** Extend current control with more sophisticated strategies building on existing approach.
+    *   **Implementation Details:** Enhance current reasoning strategies to adapt based on computational patterns observed, while maintaining the fundamental NARS control approach.
+    *   **Outcome:** More sophisticated control that still follows NARS principles.
+
+*   **11.3: Integration Performance:**
+    *   **Action:** Optimize cycle for new Prolog/MeTTa integration from Phase 8.
+    *   **Implementation Details:** Optimize cycle scheduling and evaluation pathways specifically for the computational patterns introduced by Prolog and MeTTa integration.
+    *   **Outcome:** New capabilities integrated with optimal performance impact.
+
+*   **11.4: Cycle Configuration:**
+    *   **Action:** Allow cycle behavior adjustment without code changes through configuration.
+    *   **Implementation Details:** Add configuration options to existing cycle parameters without changing fundamental architecture.
+    *   **Outcome:** Cycle behavior tunable through configuration while maintaining stability.
+
+### Acceptance Criteria for Phase 11:
+- [ ] Cycle handles all reasoning types (NAL, Prolog, MeTTa, dynamic rules) effectively
+- [ ] Performance meets or exceeds current benchmarks with new capabilities
+- [ ] New features configurable without code changes
+- [ ] Backward compatibility maintained with existing functionality
+
+---
+
+### Phase 12: The Transparent Mind (UX/DX)
 *Goal: Make the system transparent, debuggable, and a pleasure to interact with. Focus on building high-quality interfaces for both developers and end-users.*
 
 **Rationale:** The most powerful system is useless if it's an opaque black box. To foster adoption, research, and development, we must invest in making the system's complex internal workings observable and understandable.
 
 **Key Initiatives:**
 
-*   **8.1: Develop a Comprehensive WebSocket API:**
+*   **12.1: Develop a Comprehensive WebSocket API:**
     *   **Action:** Implement a real-time API for monitoring and interacting with the system.
     *   **Details:** Provide endpoints for subscribing to events (e.g., new beliefs, goals achieved), inspecting memory, manipulating the `InputTasks` buffer, and tracing the evaluation of a specific term.
 
-*   **8.2: Create an Interactive Visualization Suite:**
+*   **12.2: Create an Interactive Visualization Suite:**
     *   **Action:** Build a web-based UI that provides a real-time view into the agent's mind.
     *   **Details:**
         *   Visualize the concept graph and memory structure.
         *   Provide an interactive "evaluation tracer" that shows, step-by-step, how a complex term is reduced.
-        *   Display real-time performance metrics from the `MetricsMonitor`.
+        *   Display real-time performance metrics from the enhanced metrics system (Phase 10).
         *   Create a visualization UI for the `InputTasks` buffer as part of this comprehensive suite.
 
-*   **8.3: Author World-Class Documentation:**
+*   **12.3: Author World-Class Documentation:**
     *   **Action:** Write comprehensive documentation covering the architecture, APIs, and core concepts.
     *   **Details:** Include tutorials for common use cases, a guide for developing new `Functor`s and `Tool`s, and detailed explanations of the agentic framework.
 
-### Acceptance Criteria for Phase 8:
+### Acceptance Criteria for Phase 12:
 - [ ] A documented WebSocket API is available for real-time monitoring and control.
 - [ ] A web-based visualization tool exists for inspecting memory and tracing evaluations.
 - [ ] The project has a public documentation site with tutorials and API references.
 
 ---
 
-### Phase 9: Production & Emergent Autonomy
+### Phase 13: Production & Emergent Autonomy
 *Goal: Prepare the system for real-world deployment and begin cultivating the conditions for emergent, autonomous intelligence.*
 
-**Rationale:** This final phase is about hardening the system for production use and, more importantly, enabling the self-directed, goal-oriented behavior that is the hallmark of true intelligence.
+**Rationale:** This phase is about hardening the system for production use and enabling the self-directed, goal-oriented behavior that is the hallmark of true intelligence.
 
 **Key Initiatives:**
 
-*   **9.1: Production Readiness:**
+*   **13.1: Production Readiness:**
     *   **Action:** Containerize the application and develop deployment scripts (e.g., Docker, Kubernetes).
-    *   **Action:** Implement robust logging, monitoring, and alerting.
+    *   **Action:** Implement robust logging, monitoring, and alerting using the enhanced system from Phase 10.
     *   **Action:** Conduct a thorough security audit and implement necessary safeguards for `Tool` execution and API endpoints.
 
-*   **9.2: Cultivating Autonomous Behavior:**
+*   **13.2: Cultivating Autonomous Behavior:**
     *   **Action:** Introduce a high-level "meta-goal" system, allowing the agent to pursue abstract objectives (e.g., "increase knowledge," "maintain logical consistency").
-    *   **Action:** Integrate the `MetricsMonitor` with the goal system, allowing the agent to reason about its own performance and form goals to improve itself (e.g., "the `deduction` rule has a low success rate, I should investigate why").
+    *   **Action:** Integrate the enhanced `MetricsMonitor` with the goal system, allowing the agent to reason about its own performance and form goals to improve itself (e.g., "the `deduction` rule has a low success rate, I should investigate why").
     *   **Action:** Implement a "curiosity" mechanism where the system generates its own questions to explore gaps in its knowledge, driven by the `EmbeddingLayer` and associative memory.
 
-### Acceptance Criteria for Phase 9:
+### Acceptance Criteria for Phase 13:
 - [ ] The system can be deployed and monitored in a production-like environment.
 - [ ] The system can be given an abstract goal and generate sub-tasks to pursue it.
 - [ ] The system can demonstrate "curiosity" by autonomously generating and attempting to answer novel questions.
