@@ -14,7 +14,8 @@ export class TermFactory {
         this._cacheHits = 0;
         this._cacheMisses = 0;
         this._maxCacheSize = 5000; // Limit cache size to prevent memory issues
-        this._accessTime = new Map(); // Track access times for LRU eviction
+        this._accessFrequency = new Map(); // Track access frequency for priority-based eviction
+        this._accessTime = new Map(); // Track access times for priority-based eviction
     }
 
     create(data) {
@@ -38,17 +39,14 @@ export class TermFactory {
 
         if (term) {
             this._cacheHits++;
-            // Update access time for LRU
+            this._accessFrequency.set(name, (this._accessFrequency.get(name) || 0) + 1);
             this._accessTime.set(name, currentTime);
         } else {
             this._cacheMisses++;
             term = this._createAndCache(operator, normalizedComponents, name);
-
-            // Update access time for the new term
+            this._accessFrequency.set(name, 1);
             this._accessTime.set(name, currentTime);
-
-            // Evict entries using LRU if cache is too large
-            this._evictLRUEntries();
+            this._evictEntries();
         }
 
         // Calculate and cache complexity metrics
@@ -66,16 +64,12 @@ export class TermFactory {
 
         if (!term) {
             term = this._createAndCache(null, [], name);
-            // Atomic terms have complexity of 1
             this._complexityCache.set(name, 1);
-
-            // Update access time for the new term
+            this._accessFrequency.set(name, 1);
             this._accessTime.set(name, currentTime);
-
-            // Evict entries using LRU if cache is too large
-            this._evictLRUEntries();
+            this._evictEntries();
         } else {
-            // Update access time for existing term
+            this._accessFrequency.set(name, (this._accessFrequency.get(name) || 0) + 1);
             this._accessTime.set(name, currentTime);
         }
 
@@ -373,36 +367,36 @@ export class TermFactory {
     }
 
     /**
-     * Evict entries from cache using LRU (Least Recently Used) strategy
+     * Evict entries from cache using a priority-based strategy (AIKR)
      * @private
      */
-    _evictLRUEntries() {
-        if (this._cache.size <= this._maxCacheSize) {
-            return; // No eviction needed
-        }
+    _evictEntries() {
+        while (this._cache.size > this._maxCacheSize) {
+            let lowestPriority = Infinity;
+            let keyToEvict = null;
+            const currentTime = Date.now();
 
-        // Find the oldest accessed term to evict
-        let oldestKey = null;
-        let oldestTime = Infinity;
+            for (const [key, term] of this._cache.entries()) {
+                const frequency = this._accessFrequency.get(key) || 0;
+                const recency = this._accessTime.get(key) || 0;
+                const age = currentTime - recency;
 
-        for (const [key, accessTime] of this._accessTime.entries()) {
-            if (accessTime < oldestTime) {
-                oldestTime = accessTime;
-                oldestKey = key;
+                // Priority is a combination of frequency and recency
+                const priority = frequency / (age + 1);
+
+                if (priority < lowestPriority) {
+                    lowestPriority = priority;
+                    keyToEvict = key;
+                }
             }
-        }
 
-        // Remove the oldest entry if found
-        if (oldestKey) {
-            this._cache.delete(oldestKey);
-            this._accessTime.delete(oldestKey);
-            this._complexityCache.delete(oldestKey); // Also remove from complexity cache
-            this._cognitiveDiversity.unregisterTerm(oldestKey); // Unregister from cognitive diversity
-        }
-
-        // Continue evicting until cache is within size limit
-        if (this._cache.size > this._maxCacheSize) {
-            this._evictLRUEntries(); // Recursively evict if still over the limit
+            if (keyToEvict) {
+                this._cache.delete(keyToEvict);
+                this._accessFrequency.delete(keyToEvict);
+                this._accessTime.delete(keyToEvict);
+                this._complexityCache.delete(keyToEvict);
+                this._cognitiveDiversity.unregisterTerm(keyToEvict);
+            }
         }
     }
 
@@ -432,6 +426,7 @@ export class TermFactory {
     clearCache() {
         this._cache.clear();
         this._complexityCache.clear();
+        this._accessFrequency.clear();
         this._accessTime.clear();
         this._cognitiveDiversity.clear();
     }

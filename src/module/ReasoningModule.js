@@ -2,6 +2,7 @@ import { BaseModule } from './BaseModule.js';
 import { SyllogisticRule } from '../reasoning/rules/syllogism.js';
 import { ImplicationSyllogisticRule } from '../reasoning/rules/implicationSyllogism.js';
 import { ModusPonensRule } from '../reasoning/rules/modusponens.js';
+import { SimilaritySyllogism } from '../reasoning/rules/similaritySyllogism.js';
 
 /**
  * @file src/module/ReasoningModule.js
@@ -25,6 +26,7 @@ export class ReasoningModule extends BaseModule {
             SyllogisticRule,
             ImplicationSyllogisticRule,
             ModusPonensRule,
+            SimilaritySyllogism,
         ]);
     }
 

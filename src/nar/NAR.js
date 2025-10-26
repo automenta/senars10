@@ -8,6 +8,7 @@ import {RuleEngine} from '../reasoning/RuleEngine.js';
 import {SyllogisticRule} from '../reasoning/rules/syllogism.js';
 import {ImplicationSyllogisticRule} from '../reasoning/rules/implicationSyllogism.js';
 import {ModusPonensRule} from '../reasoning/rules/modusponens.js';
+import { SimilaritySyllogism } from '../reasoning/rules/similaritySyllogism.js';
 import {PRIORITY} from '../config/constants.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 import {ComponentManager} from '../util/ComponentManager.js';
@@ -107,6 +108,7 @@ export class NAR extends BaseComponent {
             this._ruleEngine.register(SyllogisticRule.create(this._termFactory));
             this._ruleEngine.register(ImplicationSyllogisticRule.create(this._termFactory));
             this._ruleEngine.register(ModusPonensRule.create(this._termFactory));
+            this._ruleEngine.register(SimilaritySyllogism.create(this._termFactory));
         } catch (error) {
             this.logWarn('Error setting up default rules:', error);
         }
