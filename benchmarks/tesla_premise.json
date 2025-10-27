@@ -1,0 +1,20 @@
+{
+  "name": "Tesla Premise Injection",
+  "description": "Test inference of electric vehicle properties from premise injection",
+  "input": [
+    "(my_car --> Tesla).",
+    "(Tesla --> car).",
+    "my_car needs electricity?"
+  ],
+  "expected": {
+    "answer": "(my_car --> needs_electricity).",
+    "trace": ["nal.deduction", "nal.inheritance"],
+    "confidence": 0.8,
+    "executionTime": "<1000"
+  },
+  "metadata": {
+    "category": "inheritance-reasoning",
+    "complexity": "medium",
+    "knowledgeDomain": "automotive"
+  }
+}

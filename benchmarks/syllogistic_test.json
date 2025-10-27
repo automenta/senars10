@@ -1,0 +1,20 @@
+{
+  "name": "Syllogistic Reasoning Test",
+  "description": "Classic syllogistic reasoning test with multiple premises",
+  "input": [
+    "(Socrates --> human).",
+    "(human --> mortal).",
+    "Socrates ? mortal"
+  ],
+  "expected": {
+    "answer": "(Socrates --> mortal).",
+    "trace": ["nal.deduction"],
+    "confidence": 0.81,
+    "executionTime": "<500"
+  },
+  "metadata": {
+    "category": "syllogistic-reasoning",
+    "complexity": "easy",
+    "knowledgeDomain": "philosophy"
+  }
+}

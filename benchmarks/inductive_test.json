@@ -1,0 +1,21 @@
+{
+  "name": "Inductive Reasoning Test",
+  "description": "Test inductive reasoning from specific observations to general rules",
+  "input": [
+    "(raven1 --> black).",
+    "(raven2 --> black).",
+    "(raven3 --> black).",
+    "raven ? black"
+  ],
+  "expected": {
+    "answer": "(raven --> black).",
+    "trace": ["nal.induction", "nal.abduction"],
+    "confidence": 0.7,
+    "executionTime": "<1000"
+  },
+  "metadata": {
+    "category": "inductive-reasoning",
+    "complexity": "medium",
+    "knowledgeDomain": "biology"
+  }
+}

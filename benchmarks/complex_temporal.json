@@ -1,0 +1,21 @@
+{
+  "name": "Complex Temporal Reasoning",
+  "description": "Test temporal reasoning with multiple premises and temporal operators",
+  "input": [
+    "(A --> B) & (+1).",
+    "(B --> C) & (+2).",
+    "A.",
+    "What is the relation between A and C over time?"
+  ],
+  "expected": {
+    "answer": "(A --> C) & (+3).",
+    "trace": ["nal.temporal-deduction", "nal.temporal-inference"],
+    "confidence": 0.72,
+    "executionTime": "<1500"
+  },
+  "metadata": {
+    "category": "temporal-reasoning",
+    "complexity": "hard",
+    "knowledgeDomain": "temporal-logic"
+  }
+}

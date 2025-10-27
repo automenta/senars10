@@ -4,6 +4,7 @@
  */
 
 import {Logger} from '../util/Logger.js';
+import {CapabilityManager, Capability} from '../util/CapabilityManager.js';
 
 /**
  * Core Tool Engine that manages safe tool execution with comprehensive safety features
@@ -17,6 +18,7 @@ export class ToolEngine {
      * @param {number} config.safetyLimits.maxOutputSize - Maximum output size in characters (default: 10000)
      * @param {number} config.safetyLimits.maxCommandLength - Maximum command length in characters (default: 1000)
      * @param {number} config.maxHistorySize - Maximum number of execution records to retain (default: 1000)
+     * @param {CapabilityManager} config.capabilityManager - Capability manager instance (optional)
      */
     constructor(config = {}) {
         Object.assign(this, {
@@ -34,6 +36,7 @@ export class ToolEngine {
             logger: Logger,
             activeExecutions: new Map(),
             executionHistory: [],
+            capabilityManager: config.capabilityManager || null,
             performanceTracker: {
                 totalExecutions: 0,
                 successfulExecutions: 0,
@@ -47,6 +50,11 @@ export class ToolEngine {
                 errorPatterns: new Map()
             }
         });
+        
+        // Initialize capability manager if not provided
+        if (!this.capabilityManager) {
+            this.capabilityManager = new CapabilityManager();
+        }
     }
 
     /**
@@ -56,7 +64,7 @@ export class ToolEngine {
      * @param {object} [metadata] - Optional metadata about the tool
      * @returns {ToolEngine} - Returns this instance for chaining
      */
-    registerTool(id, tool, metadata = {}) {
+    async registerTool(id, tool, metadata = {}) {
         if (this.tools.has(id)) throw new Error(`Tool with ID "${id}" already exists`);
 
         if (!tool.execute || typeof tool.execute !== 'function') {
@@ -67,6 +75,7 @@ export class ToolEngine {
             throw new Error(`Tool "${id}" must have a getDescription method`);
         }
 
+        const toolCapabilities = tool.getCapabilities?.() || [];
         const toolData = {
             id,
             instance: tool,
@@ -74,7 +83,7 @@ export class ToolEngine {
             description: tool.getDescription(),
             parameters: tool.getParameterSchema?.() || {type: 'object', properties: {}},
             category: tool.getCategory?.() || 'general',
-            capabilities: tool.getCapabilities?.() || [],
+            capabilities: toolCapabilities,
             createdAt: Date.now(),
             usageCount: 0,
             lastUsed: null,
@@ -82,6 +91,29 @@ export class ToolEngine {
         };
 
         this.tools.set(id, toolData);
+
+        // Register capabilities for this tool if they don't exist
+        for (const capability of toolCapabilities) {
+            // Check if capability exists, if not create a default one
+            if (!this.capabilityManager.capabilities.has(capability)) {
+                // Create a basic capability if it doesn't exist
+                await this.capabilityManager.registerCapability(capability, 
+                    new Capability(capability, {
+                        description: `Capability for ${capability}`,
+                        scope: 'default',
+                        permissions: []
+                    })
+                );
+            }
+        }
+
+        // Automatically grant capabilities to the tool based on its declared capabilities
+        if (toolCapabilities.length > 0) {
+            await this.capabilityManager.grantCapabilities(id, toolCapabilities, {
+                grantedBy: 'system',
+                approved: true
+            });
+        }
 
         this.logger.info(`Registered tool: ${id} (${toolData.category})`, {
             name: tool.constructor.name,
@@ -122,6 +154,15 @@ export class ToolEngine {
 
         const tool = this.tools.get(toolId);
         if (!tool) throw new Error(`Tool "${toolId}" not found`);
+
+        // Check if the tool has the required capabilities to execute
+        const hasRequiredCapabilities = await this.capabilityManager.hasAllCapabilities(toolId, tool.capabilities || []);
+        if (!hasRequiredCapabilities) {
+            const missingCaps = tool.capabilities.filter(cap => 
+                !this.capabilityManager.hasCapability(toolId, cap)
+            );
+            throw new Error(`Tool "${toolId}" lacks required capabilities: ${missingCaps.join(', ')}`);
+        }
 
         const executionContext = this._createExecutionContext(executionId, toolId, params, context, startTime);
         this.activeExecutions.set(executionId, executionContext);

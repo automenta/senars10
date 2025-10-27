@@ -16,3 +16,4 @@ lerna-debug.log*
 .vscode/
 .kilocode/
 .idea
+benchmark-results-*

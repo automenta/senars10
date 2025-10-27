@@ -121,19 +121,16 @@ To align with the JavaScript platform and modern development practices, we will 
         {
           "name": "Tesla Premise Injection",
           "input": [
-            "(<my_car> --> <Tesla>).",
-            "(<Tesla> --> <car>).",
-            "<my_car> needs electricity?"
+            "(my_car --> Tesla).",
+            "(Tesla --> car).",
+            "my_car needs electricity?"
           ],
           "expected": {
-            "answer": "(<my_car> --> <needs_electricity>).",
+            "answer": "(my_car --> needs_electricity).",
             "trace": [ "lm.request", "nal.deduction" ]
           }
         }
         ```
-
-*   **11.5: Introduce Chaos Engineering for Reliability Validation:**
-    *   **Action:** Build a "chaos testing" suite that intentionally injects failures to test the resilience features built in Phase 10.
 
 **Acceptance Criteria:**
 - [ ] Tools and plugins operate under a capability-based security model.
@@ -150,7 +147,7 @@ To align with the JavaScript platform and modern development practices, we will 
 **Key Initiatives (In Priority Order):**
 
 *   **12.1: Implement State Persistence and Recovery:**
-    *   **Action:** Design and build an adapter-based system for persisting the agent's memory and state to durable storage (e.g., SQLite).
+    *   **Action:** Design and build an adapter-based system for persisting the agent's memory and state to durable storage (e.g., serialized JSON).
 
 *   **12.2: Develop a WebSocket API for Real-Time Monitoring:**
     *   **Action:** Implement a secure WebSocket endpoint that streams key events and metrics from the observability pipeline.
