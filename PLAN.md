@@ -140,46 +140,39 @@ To align with the JavaScript platform and modern development practices, we will 
 ---
 
 ### Phase 12: The Usable & Transparent Agent
-*Goal: Make the validated agent useful and interactive by adding persistence and user-facing visualization tools.*
 
-**Agile Focus:** Implement the features required for a human to interact with the agent, observe its behavior in real-time, and trust that its knowledge will persist.
+*   **Agile Focus:** Implement the features required for a human to interact with the agent, observe its behavior in real-time, and trust that its knowledge will persist.
 
-**Key Initiatives (In Priority Order):**
+*   **Key Initiatives (In Priority Order):**
 
-*   **12.1: Implement State Persistence and Recovery:**
-    *   **Action:** Design and build an adapter-based system for persisting the agent's memory and state to durable storage (e.g., serialized JSON).
-
-*   **12.2: Develop a WebSocket API for Real-Time Monitoring:**
-    *   **Action:** Implement a secure WebSocket endpoint that streams key events and metrics from the observability pipeline.
-
-*   **12.3: Build an Interactive Visualization Suite:**
-    *   **Action:** Develop a web-based UI that connects to the WebSocket API to provide a real-time view into the agent's mind.
-
-**Acceptance Criteria:**
-- [ ] The agent can persist its state to disk and successfully recover from a restart.
-- [ ] A web-based UI provides real-time visualization of the agent's memory and reasoning.
+    *   **12.0: Standardize on `zod` for validation:**
+        *   Replace the `joi` implementation in `SystemConfig.js` with `zod`.
+        *   Remove `joi` from `package.json` dependencies and add `zod`.
+    *   **12.1: Replace custom `EventBus` with `mitt`:**
+        *   Replace the custom `EventBus` implementation with `mitt`.
+        *   **Implementation Detail:** A wrapper module will be created around `mitt` to re-implement middleware and error handling hooks, ensuring compatibility with existing components like `LoggingSubscriber`.
+    *   **12.2: Develop a Command-Line Interface (CLI):**
+        *   Create a simple, interactive CLI for sending Narsese statements to the agent and viewing the output. This will be the primary interface for interacting with the agent.
+        *   **Implementation Detail:** The CLI will be built by enhancing `src/io/ReplInterface.js` using Node.js's built-in `readline` module.
+    *   **12.3: Implement State Persistence and Recovery:**
+        *   Design and build an adapter-based system for persisting the agent's memory and state to durable storage.
+        *   **Implementation Detail:** The default adapter will serialize the agent's state to a root `agent.json` file, triggered by a `.save` command in the CLI or on graceful shutdown.
+    *   **12.4: Develop a WebSocket API for Real-Time Monitoring:**
+        *   Implement a secure WebSocket endpoint that streams key events and metrics from the observability pipeline. This will be used by the future web UI.
+        *   **Implementation Detail:** The `ws` library will be added as a dependency to create the WebSocket server.
 
 ---
 
-### Phase 13: Advanced Autonomy & Coordination
-*Goal: Cultivate the conditions for emergent, autonomous intelligence by enabling the agent to reason about itself and coordinate with others.*
+### Phase 13: Advanced Interaction & Visualization
 
-**Agile Focus:** Implement the foundational capabilities for self-directed behavior and multi-agent systems.
+*   **Agile Focus:** Enhance the user experience with a web-based visualization suite and more advanced CLI capabilities.
 
-**Key Initiatives:**
+*   **Key Initiatives:**
 
-*   **13.1: Implement a Meta-Goal System:**
-    *   **Action:** Allow the agent to pursue high-level, abstract objectives (e.g., "increase knowledge").
-
-*   **13.2: Integrate Self-Monitoring with the Goal System:**
-    *   **Action:** Connect the observability pipeline to the goal system, allowing the agent to reason about its own performance and generate goals for self-improvement.
-
-*   **13.3: Multi-Agent Coordination Foundations:**
-    *   **Action:** Define and implement a preliminary agent-to-agent communication protocol.
-
-**Acceptance Criteria:**
-- [ ] The system can be given an abstract meta-goal and generate a tree of actionable sub-tasks to pursue it.
-- [ ] A foundational protocol for multi-agent communication is defined and demonstrated.
+    *   **13.1: Build an Interactive Visualization Suite:**
+        *   Develop a web-based UI that connects to the WebSocket API to provide a real-time view into the agent's mind.
+    *   **13.2: Enhance the CLI:**
+        *   Add features to the CLI for managing the agent's state (e.g., saving/loading memory, inspecting concepts).
 
 ---
 

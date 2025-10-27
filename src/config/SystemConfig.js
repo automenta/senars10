@@ -1,4 +1,4 @@
-import Joi from 'joi';
+import { z } from 'zod';
 import {CYCLE, MEMORY, PERFORMANCE, SYSTEM} from './constants.js';
 
 const DEFAULT_CONFIG = {
@@ -40,58 +40,54 @@ const DEFAULT_CONFIG = {
     }
 };
 
-const CONFIG_SCHEMA = Joi.object({
-    system: Joi.object({
-        port: Joi.number().port().default(SYSTEM.DEFAULT_PORT),
-        host: Joi.string().hostname().default(SYSTEM.DEFAULT_HOST),
-        maxErrorRate: Joi.number().min(0).max(1).default(SYSTEM.MAX_ERROR_RATE),
-        recoveryAttempts: Joi.number().min(0).default(SYSTEM.RECOVERY_ATTEMPTS),
-        gracefulDegradationThreshold: Joi.number().min(0).max(1).default(SYSTEM.GRACEFUL_DEGRADATION_THRESHOLD),
-    }).default(),
-    memory: Joi.object({
-        capacity: Joi.number().min(1).default(MEMORY.DEFAULT_CAPACITY),
-        focusSetSize: Joi.number().min(1).default(MEMORY.FOCUS_SET_SIZE),
-        forgettingThreshold: Joi.number().min(0).max(1).default(MEMORY.FORGETTING_THRESHOLD),
-        consolidationInterval: Joi.number().min(1).default(MEMORY.CONSOLIDATION_INTERVAL),
-        activationDecay: Joi.number().min(0).max(1).default(MEMORY.ACTIVATION_DECAY),
-    }).default(),
-    cycle: Joi.object({
-        delay: Joi.number().min(1).max(1000).default(CYCLE.DEFAULT_DELAY),
-        maxTasksPerCycle: Joi.number().min(1).default(10),
-        ruleApplicationLimit: Joi.number().min(1).default(50),
-    }).default(),
-    performance: Joi.object({
-        enableProfiling: Joi.boolean().default(false),
-        maxExecutionTime: Joi.number().min(1).default(PERFORMANCE.TIMEOUT_MS),
-        cacheSize: Joi.number().min(1).default(PERFORMANCE.CACHE_SIZE),
-        batchSize: Joi.number().min(1).default(PERFORMANCE.BATCH_SIZE),
-    }).default(),
-    logging: Joi.object({
-        level: Joi.string().valid('error', 'warn', 'info', 'debug').default('info'),
-        enableConsole: Joi.boolean().default(true),
-        enableFile: Joi.boolean().default(false),
-    }).default(),
-    errorHandling: Joi.object({
-        enableGracefulDegradation: Joi.boolean().default(true),
-        maxErrorRate: Joi.number().min(0).max(1).default(SYSTEM.MAX_ERROR_RATE),
-        enableRecovery: Joi.boolean().default(true),
-        recoveryAttempts: Joi.number().min(0).default(SYSTEM.RECOVERY_ATTEMPTS),
-    }).default()
+const CONFIG_SCHEMA = z.object({
+    system: z.object({
+        port: z.number().int().positive().default(SYSTEM.DEFAULT_PORT),
+        host: z.string().default(SYSTEM.DEFAULT_HOST),
+        maxErrorRate: z.number().min(0).max(1).default(SYSTEM.MAX_ERROR_RATE),
+        recoveryAttempts: z.number().min(0).default(SYSTEM.RECOVERY_ATTEMPTS),
+        gracefulDegradationThreshold: z.number().min(0).max(1).default(SYSTEM.GRACEFUL_DEGRADATION_THRESHOLD),
+    }).default(DEFAULT_CONFIG.system),
+    memory: z.object({
+        capacity: z.number().min(1).default(MEMORY.DEFAULT_CAPACITY),
+        focusSetSize: z.number().min(1).default(MEMORY.FOCUS_SET_SIZE),
+        forgettingThreshold: z.number().min(0).max(1).default(MEMORY.FORGETTING_THRESHOLD),
+        consolidationInterval: z.number().min(1).default(MEMORY.CONSOLIDATION_INTERVAL),
+        activationDecay: z.number().min(0).max(1).default(MEMORY.ACTIVATION_DECAY),
+    }).default(DEFAULT_CONFIG.memory),
+    cycle: z.object({
+        delay: z.number().min(1).max(1000).default(CYCLE.DEFAULT_DELAY),
+        maxTasksPerCycle: z.number().min(1).default(10),
+        ruleApplicationLimit: z.number().min(1).default(50),
+    }).default(DEFAULT_CONFIG.cycle),
+    performance: z.object({
+        enableProfiling: z.boolean().default(false),
+        maxExecutionTime: z.number().min(1).default(PERFORMANCE.TIMEOUT_MS),
+        cacheSize: z.number().min(1).default(PERFORMANCE.CACHE_SIZE),
+        batchSize: z.number().min(1).default(PERFORMANCE.BATCH_SIZE),
+    }).default(DEFAULT_CONFIG.performance),
+    logging: z.object({
+        level: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+        enableConsole: z.boolean().default(true),
+        enableFile: z.boolean().default(false),
+    }).default(DEFAULT_CONFIG.logging),
+    errorHandling: z.object({
+        enableGracefulDegradation: z.boolean().default(true),
+        maxErrorRate: z.number().min(0).max(1).default(SYSTEM.MAX_ERROR_RATE),
+        enableRecovery: z.boolean().default(true),
+        recoveryAttempts: z.number().min(0).default(SYSTEM.RECOVERY_ATTEMPTS),
+    }).default(DEFAULT_CONFIG.errorHandling)
 });
 
 export class SystemConfig {
     constructor(userConfig = {}) {
-        const validationResult = CONFIG_SCHEMA.validate(userConfig, {
-            stripUnknown: true,
-            allowUnknown: false,
-            convert: true
-        });
+        const validationResult = CONFIG_SCHEMA.safeParse(userConfig);
 
-        if (validationResult.error) {
+        if (!validationResult.success) {
             throw new Error(`Configuration validation failed: ${validationResult.error.message}`);
         }
 
-        this._config = this._deepMerge(DEFAULT_CONFIG, validationResult.value);
+        this._config = this._deepMerge(DEFAULT_CONFIG, validationResult.data);
         this._frozen = false;
     }
 
@@ -137,32 +133,26 @@ export class SystemConfig {
         current[lastKey] = value;
 
         // Validate the entire config after setting a value
-        const validationResult = CONFIG_SCHEMA.validate(this._config, {
-            stripUnknown: true,
-            allowUnknown: false,
-            convert: true
-        });
+        const validationResult = CONFIG_SCHEMA.safeParse(this._config);
 
-        if (validationResult.error) {
+        if (!validationResult.success) {
             throw new Error(`Configuration validation failed after setting value: ${validationResult.error.message}`);
         }
+        
+        this._config = validationResult.data;
 
         return this;
     }
 
     update(updates) {
         const merged = this._deepMerge(this._config, updates);
-        const validationResult = CONFIG_SCHEMA.validate(merged, {
-            stripUnknown: true,
-            allowUnknown: false,
-            convert: true
-        });
+        const validationResult = CONFIG_SCHEMA.safeParse(merged);
 
-        if (validationResult.error) {
+        if (!validationResult.success) {
             throw new Error(`Configuration validation failed after update: ${validationResult.error.message}`);
         }
 
-        this._config = validationResult.value;
+        this._config = validationResult.data;
         return this;
     }
 

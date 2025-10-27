@@ -1,51 +1,31 @@
+import mitt from 'mitt';
 import { TraceId } from './TraceId.js';
 
 export class EventBus {
-    constructor(options = {}) {
-        this._listeners = new Map();
+    constructor() {
+        this._emitter = mitt();
         this._middleware = [];
         this._errorHandlers = new Set();
-        this._deliveryGuarantees = options.deliveryGuarantees || {
-            maxRetries: 3,
-            retryDelay: 100,
-            enablePersistence: false
-        };
+        this._stats = { eventsEmitted: 0, eventsHandled: 0, errors: 0 };
         this._enabled = true;
-        this._stats = {eventsEmitted: 0, eventsHandled: 0, errors: 0, retries: 0};
     }
 
-    on(eventName, callback, options = {}) {
-        if (typeof callback !== 'function') throw new Error('Callback must be a function');
-
-        if (!this._listeners.has(eventName)) this._listeners.set(eventName, new Set());
-
-        const listener = {
-            callback,
-            priority: options.priority || 0,
-            once: options.once || false,
-            id: options.id || Symbol('listener')
-        };
-
-        this._listeners.get(eventName).add(listener);
+    on(eventName, callback) {
+        this._emitter.on(eventName, callback);
         return this;
     }
 
-    once(eventName, callback, options = {}) {
-        return this.on(eventName, callback, {...options, once: true});
+    once(eventName, callback) {
+        const onceWrapper = (data) => {
+            this.off(eventName, onceWrapper);
+            callback(data);
+        };
+        this.on(eventName, onceWrapper);
+        return this;
     }
 
     off(eventName, callback) {
-        if (!this._listeners.has(eventName)) return this;
-
-        const listeners = this._listeners.get(eventName);
-        for (const listener of listeners) {
-            if (listener.callback === callback) {
-                listeners.delete(listener);
-                break;
-            }
-        }
-
-        if (listeners.size === 0) this._listeners.delete(eventName);
+        this._emitter.off(eventName, callback);
         return this;
     }
 
@@ -73,7 +53,6 @@ export class EventBus {
 
         this._stats.eventsEmitted++;
 
-        // Ensure traceId exists
         const traceId = options.traceId || TraceId.generate();
         
         let processedData = {
@@ -85,43 +64,19 @@ export class EventBus {
         for (const middleware of this._middleware) {
             try {
                 processedData = await middleware(processedData);
-                if (processedData === null) return;
+                if (processedData === null) return; // Middleware can stop propagation
             } catch (error) {
-                this._handleError('middleware', error, {eventName, data, traceId});
+                this._handleError('middleware', error, { eventName, data, traceId });
                 return;
             }
         }
 
-        if (!this._listeners.has(eventName)) return;
-
-        const listeners = Array.from(this._listeners.get(eventName))
-            .sort((a, b) => b.priority - a.priority);
-
-        for (const listener of listeners) {
-            let attempts = 0;
-            let success = false;
-
-            while (attempts < this._deliveryGuarantees.maxRetries && !success) {
-                try {
-                    await listener.callback(processedData);
-                    success = true;
-                    this._stats.eventsHandled++;
-                } catch (error) {
-                    attempts++;
-                    this._stats.errors++;
-
-                    if (attempts >= this._deliveryGuarantees.maxRetries) {
-                        this._handleError('listener', error, {eventName, data, traceId, listener});
-                    } else {
-                        this._stats.retries++;
-                        await this._delay(this._deliveryGuarantees.retryDelay * attempts);
-                    }
-                }
-            }
-
-            if (success && listener.once) {
-                this._listeners.get(eventName).delete(listener);
-            }
+        try {
+            this._emitter.emit(eventName, processedData);
+            this._stats.eventsHandled++;
+        } catch (error) {
+            this._stats.errors++;
+            this._handleError('listener', error, { eventName, data, traceId });
         }
     }
 
@@ -139,16 +94,12 @@ export class EventBus {
         }
     }
 
-    _delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
     getStats() {
-        return {...this._stats};
+        return { ...this._stats };
     }
 
     clear() {
-        this._listeners.clear();
+        this._emitter.all.clear();
         this._middleware = [];
         this._errorHandlers.clear();
     }
