@@ -226,4 +226,66 @@ export class Concept extends ConfigurableComponent {
         };
     }
 
+    /**
+     * Serialize the concept to an object
+     * @returns {Object} Serializable concept representation
+     */
+    serialize() {
+        return {
+            term: this._term.serialize ? this._term.serialize() : this._term.toString(),
+            createdAt: this._createdAt,
+            lastAccessed: this._lastAccessed,
+            activation: this._activation,
+            useCount: this._useCount,
+            quality: this._quality,
+            beliefs: this._beliefs.serialize ? this._beliefs.serialize() : null,
+            goals: this._goals.serialize ? this._goals.serialize() : null,
+            questions: this._questions.serialize ? this._questions.serialize() : null,
+            config: this.getConfig(),
+            version: '1.0.0'
+        };
+    }
+
+    /**
+     * Deserialize and restore the concept from an object
+     * @param {Object} data - Serialized concept data
+     * @returns {boolean} True if restoration was successful
+     */
+    async deserialize(data) {
+        try {
+            if (!data) {
+                throw new Error('Invalid concept data for deserialization');
+            }
+
+            // Restore properties
+            this._createdAt = data.createdAt || Date.now();
+            this._lastAccessed = data.lastAccessed || Date.now();
+            this._activation = data.activation || 0;
+            this._useCount = data.useCount || 0;
+            this._quality = data.quality || 0;
+
+            // Restore configurations if provided
+            if (data.config) {
+                this.configure(data.config);
+            }
+
+            // Restore bags (beliefs, goals, questions)
+            if (data.beliefs && this._beliefs.deserialize) {
+                await this._beliefs.deserialize(data.beliefs);
+            }
+
+            if (data.goals && this._goals.deserialize) {
+                await this._goals.deserialize(data.goals);
+            }
+
+            if (data.questions && this._questions.deserialize) {
+                await this._questions.deserialize(data.questions);
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error during concept deserialization:', error);
+            return false;
+        }
+    }
 }

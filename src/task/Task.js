@@ -56,4 +56,47 @@ export class Task {
         const truthStr = this.truth ? ` ${this.truth.toString()}` : '';
         return `${this.term.toString()}${this.punctuation}${truthStr}`;
     }
+
+    /**
+     * Serialize the task to an object
+     * @returns {Object} Serializable task representation
+     */
+    serialize() {
+        return {
+            term: this.term.serialize ? this.term.serialize() : this.term.toString(),
+            punctuation: this.punctuation,
+            type: this.type,
+            truth: this.truth ? this.truth.serialize ? this.truth.serialize() : { f: this.truth.f, c: this.truth.c } : null,
+            budget: this.budget,
+            stamp: this.stamp.serialize ? this.stamp.serialize() : null,
+            version: '1.0.0'
+        };
+    }
+
+    /**
+     * Create a task from serialized data
+     * @param {Object} data - Serialized task data
+     * @returns {Task} New Task instance
+     */
+    static fromJSON(data) {
+        if (!data) {
+            throw new Error('Task.fromJSON requires valid data object');
+        }
+
+        // This is a simplified implementation - in a complete system, we'd need to reconstruct
+        // Term and Truth objects properly from their serialized state
+        const reconstructedTerm = data.term ? 
+            (typeof data.term === 'string' ? 
+                // In a real implementation we would need to parse the term string back to a Term object
+                { toString: () => data.term, equals: (other) => other.toString && other.toString() === data.term } :
+                data.term) :
+            null;
+
+        return new Task({
+            term: reconstructedTerm,
+            punctuation: data.punctuation,
+            truth: data.truth ? new Truth(data.truth.f, data.truth.c) : null,
+            budget: data.budget || {priority: 0.5, durability: 0.5, quality: 0.5, cycles: 100, depth: 10}
+        });
+    }
 }

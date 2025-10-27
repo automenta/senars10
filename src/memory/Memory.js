@@ -576,4 +576,111 @@ export class Memory extends BaseComponent {
             this._memoryValidator.disable();
         }
     }
+
+    /**
+     * Serialize the memory state to an object
+     * @returns {Object} Serializable memory state
+     */
+    serialize() {
+        const conceptsData = [];
+        for (const [term, concept] of this._concepts) {
+            conceptsData.push({
+                term: term.serialize ? term.serialize() : term.toString(),
+                concept: concept.serialize ? concept.serialize() : null
+            });
+        }
+
+        return {
+            config: this._config,
+            concepts: conceptsData,
+            focusConcepts: Array.from(this._focusConcepts).map(c => c.term.toString()),
+            index: this._index.serialize ? this._index.serialize() : null,
+            stats: this._stats,
+            resourceTracker: Object.fromEntries(this._resourceTracker),
+            cyclesSinceConsolidation: this._cyclesSinceConsolidation,
+            lastConsolidationTime: this._lastConsolidationTime,
+            version: '1.0.0'
+        };
+    }
+
+    /**
+     * Deserialize and restore memory state from an object
+     * @param {Object} data - Serialized memory state
+     * @returns {boolean} True if restoration was successful
+     */
+    async deserialize(data) {
+        try {
+            if (!data || !data.concepts) {
+                throw new Error('Invalid memory data for deserialization');
+            }
+
+            // Clear current memory
+            this.clear();
+
+            // Restore configuration
+            if (data.config) {
+                this._config = { ...this._config, ...data.config };
+            }
+
+            // Restore concepts
+            for (const conceptData of data.concepts) {
+                // For now, we'll create concepts and add them - in a complete implementation
+                // we'd need to properly reconstruct Term objects from their serialized state
+                // This is a simplified approach - in practice, you'd need proper Term deserialization
+                if (conceptData.concept) {
+                    // Create a basic concept from the data
+                    const term = typeof conceptData.term === 'string' ? 
+                        { toString: () => conceptData.term, equals: (other) => other.toString && other.toString() === conceptData.term } : 
+                        conceptData.term;
+                    
+                    // In a complete implementation, we would reconstruct actual Term objects
+                    // But for this implementation, we'll just create a placeholder concept
+                    const concept = new Concept(term, this._config);
+                    if (concept.deserialize) {
+                        await concept.deserialize(conceptData.concept);
+                    }
+
+                    this._concepts.set(term, concept);
+                    this._stats.totalConcepts++;
+                    this._stats.totalTasks += concept.totalTasks || 0;
+                    this._index.addConcept(concept);
+                }
+            }
+
+            // Restore focus concepts
+            if (data.focusConcepts) {
+                for (const termStr of data.focusConcepts) {
+                    const concept = this._concepts.get({ toString: () => termStr, equals: (other) => other.toString && other.toString() === termStr });
+                    if (concept) {
+                        this._focusConcepts.add(concept);
+                    }
+                }
+                this._updateFocusConceptsCount();
+            }
+
+            // Restore index
+            if (data.index && this._index.deserialize) {
+                await this._index.deserialize(data.index);
+            }
+
+            // Restore stats
+            if (data.stats) {
+                this._stats = { ...data.stats };
+            }
+
+            // Restore resource tracker
+            if (data.resourceTracker) {
+                this._resourceTracker = new Map(Object.entries(data.resourceTracker));
+            }
+
+            // Restore other properties
+            this._cyclesSinceConsolidation = data.cyclesSinceConsolidation || 0;
+            this._lastConsolidationTime = data.lastConsolidationTime || Date.now();
+
+            return true;
+        } catch (error) {
+            this.logger.error('Error during memory deserialization:', error);
+            return false;
+        }
+    }
 }

@@ -299,6 +299,91 @@ export class NAR extends BaseComponent {
         return success;
     }
 
+    /**
+     * Serialize the current state of the NAR to an object
+     * @returns {Object} Serializable state representation
+     */
+    serialize() {
+        return {
+            config: this._config.toJSON(),
+            memory: this._memory.serialize ? this._memory.serialize() : null,
+            taskManager: this._taskManager.serialize ? this._taskManager.serialize() : null,
+            cycle: this._cycle.serialize ? this._cycle.serialize() : null,
+            focus: this._focus.serialize ? this._focus.serialize() : null,
+            cycleCount: this._cycle.cycleCount,
+            isRunning: this._isRunning,
+            timestamp: Date.now(),
+            version: '10.0.0'
+        };
+    }
+
+    /**
+     * Deserialize and restore the NAR state from an object
+     * @param {Object} state - State object to restore from
+     * @returns {boolean} True if restoration was successful
+     */
+    async deserialize(state) {
+        try {
+            // Stop the NAR if it's running
+            if (this._isRunning) {
+                this.stop();
+            }
+
+            // Update the configuration
+            if (state.config) {
+                this._config = SystemConfig.from(state.config);
+            }
+
+            // Restore memory
+            if (state.memory && this._memory.deserialize) {
+                await this._memory.deserialize(state.memory);
+            }
+
+            // Restore task manager
+            if (state.taskManager && this._taskManager.deserialize) {
+                await this._taskManager.deserialize(state.taskManager);
+            }
+
+            // Restore focus
+            if (state.focus && this._focus.deserialize) {
+                await this._focus.deserialize(state.focus);
+            }
+
+            // Restore cycle state
+            if (state.cycle && this._cycle.deserialize) {
+                await this._cycle.deserialize(state.cycle);
+            }
+
+            // Restore cycle count
+            if (state.cycleCount !== undefined) {
+                this._cycle.cycleCount = state.cycleCount;
+            }
+
+            // Restore running state
+            if (state.isRunning !== undefined) {
+                // We don't restart automatically, but remember the state
+                this._isRunning = state.isRunning;
+            }
+
+            // Initialize components with the new state
+            await this._componentManager.disposeAll();
+            this._initComponents(this._config.toJSON());
+            await this._componentManager.initializeAll();
+            this._setupDefaultRules();
+
+            this._eventBus.emit('system.loaded', {
+                timestamp: Date.now(),
+                stateVersion: state.version,
+                fromFile: state.sourceFile || 'serialized'
+            });
+
+            return true;
+        } catch (error) {
+            this.logError('Error during NAR deserialization:', error);
+            return false;
+        }
+    }
+
     query(queryTerm) {
         return this._memory.getConcept(queryTerm)?.getTasksByType('BELIEF') || [];
     }
@@ -393,6 +478,19 @@ export class NAR extends BaseComponent {
         for (const task of this._taskManager.processPendingTasks(Date.now())) {
             this._eventBus.emit('task.added', {task}, {traceId});
         }
+    }
+
+    /**
+     * Connect to a WebSocket monitor for real-time event broadcasting
+     * @param {WebSocketMonitor} monitor - The WebSocket monitor instance
+     */
+    connectToWebSocketMonitor(monitor) {
+        if (!monitor || typeof monitor.listenToNAR !== 'function') {
+            throw new Error('Invalid WebSocket monitor provided');
+        }
+        
+        monitor.listenToNAR(this);
+        this.logInfo('Connected to WebSocket monitor for real-time monitoring');
     }
 
     async initializeTools() {

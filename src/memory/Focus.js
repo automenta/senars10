@@ -160,6 +160,69 @@ export class Focus extends BaseComponent {
         this._focusSets.clear();
         this._currentFocus = null;
     }
+
+    /**
+     * Serialize the focus to an object
+     * @returns {Object} Serializable focus representation
+     */
+    serialize() {
+        const focusSetData = {};
+        for (const [name, focusSet] of this._focusSets) {
+            focusSetData[name] = focusSet.serialize ? focusSet.serialize() : null;
+        }
+
+        return {
+            config: this._config,
+            currentFocus: this._currentFocus,
+            focusSets: focusSetData,
+            version: '1.0.0'
+        };
+    }
+
+    /**
+     * Deserialize and restore the focus from an object
+     * @param {Object} data - Serialized focus data
+     * @returns {boolean} True if restoration was successful
+     */
+    async deserialize(data) {
+        try {
+            if (!data) {
+                throw new Error('Invalid focus data for deserialization');
+            }
+
+            // Restore configuration
+            if (data.config) {
+                this._config = { ...this._config, ...data.config };
+            }
+
+            // Clear current state
+            this.clear();
+
+            // Restore focus sets
+            if (data.focusSets) {
+                for (const [name, focusSetData] of Object.entries(data.focusSets)) {
+                    // Create a new focus set and populate it from the data
+                    if (focusSetData) {
+                        const focusSet = new FocusSet(name, focusSetData.maxSize);
+                        if (focusSet.deserialize) {
+                            await focusSet.deserialize(focusSetData);
+                        }
+                        this._focusSets.set(name, focusSet);
+                    }
+                }
+            }
+
+            // Restore current focus
+            if (data.currentFocus) {
+                this._currentFocus = data.currentFocus;
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error during focus deserialization:', error);
+            return false;
+        }
+    }
 }
 
 /**
@@ -395,6 +458,81 @@ class FocusSet {
 
         if (lowestPriorityHash) {
             this._tasks.delete(lowestPriorityHash);
+        }
+    }
+
+    /**
+     * Serialize the focus set to an object
+     * @returns {Object} Serializable focus set representation
+     */
+    serialize() {
+        const tasksData = [];
+        for (const [taskHash, taskEntry] of this._tasks) {
+            tasksData.push({
+                hash: taskHash,
+                priority: taskEntry.priority,
+                addedAt: taskEntry.addedAt,
+                task: taskEntry.task.serialize ? taskEntry.task.serialize() : null
+            });
+        }
+
+        return {
+            name: this._name,
+            maxSize: this._maxSize,
+            tasks: tasksData,
+            attentionScore: this._attentionScore,
+            accessCount: this._accessCount,
+            createdAt: this._createdAt,
+            lastAccessed: this._lastAccessed,
+            version: '1.0.0'
+        };
+    }
+
+    /**
+     * Deserialize and restore the focus set from an object
+     * @param {Object} data - Serialized focus set data
+     * @returns {boolean} True if restoration was successful
+     */
+    async deserialize(data) {
+        try {
+            if (!data) {
+                throw new Error('Invalid focus set data for deserialization');
+            }
+
+            this._name = data.name || this._name;
+            this._maxSize = data.maxSize || this._maxSize;
+            this._attentionScore = data.attentionScore || 0;
+            this._accessCount = data.accessCount || 0;
+            this._createdAt = data.createdAt || Date.now();
+            this._lastAccessed = data.lastAccessed || Date.now();
+
+            // Clear current tasks
+            this._tasks.clear();
+
+            // Restore tasks
+            if (data.tasks) {
+                for (const taskEntry of data.tasks) {
+                    if (taskEntry) {
+                        // Create placeholder for task reconstruction
+                        const reconstructedTask = taskEntry.task ? 
+                            (Task.fromJSON ? Task.fromJSON(taskEntry.task) : null) : 
+                            null;
+
+                        if (reconstructedTask) {
+                            this._tasks.set(taskEntry.hash, {
+                                task: reconstructedTask,
+                                priority: taskEntry.priority || 0,
+                                addedAt: taskEntry.addedAt || Date.now()
+                            });
+                        }
+                    }
+                }
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error during focus set deserialization:', error);
+            return false;
         }
     }
 }

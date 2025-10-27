@@ -184,4 +184,41 @@ export class Cycle extends BaseComponent {
             createdAt: Date.now()
         };
     }
+
+    /**
+     * Serialize the cycle to an object
+     * @returns {Object} Serializable cycle representation
+     */
+    serialize() {
+        return {
+            cycleCount: this._cycleCount,
+            isRunning: this._isRunning,
+            stats: this._stats,
+            config: this._config,
+            version: '1.0.0'
+        };
+    }
+
+    /**
+     * Deserialize and restore the cycle from an object
+     * @param {Object} data - Serialized cycle data
+     * @returns {boolean} True if restoration was successful
+     */
+    async deserialize(data) {
+        try {
+            if (!data) {
+                throw new Error('Invalid cycle data for deserialization');
+            }
+
+            this._cycleCount = data.cycleCount || 0;
+            this._isRunning = data.isRunning || false;
+            this._stats = data.stats || this._initStats();
+            this._config = data.config || this._config;
+
+            return true;
+        } catch (error) {
+            console.error('Error during cycle deserialization:', error);
+            return false;
+        }
+    }
 }

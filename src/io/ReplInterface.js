@@ -1,5 +1,6 @@
 import {NAR} from '../nar/NAR.js';
 import readline from 'readline';
+import {PersistenceManager} from './PersistenceManager.js';
 
 const COMMANDS = {
     help: ['help', 'h', '?'],
@@ -7,7 +8,9 @@ const COMMANDS = {
     status: ['status', 's', 'stats'],
     memory: ['memory', 'm'],
     trace: ['trace', 't'],
-    reset: ['reset', 'r']
+    reset: ['reset', 'r'],
+    save: ['save', 'sv'],
+    load: ['load', 'ld']
 };
 
 export class ReplInterface {
@@ -16,6 +19,9 @@ export class ReplInterface {
         this.rl = readline.createInterface({input: process.stdin, output: process.stdout});
         this.sessionState = {history: [], lastResult: null, startTime: Date.now()};
         this.commands = this._buildCommandMap();
+        this.persistenceManager = new PersistenceManager({
+            defaultPath: config.persistence?.defaultPath || './agent.json'
+        });
     }
 
     _buildCommandMap() {
@@ -100,6 +106,8 @@ Available commands:
   :memory, :m       - Show memory statistics
   :trace, :t        - Show reasoning trace
   :reset, :r        - Reset the NAR system
+  :save, :sv         - Save current agent state to file
+  :load, :ld         - Load agent state from file
 
 Narsese input examples:
   (bird --> animal).                     (inheritance statement)
@@ -148,5 +156,36 @@ ${beliefs.slice(-5).map(task => `  ${task.term.name} ${task.truth?.toString() ||
         this.sessionState.history = [];
         this.sessionState.lastResult = null;
         return 'NAR system reset successfully.';
+    }
+
+    async _save(filePath = null) {
+        try {
+            const state = this.nar.serialize();
+            const result = await this.persistenceManager.saveToDefault(state);
+            return `NAR state saved successfully to ${result.filePath} (${Math.round(result.size / 1024)} KB)`;
+        } catch (error) {
+            return `Error saving NAR state: ${error.message}`;
+        }
+    }
+
+    async _load(filePath = null) {
+        try {
+            // Check if file exists first
+            const exists = await this.persistenceManager.exists(filePath);
+            if (!exists) {
+                return `Save file does not exist: ${filePath || this.persistenceManager.defaultPath}`;
+            }
+
+            const state = await this.persistenceManager.loadFromDefault();
+            const success = await this.nar.deserialize(state);
+            
+            if (success) {
+                return `NAR state loaded successfully from ${filePath || this.persistenceManager.defaultPath}`;
+            } else {
+                return 'Failed to load NAR state - deserialization error';
+            }
+        } catch (error) {
+            return `Error loading NAR state: ${error.message}`;
+        }
     }
 }

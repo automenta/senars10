@@ -183,4 +183,62 @@ export class TaskManager extends BaseComponent {
     getPendingTasks() {
         return Array.from(this._pendingTasks.values());
     }
+
+    /**
+     * Serialize the task manager to an object
+     * @returns {Object} Serializable task manager representation
+     */
+    serialize() {
+        return {
+            config: this._config,
+            pendingTasks: Array.from(this._pendingTasks.entries()).map(([id, task]) => ({
+                id: id,
+                task: task.serialize ? task.serialize() : null
+            })),
+            stats: this._stats,
+            version: '1.0.0'
+        };
+    }
+
+    /**
+     * Deserialize and restore the task manager from an object
+     * @param {Object} data - Serialized task manager data
+     * @returns {boolean} True if restoration was successful
+     */
+    async deserialize(data) {
+        try {
+            if (!data) {
+                throw new Error('Invalid task manager data for deserialization');
+            }
+
+            // Restore configuration
+            if (data.config) {
+                this._config = data.config;
+            }
+
+            // Clear current pending tasks
+            this._pendingTasks.clear();
+
+            // Restore pending tasks
+            if (data.pendingTasks) {
+                for (const { id, task: taskData } of data.pendingTasks) {
+                    if (taskData) {
+                        // In a full implementation, we would reconstruct actual Task objects
+                        // For now, we'll just store placeholder data
+                        this._pendingTasks.set(id, Task.fromJSON ? Task.fromJSON(taskData) : null);
+                    }
+                }
+            }
+
+            // Restore stats
+            if (data.stats) {
+                this._stats = { ...data.stats };
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error during task manager deserialization:', error);
+            return false;
+        }
+    }
 }

@@ -209,4 +209,38 @@ export class Term {
         }
         return result;
     }
+
+    /**
+     * Serialize the term to an object
+     * @returns {Object} Serializable term representation
+     */
+    serialize() {
+        return {
+            type: this._type,
+            name: this._name,
+            operator: this._operator,
+            components: this._components.map(c => c.serialize ? c.serialize() : c.toString()),
+            complexity: this._complexity,
+            id: this._id,
+            hash: this._hash,
+            semanticType: this._semanticType,
+            version: '1.0.0'
+        };
+    }
+
+    /**
+     * Create a term from serialized data
+     * @param {Object} data - Serialized term data
+     * @returns {Term} New Term instance
+     */
+    static fromJSON(data) {
+        if (!data) {
+            throw new Error('Term.fromJSON requires valid data object');
+        }
+
+        // In a complete implementation, we would need to properly reconstruct
+        // child terms from the serialized components
+        const components = data.components || [];
+        return new Term(data.type, data.name, components, data.operator);
+    }
 }

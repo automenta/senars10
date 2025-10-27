@@ -1,102 +1,91 @@
 #!/usr/bin/env node
 
-import {ReplInterface} from './io/ReplInterface.js';
-import {MonitoringAPI} from './io/MonitoringAPI.js';
-import {NAR} from './nar/NAR.js';
-import {Agent, InputTasks} from './Agent.js';
-import {EvaluationEngine} from './reasoning/EvaluationEngine.js';
-import {PrologParser} from './parser/PrologParser.js';
-import {AgentBuilder} from './config/AgentBuilder.js';
+/**
+ * SeNARS WebSocket Server with CLI Integration
+ * Combines the REPL interface with real-time WebSocket monitoring
+ */
 
-const MODES = {REPL: 'repl', SERVER: 'server', DEMO: 'demo'};
-const DEFAULT_CONFIG = {lm: {enabled: false}, cycle: {delay: 50}};
-const DEFAULT_PORT = 8080;
+import { ReplInterface } from './io/ReplInterface.js';
+import { WebSocketMonitor } from './server/WebSocketMonitor.js';
+import { NAR } from './nar/NAR.js';
+import { SystemConfig } from './config/SystemConfig.js';
 
-const args = process.argv.slice(2);
-const mode = args[0]?.toLowerCase() || MODES.REPL;
+// Create main function to handle server startup
+async function main() {
+    const config = {
+        nar: {
+            lm: { enabled: false },  // Disable LM for initial testing
+            reasoningAboutReasoning: { enabled: true }
+        },
+        persistence: {
+            defaultPath: './agent.json'
+        },
+        webSocket: {
+            port: process.env.WS_PORT || 8080,
+            host: process.env.WS_HOST || 'localhost'
+        }
+    };
 
-const createNAR = (config = {}) => new NAR({...DEFAULT_CONFIG, ...config});
-const showUsage = () => {
-    console.log('Usage: node src/index.js [repl|server|demo]');
-    console.log('  repl   - Start the REPL interface (default)');
-    console.log('  server - Start with monitoring API');
-    console.log('  demo   - Run a demonstration');
-    process.exit(1);
-};
-
-const runRepl = async () => new ReplInterface().start();
-
-const runServer = async () => {
-    const nar = createNAR();
-    nar.start();
-
-    const monitor = new MonitoringAPI(nar, {port: DEFAULT_PORT});
+    console.log('Starting SeNARS with WebSocket monitoring...');
+    
+    // Create NAR instance
+    const nar = new NAR(config.nar);
+    await nar.initialize();
+    
+    // Create and start WebSocket monitor
+    const monitor = new WebSocketMonitor({
+        port: config.webSocket.port,
+        host: config.webSocket.host,
+        maxConnections: 20
+    });
+    
     await monitor.start();
-
-    console.log(`NAR running with monitoring API on ws://localhost:${DEFAULT_PORT}`);
-    console.log('Press Ctrl+C to stop');
-
-    process.on('SIGINT', () => {
-        console.log('\nShutting down...');
-        monitor.stop();
-        nar.stop();
+    nar.connectToWebSocketMonitor(monitor);
+    
+    // Create REPL interface with NAR
+    const repl = new ReplInterface({ nar: config.nar, persistence: config.persistence });
+    repl.nar = nar; // Override with initialized instance
+    
+    // Graceful shutdown handling
+    process.on('SIGINT', async () => {
+        console.log('\nShutting down gracefully...');
+        
+        // Save current state before shutdown
+        try {
+            const state = repl.nar.serialize();
+            await repl.persistenceManager.saveToDefault(state);
+            console.log('Current state saved to agent.json');
+        } catch (saveError) {
+            console.error('Error saving state on shutdown:', saveError.message);
+        }
+        
+        await monitor.stop();
         process.exit(0);
     });
-};
+    
+    // Start the REPL
+    await repl.start();
+}
 
-const runDemo = async () => {
-    console.log('Running Phase 10 demonstration...\n');
-
-    const nar = createNAR();
-
-    const demonstrations = [
-        {input: '(bird --> animal). %1.0;0.9%', desc: 'All birds are animals'},
-        {input: '(Tweety --> bird). %1.0;0.8%', desc: 'Tweety is a bird'}
-    ];
-
-    for (const demo of demonstrations) {
-        console.log(`Input: ${demo.desc}`);
-        await nar.input(demo.input);
-    }
-
-    console.log('\nRunning reasoning cycles...');
-    await nar.runCycles(5);
-
-    const beliefs = nar.getBeliefs();
-    console.log('\nBeliefs after reasoning:');
-    beliefs.forEach((task, index) =>
-        console.log(`${index + 1}. ${task.term.name} ${task.truth?.toString() || ''}`));
-
-    const concepts = nar.memory.getAllConcepts();
-    console.log(`\nTotal concepts: ${concepts.length}`);
-    console.log(`Reasoning cycles: ${nar.cycleCount}`);
-
-    const repl = new ReplInterface(createNAR());
-    console.log('\nREPL interface available: await repl.start()');
-};
-
-const modeHandlers = {
-    [MODES.REPL]: runRepl,
-    [MODES.SERVER]: runServer,
-    [MODES.DEMO]: runDemo
-};
-
-const main = async () => {
-    const handler = modeHandlers[mode];
-    handler ? await handler() : showUsage();
-};
-
-main().catch(error => {
-    console.error('Application error:', error);
+// Handle any uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception:', error);
     process.exit(1);
 });
 
-// Export the main factory functions and classes for external use
-export {
-    AgentBuilder,
-    Agent,
-    NAR,
-    InputTasks,
-    EvaluationEngine,
-    PrologParser
-};
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+
+// Run the main function if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main().catch(error => {
+        console.error('Failed to start SeNARS:', error);
+        process.exit(1);
+    });
+}
+
+// Export for library usage
+export { main as startServer };
+export * from './module.js';
