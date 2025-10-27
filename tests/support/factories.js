@@ -22,11 +22,6 @@ export const TEST_CONSTANTS = {
     }
 };
 
-/**
- * Factory function for creating ArrayStamp instances for testing.
- * @param {object} [overrides={}] - Properties to override the defaults.
- * @returns {ArrayStamp} A new ArrayStamp instance.
- */
 export const createStamp = (overrides = {}) => {
     const defaults = {
         id: `test-id-${Math.random()}`,
@@ -37,38 +32,12 @@ export const createStamp = (overrides = {}) => {
     return new ArrayStamp({...defaults, ...overrides});
 };
 
-/**
- * Factory function for creating Term instances for testing.
- * @param {string} [name='A'] - The name of the term.
- * @returns {Term} A new Term instance.
- */
-export const createTerm = (name = 'A') => {
-    return termFactory.create({components: [name]});
-};
+export const createTerm = (name = 'A') => termFactory.create({components: [name]});
 
-/**
- * Factory function for creating compound Term instances for testing.
- * @param {string} operator - The operator of the compound term.
- * @param {Array<Term>} components - The components of the compound term.
- * @returns {Term} A new compound Term instance.
- */
-export const createCompoundTerm = (operator, components) => {
-    return termFactory.create({operator, components});
-};
+export const createCompoundTerm = (operator, components) => termFactory.create({operator, components});
 
-/**
- * Factory function for creating Truth instances for testing.
- * @param {number} [f=0.9] - The frequency of the truth value.
- * @param {number} [c=0.8] - The confidence of the truth value.
- * @returns {Truth} A new Truth instance.
- */
 export const createTruth = (f = 0.9, c = 0.8) => new Truth(f, c);
 
-/**
- * Factory function for creating Task instances for testing.
- * @param {object} [overrides={}] - Properties to override the defaults.
- * @returns {Task} A new Task instance.
- */
 export const createTask = (overrides = {}) => {
     const defaults = {
         term: createTerm(),
@@ -78,7 +47,6 @@ export const createTask = (overrides = {}) => {
     };
     const taskData = {...defaults, ...overrides};
 
-    // Automatically assign truth for beliefs if not specified
     if (taskData.punctuation === '.' && taskData.truth === null) {
         taskData.truth = createTruth();
     }
@@ -86,10 +54,6 @@ export const createTask = (overrides = {}) => {
     return new Task(taskData);
 };
 
-/**
- * Factory function for creating MemoryConfig instances for testing.
- * @returns {object} A new MemoryConfig instance.
- */
 export const createMemoryConfig = () => ({
     priorityThreshold: 0.5,
     consolidationInterval: 10,
@@ -105,38 +69,12 @@ export const createMemoryConfig = () => ({
     memoryValidationInterval: 30000
 });
 
-/**
- * Factory function for creating TaskManager instances for testing.
- * @param {object} [config={}] - Configuration for the TaskManager.
- * @returns {TaskManager} A new TaskManager instance.
- */
-export const createTaskManager = (config = {}) => {
-    return new TaskManager(config);
-};
+export const createTaskManager = (config = {}) => new TaskManager(config);
 
-/**
- * Factory function for creating Memory instances for testing.
- * @param {object} [config={}] - Configuration for Memory.
- * @returns {Memory} A new Memory instance.
- */
-export const createMemory = (config = createMemoryConfig()) => {
-    return new Memory(config);
-};
+export const createMemory = (config = createMemoryConfig()) => new Memory(config);
 
-/**
- * Factory function for creating Focus instances for testing.
- * @param {object} [config={}] - Configuration for Focus.
- * @returns {Focus} A new Focus instance.
- */
-export const createFocus = (config = {}) => {
-    return new Focus(config);
-};
+export const createFocus = (config = {}) => new Focus(config);
 
-/**
- * Utility function for creating a test-ready NAR for integration tests.
- * @param {object} [config={}] - Configuration for the NAR.
- * @returns {Promise<NAR>} A new NAR instance.
- */
 export const createTestNAR = async (config = {}) => {
     const {NAR} = await import('../../src/nar/NAR.js');
     return new NAR(config);

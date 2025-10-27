@@ -1,6 +1,6 @@
 import { Agent } from '../Agent.js';
 import { NAR } from '../nar/NAR.js';
-import { PrologParser } from '../PrologParser.js';
+import { PrologParser } from '../parser/PrologParser.js';
 import { FunctorRegistry } from '../reasoning/Functor.js';
 import { RuleEngine } from '../reasoning/RuleEngine.js';
 import { MetricsMonitor } from '../reasoning/MetricsMonitor.js';
@@ -445,11 +445,6 @@ export class AgentBuilder {
         // Implementation would go here based on existing temporal rule imports
     }
 
-    /**
-     * Initialize configured subsystems
-     * @param {Agent} agent - Agent instance
-     * @param {NAR} nar - NAR instance
-     */
     /**
      * Register plugins with the plugin manager
      * @param {PluginManager} pluginManager - Plugin manager instance

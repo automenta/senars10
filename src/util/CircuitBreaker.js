@@ -5,26 +5,24 @@ export class CircuitBreaker {
     constructor(options = {}) {
         this.options = {
             failureThreshold: options.failureThreshold || 5,
-            timeout: options.timeout || 60000, // 1 minute default
-            resetTimeout: options.resetTimeout || 30000, // 30 seconds default
+            timeout: options.timeout || 60000,
+            resetTimeout: options.resetTimeout || 30000,
             halfOpenAttempts: options.halfOpenAttempts || 1,
             ...options
         };
 
-        this.state = 'CLOSED'; // CLOSED, OPEN, HALF_OPEN
+        this.state = 'CLOSED';
         this.failureCount = 0;
         this.lastFailureTime = null;
         this.successCount = 0;
     }
 
     async execute(fn, context = {}) {
-        // If circuit is already OPEN and timeout has expired, transition to HALF_OPEN
         if (this.state === 'OPEN' && this.isResetTimeoutExpired()) {
             this.state = 'HALF_OPEN';
             this.successCount = 0;
         }
         
-        // If circuit should be OPEN (based on failure count) and it's not already transitioning from HALF_OPEN
         if (this.state !== 'HALF_OPEN' && this.shouldOpen()) {
             this.state = 'OPEN';
             this.lastFailureTime = Date.now();
@@ -58,13 +56,8 @@ export class CircuitBreaker {
         }
     }
 
-    shouldOpen() {
-        return this.failureCount >= this.options.failureThreshold;
-    }
-
-    isResetTimeoutExpired() {
-        return Date.now() - this.lastFailureTime >= this.options.resetTimeout;
-    }
+    shouldOpen() { return this.failureCount >= this.options.failureThreshold; }
+    isResetTimeoutExpired() { return Date.now() - this.lastFailureTime >= this.options.resetTimeout; }
 
     getState() {
         return {
@@ -97,13 +90,8 @@ export class CircuitBreaker {
     }
 }
 
-/**
- * Decorator function to wrap functions with circuit breaker protection
- */
 export const withCircuitBreaker = (fn, circuitBreakerOptions = {}) => {
     const circuitBreaker = new CircuitBreaker(circuitBreakerOptions);
     
-    return async (...args) => {
-        return circuitBreaker.execute(() => fn(...args));
-    };
+    return async (...args) => circuitBreaker.execute(() => fn(...args));
 };

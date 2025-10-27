@@ -4,9 +4,9 @@
 export class MemoryValidator {
     constructor(options = {}) {
         this.options = {
-            enableChecksums: options.enableChecksums !== false, // enabled by default
-            validationInterval: options.validationInterval || 30000, // 30 seconds
-            algorithm: options.algorithm || 'simple-hash', // 'simple-hash', 'crc32', etc.
+            enableChecksums: options.enableChecksums !== false,
+            validationInterval: options.validationInterval || 30000,
+            algorithm: options.algorithm || 'simple-hash',
             ...options
         };
         
@@ -14,31 +14,23 @@ export class MemoryValidator {
         this.isEnabled = true;
     }
 
-    /**
-     * Calculate a simple checksum for an object
-     */
     calculateChecksum(obj) {
         if (!this.isEnabled || !this.options.enableChecksums) {
             return null;
         }
 
-        // Use a simple hash algorithm to generate checksum
-        // This is a basic implementation - in production, use a proper hash function
         const str = JSON.stringify(obj, Object.keys(obj).sort());
         let hash = 0;
         
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32-bit integer
+            hash = hash & hash;
         }
         
         return hash.toString();
     }
 
-    /**
-     * Store the checksum for a memory structure
-     */
     storeChecksum(key, obj) {
         if (!this.isEnabled) return;
         
@@ -49,9 +41,6 @@ export class MemoryValidator {
         return checksum;
     }
 
-    /**
-     * Validate if a memory structure has been corrupted
-     */
     validate(key, obj) {
         if (!this.isEnabled || !this.options.enableChecksums) {
             return { valid: true, message: 'Validation disabled' };
@@ -59,7 +48,6 @@ export class MemoryValidator {
 
         const expectedChecksum = this.checksums.get(key);
         if (!expectedChecksum) {
-            // If no stored checksum, store it and return valid
             this.storeChecksum(key, obj);
             return { valid: true, message: 'First validation - stored checksum' };
         }
@@ -81,51 +69,18 @@ export class MemoryValidator {
         return { valid: true, message: 'Valid' };
     }
 
-    /**
-     * Batch validation of multiple memory structures
-     */
     validateBatch(validations) {
-        const results = [];
-        for (const [key, obj] of validations) {
-            results.push({
-                key,
-                result: this.validate(key, obj)
-            });
-        }
-        return results;
+        return validations.map(([key, obj]) => ({
+            key,
+            result: this.validate(key, obj)
+        }));
     }
 
-    /**
-     * Enable validation
-     */
-    enable() {
-        this.isEnabled = true;
-    }
+    enable() { this.isEnabled = true; }
+    disable() { this.isEnabled = false; }
+    clear() { this.checksums.clear(); }
+    getChecksums() { return new Map(this.checksums); }
 
-    /**
-     * Disable validation
-     */
-    disable() {
-        this.isEnabled = false;
-    }
-
-    /**
-     * Clear all stored checksums
-     */
-    clear() {
-        this.checksums.clear();
-    }
-
-    /**
-     * Get current checksums map
-     */
-    getChecksums() {
-        return new Map(this.checksums);
-    }
-
-    /**
-     * Update checksum for an existing memory structure
-     */
     updateChecksum(key, obj) {
         if (!this.isEnabled) return;
         

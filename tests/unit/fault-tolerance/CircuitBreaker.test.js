@@ -21,17 +21,11 @@ describe('Circuit Breaker Tests', () => {
 
     test('Circuit breaker opens after threshold failures', async () => {
         const cb = new CircuitBreaker({ failureThreshold: 2 });
-        let failureCount = 0;
-        const fn = () => {
-            failureCount++;
-            return Promise.reject(new Error('failure'));
-        };
+        const fn = () => Promise.reject(new Error('failure'));
         
-        // First failure
         await expect(cb.execute(fn)).rejects.toThrow('failure');
         expect(cb.getState().state).toBe('CLOSED');
         
-        // Second failure - should open the circuit
         await expect(cb.execute(fn)).rejects.toThrow('failure');
         expect(cb.getState().state).toBe('OPEN');
     });
@@ -59,34 +53,27 @@ describe('Circuit Breaker Tests', () => {
             return Promise.resolve('success');
         };
         
-        // Cause circuit to open
         await expect(cb.execute(() => Promise.reject(new Error('failure')))).rejects.toThrow();
         expect(cb.getState().state).toBe('OPEN');
         
-        // Try to execute while open - should throw circuit breaker error
         await expect(cb.execute(successFn)).rejects.toThrow('Circuit breaker is OPEN');
         expect(successCallCount).toBe(0);
     });
 
     test('Circuit breaker transitions to HALF_OPEN after timeout', async () => {
-        const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 10 }); // Need 2 failures to open
+        const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 10 });
         
-        // Cause first failure (doesn't open circuit yet)
         await expect(cb.execute(() => Promise.reject(new Error('failure')))).rejects.toThrow();
-        expect(cb.getState().state).toBe('CLOSED'); // Should still be closed after 1 failure
+        expect(cb.getState().state).toBe('CLOSED');
         
-        // Cause second failure (now opens circuit)
         await expect(cb.execute(() => Promise.reject(new Error('failure')))).rejects.toThrow();
-        expect(cb.getState().state).toBe('OPEN'); // Should now be open after 2 failures
+        expect(cb.getState().state).toBe('OPEN');
         
-        // Wait for reset timeout to expire
         await new Promise(resolve => setTimeout(resolve, 15));
         
-        // After timeout, the next call should succeed (transitioning from OPEN -> HALF_OPEN -> CLOSED after success)
         const fn = () => Promise.resolve('success');
         await expect(cb.execute(fn)).resolves.toBe('success');
         
-        // After a successful call, it should be CLOSED
         const finalState = cb.getState();
         expect(finalState.state).toBe('CLOSED');
     });

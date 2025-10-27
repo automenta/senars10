@@ -46,7 +46,6 @@ describe('Memory Validator Tests', () => {
         
         validator.storeChecksum(key, obj);
         
-        // Modify the object
         obj.data = 'modified';
         const result = validator.validate(key, obj);
         
@@ -85,7 +84,6 @@ describe('Memory Validator Tests', () => {
         validator.storeChecksum('key1', obj1);
         validator.storeChecksum('key2', obj2);
         
-        // Modify one object
         obj2.data = 'modified';
         
         const results = validator.validateBatch(validations);

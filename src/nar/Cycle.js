@@ -8,7 +8,7 @@ export class Cycle extends BaseComponent {
         this._focus = focus;
         this._ruleEngine = ruleEngine;
         this._taskManager = taskManager;
-        this._evaluator = evaluator || new EvaluationEngine(); // Use provided evaluator or create new one
+        this._evaluator = evaluator || new EvaluationEngine();
         this._config = config;
         this._reasoningStrategy = reasoningStrategy;
         this._termFactory = termFactory;
@@ -19,21 +19,10 @@ export class Cycle extends BaseComponent {
         this._stats = this._initStats();
     }
 
-    get evaluator() {
-        return this._evaluator;
-    }
-
-    get cycleCount() {
-        return this._cycleCount;
-    }
-
-    get isRunning() {
-        return this._isRunning;
-    }
-
-    get stats() {
-        return {...this._stats};
-    }
+    get evaluator() { return this._evaluator; }
+    get cycleCount() { return this._cycleCount; }
+    get isRunning() { return this._isRunning; }
+    get stats() { return {...this._stats}; }
 
     async execute() {
         const cycleStartTime = Date.now();
@@ -47,7 +36,6 @@ export class Cycle extends BaseComponent {
             const allConcepts = this._memory.getAllConcepts();
             const memoryTasks = allConcepts.flatMap(c => c.getAllTasks ? c.getAllTasks() : []);
 
-            // Filter tasks based on budget constraints
             const filteredTasks = this._filterTasksByBudget([...focusTasks, ...memoryTasks]);
             const taskMap = new Map();
             filteredTasks.forEach(task => taskMap.set(task.stamp.id, task));
@@ -64,10 +52,7 @@ export class Cycle extends BaseComponent {
                 allTasks
             );
 
-            // Process all inferences through the evaluator to ensure they are simplified and evaluated
             const processedInferences = await this._processInferencesWithEvaluator(newInferences);
-
-            // Apply budget constraints to inferences before adding to memory
             const budgetedInferences = this._applyBudgetConstraints(processedInferences);
 
             this._updateMemoryWithInferences(budgetedInferences, cycleStartTime);
@@ -88,24 +73,15 @@ export class Cycle extends BaseComponent {
         }
     }
 
-    /**
-     * Process inferences through the evaluator to ensure proper simplification and evaluation
-     * Only apply evaluation to operation terms (f^args) and functional expressions,
-     * not to NAL conditional/implication terms
-     */
     async _processInferencesWithEvaluator(inferences) {
         const processed = [];
         
         for (const inference of inferences) {
             try {
-                // Only process operation terms (^), arithmetic expressions, and functional expressions
-                // through the evaluator. Don't process NAL conditional terms (==>, <==>, etc.) as these
-                // are logical relationships that should not be evaluated functionally
                 processed.push(inference.term.operator === '^'
                     ? await this._processOperationTerm(inference)
                     : this._processNALTerm(inference));
             } catch (error) {
-                // If evaluation fails, keep the original inference
                 this.logger.warn(`Evaluation failed for inference, keeping original:`, error.message);
                 processed.push(inference);
             }
@@ -115,66 +91,33 @@ export class Cycle extends BaseComponent {
     }
 
     async _processOperationTerm(inference) {
-        const evaluationResult = await this._evaluator.evaluate(
-            inference.term, 
-            this._nar, 
-            new Map()
-        );
-        
-        // Create a new task with the evaluated term if evaluation was successful, otherwise keep original
+        const evaluationResult = await this._evaluator.evaluate(inference.term, this._nar, new Map());
         return evaluationResult.success && evaluationResult.result
             ? inference.clone({ term: evaluationResult.result })
             : inference;
     }
 
     _processNALTerm(inference) {
-        // For NAL terms like implication, equivalence, conjunction, etc., 
-        // just apply structural reduction without functional evaluation
         const reducedTerm = this._evaluator.reduce(inference.term);
         return inference.clone({ term: reducedTerm });
     }
 
-    /**
-     * Filter tasks based on their budget constraints
-     */
     _filterTasksByBudget(tasks) {
         return tasks.filter(task => {
-            if (!task.budget) return true; // If no budget specified, allow task
+            if (!task.budget) return true;
             
-            // Check if task has exhausted its cycle budget
-            if (task.budget.cycles !== undefined && task.budget.cycles <= 0) {
-                return false;
-            }
-            
-            // Check if task has exceeded its depth budget
-            if (task.budget.depth !== undefined && task.budget.depth <= 0) {
-                return false;
-            }
-            
-            return true;
+            return (task.budget.cycles === undefined || task.budget.cycles > 0) &&
+                   (task.budget.depth === undefined || task.budget.depth > 0);
         });
     }
 
-    /**
-     * Apply budget constraints to inferences - decrement budget values
-     */
     _applyBudgetConstraints(inferences) {
         return inferences.map(inference => {
-            if (!inference.budget) return inference; // If no budget, return unchanged
+            if (!inference.budget) return inference;
             
-            // Decrement cycle budget
-            let newCycles = inference.budget.cycles;
-            if (newCycles !== undefined) {
-                newCycles = Math.max(0, newCycles - 1); // Ensure it doesn't go below 0
-            }
+            const newCycles = Math.max(0, (inference.budget.cycles ?? 0) - 1);
+            const newDepth = Math.max(0, (inference.budget.depth ?? 0) - 1);
             
-            // Decrement depth budget if applicable
-            let newDepth = inference.budget.depth;
-            if (newDepth !== undefined) {
-                newDepth = Math.max(0, newDepth - 1); // Ensure it doesn't go below 0
-            }
-            
-            // Create new budget with decremented values
             const newBudget = {
                 ...inference.budget,
                 cycles: newCycles,

@@ -13,24 +13,17 @@ export class LM extends BaseComponent {
     constructor(config = {}, eventBus = null) {
         super(config, 'LM', eventBus);
 
-        // Initialize LM-specific properties
         this.providers = new ProviderRegistry();
         this.modelSelector = new ModelSelector(this.providers);
         this.narseseTranslator = new NarseseTranslator();
-
-        // Initialize circuit breaker for external calls
-        const circuitBreakerConfig = this.config.circuitBreaker || {};
         this.circuitBreaker = new CircuitBreaker({
-            failureThreshold: circuitBreakerConfig.failureThreshold || 5,
-            timeout: circuitBreakerConfig.timeout || 60000,
-            resetTimeout: circuitBreakerConfig.resetTimeout || 30000
+            failureThreshold: (this.config.circuitBreaker || {}).failureThreshold || 5,
+            timeout: (this.config.circuitBreaker || {}).timeout || 60000,
+            resetTimeout: (this.config.circuitBreaker || {}).resetTimeout || 30000
         });
 
-        // Use metrics from BaseComponent instead of creating a new one
         this.lmMetrics = new Metrics();
         this.activeWorkflows = new Set();
-
-        // Track LM usage metrics
         this.lmStats = {
             totalCalls: 0,
             totalTokens: 0,
@@ -41,16 +34,10 @@ export class LM extends BaseComponent {
         Object.freeze(this);
     }
 
-    get config() {
-        return {...this._config};
-    }
-
-    get metrics() {
-        return this.lmMetrics;
-    }
+    get config() { return {...this._config}; }
+    get metrics() { return this.lmMetrics; }
 
     async _initialize() {
-        // Initialize metrics tracker with config
         if (this.lmMetrics.initialize) {
             await this.lmMetrics.initialize(this.config.metrics || {});
         }
@@ -63,7 +50,6 @@ export class LM extends BaseComponent {
 
     registerProvider(id, provider) {
         this.providers.register(id, provider);
-
         this.logInfo('Provider registered', {
             providerId: id,
             default: id === this.providers.defaultProviderId
@@ -74,10 +60,7 @@ export class LM extends BaseComponent {
 
     _getProvider(providerId = null) {
         const id = providerId || this.providers.defaultProviderId;
-        if (!id || !this.providers.has(id)) {
-            return null;
-        }
-        return this.providers.get(id);
+        return id && this.providers.has(id) ? this.providers.get(id) : null;
     }
 
     async generateText(prompt, options = {}, providerId = null) {
@@ -88,18 +71,13 @@ export class LM extends BaseComponent {
 
         const startTime = Date.now();
         try {
-            // Execute with circuit breaker protection
-            const result = await this.circuitBreaker.execute(async () => {
-                return await provider.generateText(prompt, options);
-            });
+            const result = await this.circuitBreaker.execute(() => provider.generateText(prompt, options));
 
-            // Update metrics
             this.lmStats.totalCalls++;
             this.lmStats.totalTokens += this._countTokens(prompt) + this._countTokens(result);
             const responseTime = Date.now() - startTime;
             this.lmStats.avgResponseTime = (this.lmStats.avgResponseTime * (this.lmStats.totalCalls - 1) + responseTime) / this.lmStats.totalCalls;
 
-            // Track provider usage
             const usage = this.lmStats.providerUsage.get(providerId) || {calls: 0, tokens: 0};
             usage.calls++;
             usage.tokens += this._countTokens(result);
@@ -113,11 +91,8 @@ export class LM extends BaseComponent {
         } catch (error) {
             this.logError(`LM generateText failed for provider ${providerId}:`, error);
             
-            // Check if it's a circuit breaker error
             if (error.message && error.message.includes('Circuit breaker is OPEN')) {
                 this.logInfo(`Circuit breaker is OPEN for provider ${providerId}, using fallback...`);
-                
-                // Implement fallback to pure NAL reasoning when LM is unavailable
                 return this._handleFallback(prompt, options);
             }
             
@@ -132,18 +107,12 @@ export class LM extends BaseComponent {
         }
 
         try {
-            // Execute with circuit breaker protection
-            return await this.circuitBreaker.execute(async () => {
-                return await provider.generateEmbedding(text);
-            });
+            return await this.circuitBreaker.execute(() => provider.generateEmbedding(text));
         } catch (error) {
             this.logError(`LM generateEmbedding failed for provider ${providerId}:`, error);
             
-            // Check if it's a circuit breaker error
             if (error.message && error.message.includes('Circuit breaker is OPEN')) {
                 this.logInfo(`Circuit breaker is OPEN for provider ${providerId}, using fallback...`);
-                
-                // Return a default embedding or null for fallback
                 return this._handleEmbeddingFallback(text);
             }
             
@@ -158,24 +127,17 @@ export class LM extends BaseComponent {
         }
 
         try {
-            // Execute with circuit breaker protection
             if (typeof provider.process === 'function') {
-                return await this.circuitBreaker.execute(async () => {
-                    return await provider.process(prompt, options);
-                });
+                return await this.circuitBreaker.execute(() => provider.process(prompt, options));
             } else {
-                // Fallback to generateText if process method is not available
                 return provider.generateText ? await this.generateText(prompt, options, providerId) :
                     provider.generate ? await provider.generate(prompt, options) : prompt;
             }
         } catch (error) {
             this.logError(`LM process failed for provider ${providerId}:`, error);
             
-            // Check if it's a circuit breaker error
             if (error.message && error.message.includes('Circuit breaker is OPEN')) {
                 this.logInfo(`Circuit breaker is OPEN for provider ${providerId}, using fallback...`);
-                
-                // Implement fallback to pure NAL reasoning when LM is unavailable
                 return this._handleFallback(prompt, options);
             }
             
@@ -183,36 +145,20 @@ export class LM extends BaseComponent {
         }
     }
 
-    selectOptimalModel(task, constraints = {}) {
-        return this.modelSelector.select(task, constraints);
-    }
+    selectOptimalModel(task, constraints = {}) { return this.modelSelector.select(task, constraints); }
+    getAvailableModels() { return this.modelSelector.getAvailableModels(); }
 
-    getAvailableModels() {
-        return this.modelSelector.getAvailableModels();
-    }
-
-    _countTokens = text => {
-        if (typeof text !== 'string') return 0;
-        return text.split(/\s+/).filter(token => token.length > 0).length;
-    };
+    _countTokens = text => typeof text === 'string' ? text.split(/\s+/).filter(token => token.length > 0).length : 0;
 
     _handleFallback(prompt, options = {}) {
-        // Implement fallback to pure NAL reasoning when LM is unavailable
-        // For now, return a message indicating the fallback
         this.logInfo('Using fallback strategy - LM unavailable, degrading to pure NAL reasoning');
-        
-        // In a real implementation, this would route to pure NAL reasoning
-        // For now, return a placeholder
         return `FALLBACK: Processed with pure NAL reasoning - ${prompt}`;
     }
 
     _handleEmbeddingFallback(text) {
-        // Return a simple fallback embedding (e.g., length-based values)
         this.logInfo('Using fallback strategy - Generate embedding unavailable');
-        
-        // Simple fallback: return an array based on text length
         const textLength = text ? text.length : 0;
-        return Array(8).fill(0).map((_, i) => Math.sin(textLength * (i + 1) * 0.1)); // Simple deterministic embedding
+        return Array(8).fill(0).map((_, i) => Math.sin(textLength * (i + 1) * 0.1));
     }
 
     getMetrics() {
@@ -223,20 +169,8 @@ export class LM extends BaseComponent {
         };
     }
 
-    getCircuitBreakerState() {
-        return this.circuitBreaker.getState();
-    }
-
-    resetCircuitBreaker() {
-        this.circuitBreaker.reset();
-        this.logInfo('Circuit breaker reset');
-    }
-
-    translateToNarsese(text) {
-        return this.narseseTranslator.toNarsese(text);
-    }
-
-    translateFromNarsese(narsese) {
-        return this.narseseTranslator.fromNarsese(narsese);
-    }
+    getCircuitBreakerState() { return this.circuitBreaker.getState(); }
+    resetCircuitBreaker() { this.circuitBreaker.reset(); this.logInfo('Circuit breaker reset'); }
+    translateToNarsese(text) { return this.narseseTranslator.toNarsese(text); }
+    translateFromNarsese(narsese) { return this.narseseTranslator.fromNarsese(narsese); }
 }

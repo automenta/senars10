@@ -5,8 +5,8 @@ import {MonitoringAPI} from './io/MonitoringAPI.js';
 import {NAR} from './nar/NAR.js';
 import {Agent, InputTasks} from './Agent.js';
 import {EvaluationEngine} from './reasoning/EvaluationEngine.js';
-import {PrologParser} from './PrologParser.js';
-import {PrologParity} from './PrologParity.js';
+import {PrologParser} from './parser/PrologParser.js';
+import {AgentBuilder} from './config/AgentBuilder.js';
 
 const MODES = {REPL: 'repl', SERVER: 'server', DEMO: 'demo'};
 const DEFAULT_CONFIG = {lm: {enabled: false}, cycle: {delay: 50}};
@@ -98,6 +98,5 @@ export {
     NAR,
     InputTasks,
     EvaluationEngine,
-    PrologParser,
-    PrologParity
+    PrologParser
 };

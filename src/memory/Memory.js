@@ -21,35 +21,32 @@ export class Memory extends BaseComponent {
             priorityThreshold: 0.5,
             priorityDecayRate: 0.01,
             consolidationInterval: 10,
-            maxConcepts: 1000,  // AIKR capacity limit
-            maxTasksPerConcept: 100,  // AIKR capacity limit per concept
-            forgetPolicy: 'priority',  // How to forget when limits reached
-            resourceBudget: 10000,  // Total resource budget for AIKR
-            activationDecayRate: 0.005,  // Rate at which concept activation decays
-            memoryPressureThreshold: 0.8,  // Threshold for memory pressure (80% full)
-            enableAdaptiveForgetting: true,  // Enable adaptive forgetting based on memory pressure
-            enableMemoryValidation: config.enableMemoryValidation !== false,  // Enable memory validation by default
-            memoryValidationInterval: config.memoryValidationInterval || 30000,  // Validate every 30 seconds
+            maxConcepts: 1000,
+            maxTasksPerConcept: 100,
+            forgetPolicy: 'priority',
+            resourceBudget: 10000,
+            activationDecayRate: 0.005,
+            memoryPressureThreshold: 0.8,
+            enableAdaptiveForgetting: true,
+            enableMemoryValidation: config.enableMemoryValidation !== false,
+            memoryValidationInterval: config.memoryValidationInterval || 30000,
         });
 
         super({...defaultConfig, ...config}, 'Memory');
-        this._config = {...this.config, ...config};  // Use BaseComponent's config property
+        this._config = {...this.config, ...config};
         
-        // Use a Bag instead of Map to enforce capacity limits per concept
-        this._concepts = new Map();  // Keep as Map for backward compatibility but with AIKR constraints
+        this._concepts = new Map();
         this._conceptBag = new Bag(this._config.maxConcepts, this._config.forgetPolicy);
         this._focusConcepts = new Set();
         this._index = new MemoryIndex();
         this._consolidation = new MemoryConsolidation();
         
-        // Initialize memory validator if enabled
-        this._memoryValidator = null;
-        if (this._config.enableMemoryValidation) {
-            this._memoryValidator = new MemoryValidator({
+        this._memoryValidator = this._config.enableMemoryValidation 
+            ? new MemoryValidator({
                 enableChecksums: true,
                 validationInterval: this._config.memoryValidationInterval
-            });
-        }
+            }) 
+            : null;
         
         this._stats = {
             totalConcepts: 0,
@@ -59,34 +56,21 @@ export class Memory extends BaseComponent {
             lastConsolidation: Date.now(),
             conceptsForgotten: 0,
             tasksForgotten: 0,
-            totalResourceUsage: 0,  // Track total resource usage
-            peakResourceUsage: 0,   // Track peak resource usage
-            memoryPressureEvents: 0, // Track memory pressure events
-            memoryCorruptionEvents: 0, // Track memory corruption events
-            validationFailures: 0 // Track validation failures
+            totalResourceUsage: 0,
+            peakResourceUsage: 0,
+            memoryPressureEvents: 0,
+            memoryCorruptionEvents: 0,
+            validationFailures: 0
         };
         this._cyclesSinceConsolidation = 0;
-        
-        // Resource tracking
-        this._resourceTracker = new Map(); // Track resource usage by concept
+        this._resourceTracker = new Map();
         this._lastConsolidationTime = Date.now();
     }
 
-    get config() {
-        return {...this._config};
-    }
-
-    get concepts() {
-        return new Map(this._concepts);
-    }
-
-    get focusConcepts() {
-        return new Set(this._focusConcepts);
-    }
-
-    get stats() {
-        return {...this._stats};
-    }
+    get config() { return {...this._config}; }
+    get concepts() { return new Map(this._concepts); }
+    get focusConcepts() { return new Set(this._focusConcepts); }
+    get stats() { return {...this._stats}; }
 
     getConfigValue(key, defaultVal) {
         return this._config[key] !== undefined ? this._config[key] : defaultVal;
@@ -98,17 +82,13 @@ export class Memory extends BaseComponent {
         const term = task.term;
         let concept = this.getConcept(term) || this._createConcept(term);
 
-        // Add capacity enforcement at the concept level
         if (concept && concept.totalTasks >= this._config.maxTasksPerConcept) {
-            // If concept is at capacity, we need to apply forgetting policy
             concept.enforceCapacity(this._config.maxTasksPerConcept, this._config.forgetPolicy);
         }
 
         const added = concept.addTask(task);
         if (added) {
             this._stats.totalTasks++;
-            
-            // Update resource tracking
             this._updateResourceUsage(concept, 1);
             
             if (task.budget.priority >= this._config.priorityThreshold) {
@@ -116,7 +96,6 @@ export class Memory extends BaseComponent {
                 this._updateFocusConceptsCount();
             }
             
-            // Check for memory pressure and trigger adaptive forgetting if needed
             if (this._config.enableAdaptiveForgetting && this._isUnderMemoryPressure()) {
                 this._applyAdaptiveForgetting();
             }
@@ -125,9 +104,7 @@ export class Memory extends BaseComponent {
     }
 
     _createConcept(term) {
-        // Check if we're at the maximum number of concepts
         if (this._stats.totalConcepts >= this._config.maxConcepts) {
-            // Apply forgetting policy - remove the lowest priority concept
             this._applyConceptForgetting();
         }
 
@@ -143,16 +120,12 @@ export class Memory extends BaseComponent {
     }
 
     _applyConceptForgetting() {
-        // Find the concept to remove based on the forget policy
         if (this._config.forgetPolicy === 'priority') {
-            // Find the concept with the lowest priority
             let lowestPriorityConcept = null;
             let lowestPriority = Infinity;
             
             for (const [term, concept] of this._concepts) {
-                // Calculate concept priority based on average task priority or other metrics
-                const conceptPriority = concept.activation || 0.1; // Use activation or default low value
-                
+                const conceptPriority = concept.activation || 0.1;
                 if (conceptPriority < lowestPriority) {
                     lowestPriority = conceptPriority;
                     lowestPriorityConcept = {term, concept};
@@ -164,7 +137,6 @@ export class Memory extends BaseComponent {
                 this._stats.conceptsForgotten++;
             }
         } else if (this._config.forgetPolicy === 'lru') {
-            // For LRU, we would need to track access times - implementing a simple version
             let oldestConcept = null;
             let oldestTime = Infinity;
             
@@ -180,7 +152,6 @@ export class Memory extends BaseComponent {
                 this._stats.conceptsForgotten++;
             }
         } else if (this._config.forgetPolicy === 'fifo') {
-            // For FIFO, we would track insertion order - using a simple approach
             const firstEntry = this._concepts.entries().next().value;
             if (firstEntry) {
                 const [term, concept] = firstEntry;
@@ -225,18 +196,13 @@ export class Memory extends BaseComponent {
     }
 
     getMostActiveConcepts(limit = 10, scoringType = 'standard') {
-        if (scoringType === 'composite') {
-            return this._getMostActiveConceptsByCompositeScoring(limit);
-        } else {
-            const {activation: a, useCount: u, taskCount: t} = Memory.SCORING_WEIGHTS;
-            const {useCount: useLimit, taskCount: taskLimit} = Memory.NORMALIZATION_LIMITS;
-
-            return this.getAllConcepts()
-                .map(concept => this._calculateConceptScore(concept, a, u, t, useLimit, taskLimit))
+        return scoringType === 'composite' 
+            ? this._getMostActiveConceptsByCompositeScoring(limit)
+            : this.getAllConcepts()
+                .map(concept => this._calculateConceptScore(concept, ...Object.values(Memory.SCORING_WEIGHTS), ...Object.values(Memory.NORMALIZATION_LIMITS)))
                 .sort((a, b) => b.score - a.score)
                 .slice(0, limit)
                 .map(({concept}) => concept);
-        }
     }
 
     _calculateConceptScore(concept, activationWeight, useCountWeight, taskCountWeight, useLimit, taskLimit) {
@@ -249,127 +215,70 @@ export class Memory extends BaseComponent {
         return {concept, score};
     }
 
-    /**
-     * Get most active concepts using composite scoring algorithm
-     * @param {number} limit - Number of concepts to return
-     * @param {Object} options - Scoring options
-     * @returns {Array<Concept>} - Concepts sorted by composite score
-     */
     _getMostActiveConceptsByCompositeScoring(limit = 10, options = {}) {
         const {
-            activationWeight = 0.3,
-            useCountWeight = 0.2,
-            taskCountWeight = 0.2,
-            qualityWeight = 0.15,
-            complexityWeight = 0.15,
-            diversityWeight = 0.1,
-            cognitiveDiversity = null,
-            termFactory = null
+            activationWeight = 0.3, useCountWeight = 0.2, taskCountWeight = 0.2,
+            qualityWeight = 0.15, complexityWeight = 0.15, diversityWeight = 0.1,
+            cognitiveDiversity = null, termFactory = null
         } = options;
 
         const concepts = this.getAllConcepts();
         const scoredConcepts = concepts.map(concept => {
-            // Calculate normalized scores for each factor
-            const normalizedUseCount = clamp(concept.useCount / 100, 0, 1); // Based on standard use limit
-            const normalizedTaskCount = clamp(concept.totalTasks / 50, 0, 1); // Based on standard task limit
+            const normalizedUseCount = clamp(concept.useCount / 100, 0, 1);
+            const normalizedTaskCount = clamp(concept.totalTasks / 50, 0, 1);
             const activationScore = concept.activation;
             const qualityScore = concept.quality || 0;
-
-            // Calculate complexity score with more sophisticated algorithm when termFactory is provided
             const complexityScore = this._calculateConceptComplexityScore(concept, termFactory);
-
-            // Calculate diversity score if cognitive diversity is provided
-            const diversityScore = cognitiveDiversity
-                ? this._calculateConceptDiversityScore(concept, cognitiveDiversity)
+            const diversityScore = cognitiveDiversity 
+                ? this._calculateConceptDiversityScore(concept, cognitiveDiversity) 
                 : 0;
 
-            // Calculate recency score (how recently the concept was accessed)
-            const recencyScore = this._calculateRecencyScore(concept.lastAccessed);
-
-            // Calculate composite score with additional factors
-            const compositeScore =
-                (activationScore * activationWeight) +
+            const compositeScore = (activationScore * activationWeight) +
                 (normalizedUseCount * useCountWeight) +
                 (normalizedTaskCount * taskCountWeight) +
                 (qualityScore * qualityWeight) +
                 (complexityScore * complexityWeight) +
                 (diversityScore * diversityWeight) +
-                (recencyScore * 0.05); // Small weight for recency
+                (this._calculateRecencyScore(concept.lastAccessed) * 0.05);
 
-            return {
-                concept,
-                score: compositeScore,
-                breakdown: {
-                    activation: activationScore * activationWeight,
-                    useCount: normalizedUseCount * useCountWeight,
-                    taskCount: normalizedTaskCount * taskCountWeight,
-                    quality: qualityScore * qualityWeight,
-                    complexity: complexityScore * complexityWeight,
-                    diversity: diversityScore * diversityWeight,
-                    recency: recencyScore * 0.05
-                }
-            };
+            return { concept, score: compositeScore };
         });
 
-        // Sort by composite score (descending)
         scoredConcepts.sort((a, b) => b.score - a.score);
-
         return scoredConcepts.slice(0, limit).map(sc => sc.concept);
     }
 
-    /**
-     * Calculate complexity score for a concept based on its term
-     */
     _calculateConceptComplexityScore(concept, termFactory = null) {
-        // If we have access to TermFactory, use its complexity calculation
         if (termFactory && concept.term) {
-            return Math.min(1, termFactory.getComplexity(concept.term) / 10); // Normalize to 0-1 range
+            return Math.min(1, termFactory.getComplexity(concept.term) / 10);
         }
 
-        // Otherwise, calculate based on the term structure
         if (concept.term && concept.term.components) {
-            // Base complexity on number of components
             const baseComplexity = Math.min(1, concept.term.components.length * 0.3);
-
-            // Add additional complexity for nested structures
             let nestedComplexity = 0;
-            if (concept.term.components && Array.isArray(concept.term.components)) {
+            if (Array.isArray(concept.term.components)) {
                 for (const comp of concept.term.components) {
                     if (comp.components && comp.components.length > 0) {
-                        nestedComplexity += 0.2; // Additional complexity for nested components
+                        nestedComplexity += 0.2;
                     }
                 }
             }
 
             return Math.min(1, baseComplexity + nestedComplexity);
         }
-        return 0.1; // Base complexity for simple terms
+        return 0.1;
     }
 
-    /**
-     * Calculate diversity score for a concept using cognitive diversity metrics
-     */
     _calculateConceptDiversityScore(concept, cognitiveDiversity) {
-        // This would use the cognitive diversity module to calculate how diverse
-        // this concept is relative to the overall system
         if (cognitiveDiversity) {
-            // Calculate how much this concept contributes to the overall diversity
             const systemDiversity = cognitiveDiversity.getMetrics();
             return systemDiversity.diversityScore || 0;
         }
         return 0;
     }
 
-    /**
-     * Get concepts by composite scoring with configurable weights
-     */
     getConceptsByCompositeScoring(criteria = {}) {
-        const {
-            limit = 10,
-            minScore = 0,
-            scoringOptions = {},
-            sortBy = 'composite' // 'composite', 'activation', 'complexity', 'diversity'
-        } = criteria;
+        const { limit = 10, minScore = 0, scoringOptions = {}, sortBy = 'composite' } = criteria;
 
         const concepts = this.getAllConcepts();
         const scoredConcepts = concepts.map(concept => {
@@ -377,56 +286,34 @@ export class Memory extends BaseComponent {
             return {concept, score};
         }).filter(item => item.score >= minScore);
 
-        // Sort based on specified criteria
         scoredConcepts.sort((a, b) => {
             if (sortBy === 'activation') return b.concept.activation - a.concept.activation;
             if (sortBy === 'complexity') return b.score.complexityScore - a.score.complexityScore;
             if (sortBy === 'diversity') return b.score.diversityScore - a.score.diversityScore;
-            // Default: sort by composite score
             return b.score.compositeScore - a.score.compositeScore;
         });
 
         return scoredConcepts.slice(0, limit).map(item => item.concept);
     }
 
-    /**
-     * Calculate detailed concept score with multiple factors
-     */
     _calculateDetailedConceptScore(concept, options = {}) {
-        const {
-            activationWeight = 0.3,
-            useCountWeight = 0.2,
-            taskCountWeight = 0.2,
-            qualityWeight = 0.15,
-            complexityWeight = 0.15,
-            diversityWeight = 0.1,
-            termFactory = null
-        } = options;
+        const { activationWeight = 0.3, useCountWeight = 0.2, taskCountWeight = 0.2,
+            qualityWeight = 0.15, complexityWeight = 0.15, diversityWeight = 0.1,
+            termFactory = null } = options;
 
-        // Calculate normalized activation score
         const activationScore = concept.activation;
-
-        // Calculate normalized use count score
         const normalizedUseCount = clamp(concept.useCount / 100, 0, 1);
-
-        // Calculate normalized task count score
         const normalizedTaskCount = clamp(concept.totalTasks / 50, 0, 1);
-
-        // Calculate quality score
         const qualityScore = concept.quality || 0;
 
-        // Calculate complexity score using the term factory if available
         let complexityScore = 0.1;
         if (termFactory) {
-            complexityScore = termFactory.getComplexity(concept.term) / 10; // Normalize to 0-1 range
+            complexityScore = termFactory.getComplexity(concept.term) / 10;
         } else {
-            // Fallback to simple calculation
             complexityScore = this._calculateConceptComplexityScore(concept);
         }
 
-        // Calculate composite score
-        const compositeScore =
-            (activationScore * activationWeight) +
+        const compositeScore = (activationScore * activationWeight) +
             (normalizedUseCount * useCountWeight) +
             (normalizedTaskCount * taskCountWeight) +
             (qualityScore * qualityWeight) +
@@ -439,7 +326,7 @@ export class Memory extends BaseComponent {
             taskCountScore: normalizedTaskCount,
             qualityScore,
             complexityScore,
-            diversityScore: 0 // Placeholder - would need cognitive diversity context
+            diversityScore: 0
         };
     }
 
@@ -464,13 +351,8 @@ export class Memory extends BaseComponent {
         this._lastConsolidationTime = currentTime;
 
         const results = this._consolidation.consolidate(this, currentTime);
-        
-        // Apply activation decay during consolidation
         this.applyActivationDecay();
-        
-        // Clean up resource tracker for deleted concepts
         this._cleanupResourceTracker();
-        
         this._updateFocusConceptsCount();
         return results;
     }
@@ -543,9 +425,6 @@ export class Memory extends BaseComponent {
         );
     }
 
-    /**
-     * Update resource usage for a concept
-     */
     _updateResourceUsage(concept, change) {
         const conceptKey = concept.term.toString();
         const currentUsage = this._resourceTracker.get(conceptKey) || 0;
@@ -559,9 +438,6 @@ export class Memory extends BaseComponent {
         }
     }
 
-    /**
-     * Check if the memory is under pressure
-     */
     _isUnderMemoryPressure() {
         const conceptPressure = this._stats.totalConcepts / this._config.maxConcepts;
         const resourcePressure = this._stats.totalResourceUsage / this._config.resourceBudget;
@@ -570,16 +446,12 @@ export class Memory extends BaseComponent {
         return Math.max(conceptPressure, resourcePressure, taskPressure) >= this._config.memoryPressureThreshold;
     }
 
-    /**
-     * Apply adaptive forgetting based on memory pressure
-     */
     _applyAdaptiveForgetting() {
         this._stats.memoryPressureEvents++;
         
-        // Increase forgetting rate when under pressure
         const conceptsToForget = Math.min(
-            Math.floor(this._stats.totalConcepts * 0.1), // Forget 10% of concepts when under pressure
-            5 // But no more than 5 at a time
+            Math.floor(this._stats.totalConcepts * 0.1),
+            5
         );
         
         for (let i = 0; i < conceptsToForget; i++) {
@@ -587,9 +459,6 @@ export class Memory extends BaseComponent {
         }
     }
 
-    /**
-     * Get memory pressure statistics
-     */
     getMemoryPressureStats() {
         const totalPossibleTasks = this._config.maxConcepts * this._config.maxTasksPerConcept;
         return {
@@ -604,9 +473,6 @@ export class Memory extends BaseComponent {
         };
     }
 
-    /**
-     * Apply decay to concept activations
-     */
     applyActivationDecay() {
         const decayRate = this._config.activationDecayRate;
         for (const concept of this._concepts.values()) {
@@ -614,9 +480,6 @@ export class Memory extends BaseComponent {
         }
     }
 
-    /**
-     * Get concepts ordered by resource usage
-     */
     getConceptsByResourceUsage(ascending = false) {
         const concepts = Array.from(this._concepts.entries()).map(([term, concept]) => ({
             term,
@@ -628,12 +491,8 @@ export class Memory extends BaseComponent {
         return concepts;
     }
 
-    /**
-     * Clean up resource tracker for concepts that no longer exist
-     */
     _cleanupResourceTracker() {
         for (const [termStr, usage] of this._resourceTracker.entries()) {
-            // Find if there's still a concept with this term
             let conceptExists = false;
             for (const [key,] of this._concepts) {
                 if (key.toString() === termStr) {
@@ -649,32 +508,18 @@ export class Memory extends BaseComponent {
         }
     }
 
-    /**
-     * Validate memory structures for corruption
-     */
     validateMemory() {
         if (!this._memoryValidator) {
             return { valid: true, message: 'Memory validation is disabled' };
         }
 
-        // Create a validation batch with key memory structures
-        const validations = [];
+        const validations = [
+            ...Array.from(this._concepts).map(([term, concept]) => [`concept_${term.toString()}`, concept]),
+            ['memory_index', this._index],
+            ['memory_stats', this._stats]
+        ];
 
-        // Validate concepts
-        for (const [term, concept] of this._concepts) {
-            validations.push([`concept_${term.toString()}`, concept]);
-        }
-
-        // Validate memory index
-        validations.push(['memory_index', this._index]);
-
-        // Validate memory stats
-        validations.push(['memory_stats', this._stats]);
-
-        // Perform batch validation
         const results = this._memoryValidator.validateBatch(validations);
-
-        // Process results
         const invalidResults = results.filter(result => !result.result.valid);
         
         if (invalidResults.length > 0) {
@@ -700,18 +545,10 @@ export class Memory extends BaseComponent {
         return { valid: true, message: 'Memory validation passed' };
     }
 
-    /**
-     * Update checksum for a memory structure
-     */
     updateMemoryChecksum(key, obj) {
-        if (!this._memoryValidator) return null;
-        
-        return this._memoryValidator.updateChecksum(key, obj);
+        return this._memoryValidator ? this._memoryValidator.updateChecksum(key, obj) : null;
     }
 
-    /**
-     * Get memory validation statistics
-     */
     getMemoryValidationStats() {
         if (!this._memoryValidator) {
             return { validationEnabled: false };
@@ -724,9 +561,6 @@ export class Memory extends BaseComponent {
         };
     }
 
-    /**
-     * Enable memory validation
-     */
     enableMemoryValidation() {
         if (!this._memoryValidator) {
             this._memoryValidator = new MemoryValidator({
@@ -737,9 +571,6 @@ export class Memory extends BaseComponent {
         this._memoryValidator.enable();
     }
 
-    /**
-     * Disable memory validation
-     */
     disableMemoryValidation() {
         if (this._memoryValidator) {
             this._memoryValidator.disable();

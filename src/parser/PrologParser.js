@@ -2,9 +2,9 @@
  * PrologParser.js - Parser that translates Prolog syntax into SeNARS beliefs/goals
  */
 
-import { TermFactory } from './term/TermFactory.js';
-import { Task } from './task/Task.js';
-import { Truth } from './Truth.js';
+import { TermFactory } from '../term/TermFactory.js';
+import { Task } from '../task/Task.js';
+import { Truth } from '../Truth.js';
 
 export class PrologParser {
     constructor(termFactory = null) {

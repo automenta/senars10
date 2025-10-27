@@ -8,39 +8,20 @@ describe('Bounded Evaluation Tests', () => {
     const createTestCycle = () => ({
         _filterTasksByBudget(tasks) {
             return tasks.filter(task => {
-                if (!task.budget) return true; // If no budget specified, allow task
+                if (!task.budget) return true;
                 
-                // Check if task has exhausted its cycle budget
-                if (task.budget.cycles !== undefined && task.budget.cycles <= 0) {
-                    return false;
-                }
-                
-                // Check if task has exceeded its depth budget
-                if (task.budget.depth !== undefined && task.budget.depth <= 0) {
-                    return false;
-                }
-                
-                return true;
+                return (task.budget.cycles === undefined || task.budget.cycles > 0) &&
+                       (task.budget.depth === undefined || task.budget.depth > 0);
             });
         },
         
         _applyBudgetConstraints(inferences) {
             return inferences.map(inference => {
-                if (!inference.budget) return inference; // If no budget, return unchanged
+                if (!inference.budget) return inference;
                 
-                // Decrement cycle budget
-                let newCycles = inference.budget.cycles;
-                if (newCycles !== undefined) {
-                    newCycles = Math.max(0, newCycles - 1); // Ensure it doesn't go below 0
-                }
+                const newCycles = Math.max(0, (inference.budget.cycles ?? 0) - 1);
+                const newDepth = Math.max(0, (inference.budget.depth ?? 0) - 1);
                 
-                // Decrement depth budget if applicable
-                let newDepth = inference.budget.depth;
-                if (newDepth !== undefined) {
-                    newDepth = Math.max(0, newDepth - 1); // Ensure it doesn't go below 0
-                }
-                
-                // Create new budget with decremented values
                 const newBudget = {
                     ...inference.budget,
                     cycles: newCycles,
@@ -67,8 +48,8 @@ describe('Bounded Evaluation Tests', () => {
             term: new Term(TermType.ATOM, 'test')
         });
 
-        expect(task.budget.cycles).toBe(100);  // Default value
-        expect(task.budget.depth).toBe(10);    // Default value
+        expect(task.budget.cycles).toBe(100);
+        expect(task.budget.depth).toBe(10);
     });
 
     test('Cycle filters tasks based on budget constraints', () => {
@@ -89,7 +70,6 @@ describe('Bounded Evaluation Tests', () => {
             budget: { priority: 0.5, durability: 0.5, quality: 0.5, cycles: 5, depth: 0 }
         });
 
-        // Test filtering
         const tasks = [validTask, exhaustedCycleTask, exhaustedDepthTask];
         const filteredTasks = cycle._filterTasksByBudget(tasks);
 
@@ -107,8 +87,8 @@ describe('Bounded Evaluation Tests', () => {
 
         const processedTask = cycle._applyBudgetConstraints([task])[0];
 
-        expect(processedTask.budget.cycles).toBe(9);  // Decrement by 1
-        expect(processedTask.budget.depth).toBe(4);   // Decrement by 1
+        expect(processedTask.budget.cycles).toBe(9);
+        expect(processedTask.budget.depth).toBe(4);
     });
 
     test('Budget values do not go below zero', () => {
@@ -123,7 +103,6 @@ describe('Bounded Evaluation Tests', () => {
         processedTask = cycle._applyBudgetConstraints([processedTask])[0];
         processedTask = cycle._applyBudgetConstraints([processedTask])[0];
 
-        // After several decrements, values should not go below zero
         expect(processedTask.budget.cycles).toBe(0);
         expect(processedTask.budget.depth).toBe(0);
     });

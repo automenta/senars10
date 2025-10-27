@@ -8,15 +8,11 @@ import { MemoryValidator } from '../../src/util/MemoryValidator.js';
 import { Memory } from '../../src/memory/Memory.js';
 
 async function demonstratePhase10Features() {
-    console.log('=== SeNARS Phase 10: Fault Tolerance & Reliability Architecture ===\n');
-
     // 1. Demonstrate Bounded Evaluation
-    console.log('1. Bounded Evaluation:');
     const taskWithBudget = new Task({
         term: new Term(TermType.ATOM, 'bounded-task'),
         budget: { priority: 0.8, durability: 0.7, quality: 0.6, cycles: 5, depth: 3 }
     });
-    console.log(`   - Task created with cycles budget: ${taskWithBudget.budget.cycles}, depth budget: ${taskWithBudget.budget.depth}`);
     
     // Simulate cycle execution that decrements budget
     function applyBudgetConstraints(inferences) {
@@ -37,7 +33,6 @@ async function demonstratePhase10Features() {
     }
     
     const processedTask = applyBudgetConstraints([taskWithBudget])[0];
-    console.log(`   - After one cycle: cycles left: ${processedTask.budget.cycles}, depth left: ${processedTask.budget.depth}`);
     
     // Filtering based on budget
     function filterTasksByBudget(tasks) {
@@ -52,60 +47,57 @@ async function demonstratePhase10Features() {
         new Task({ term: new Term(TermType.ATOM, 'exhausted'), budget: { cycles: 0, depth: 1 } })  // exhausted
     ];
     
-    console.log(`   - Before filtering: ${tasks.length} tasks`);
-    console.log(`   - After filtering: ${filterTasksByBudget(tasks).length} tasks (exhausted tasks filtered out)`);
-    console.log('');
+    // Verify filtered tasks functionality
+    const filteredTasks = filterTasksByBudget(tasks);
 
     // 2. Demonstrate Circuit Breaker
-    console.log('2. Circuit Breaker Implementation:');
     const circuitBreaker = new CircuitBreaker({
         failureThreshold: 2,
         resetTimeout: 1000  // 1 second
     });
     
-    console.log(`   - Initial state: ${circuitBreaker.getState().state}`);
+    const initialState = circuitBreaker.getState().state;
     
     // Cause circuit to open with 2 failures
+    let errors = [];
     try {
         await circuitBreaker.execute(() => Promise.reject(new Error('API failure')));
     } catch (e) {
-        console.log(`   - First failure: ${e.message}`);
+        errors.push(e.message);
     }
     
     try {
         await circuitBreaker.execute(() => Promise.reject(new Error('API failure')));
     } catch (e) {
-        console.log(`   - Second failure: ${e.message}`);
+        errors.push(e.message);
     }
     
-    console.log(`   - After 2 failures: ${circuitBreaker.getState().state}`);
+    const afterFailuresState = circuitBreaker.getState().state;
     
     // Next call should fail immediately due to OPEN circuit
+    let blockedCallError = '';
     try {
         await circuitBreaker.execute(() => Promise.resolve('success'));
     } catch (e) {
-        console.log(`   - Call blocked while circuit OPEN: ${e.message}`);
+        blockedCallError = e.message;
     }
     
-    console.log(`   - State before timeout: ${circuitBreaker.getState().state}`);
-    
     // Wait for timeout and try again (simulate the reset behavior)
-    console.log('   - Waiting for reset timeout...');
     await new Promise(resolve => setTimeout(resolve, 1010));  // Wait longer than resetTimeout
     
     // Now the circuit should transition on the next call
+    let successResult = '';
+    let finalState = '';
     try {
         const result = await circuitBreaker.execute(() => Promise.resolve('success'));
-        console.log(`   - Success after timeout: ${result}`);
-        console.log(`   - Final state: ${circuitBreaker.getState().state}`);
+        successResult = result;
+        finalState = circuitBreaker.getState().state;
     } catch (e) {
-        console.log(`   - Error: ${e.message}`);
-        console.log(`   - Final state: ${circuitBreaker.getState().state}`);
+        successResult = e.message;
+        finalState = circuitBreaker.getState().state;
     }
-    console.log('');
 
     // 3. Demonstrate Memory Validation
-    console.log('3. Memory Validation:');
     const validator = new MemoryValidator({ enableChecksums: true });
     
     const testObject = { data: 'important-info', value: 42 };
@@ -113,28 +105,38 @@ async function demonstratePhase10Features() {
     
     // Store checksum
     const checksum = validator.storeChecksum(key, testObject);
-    console.log(`   - Stored checksum for key '${key}': ${checksum}`);
     
     // Validate unchanged object
     const result1 = validator.validate(key, testObject);
-    console.log(`   - Validation result (unchanged): ${result1.valid} - ${result1.message}`);
     
     // Modify object and test validation
     testObject.value = 99;
     const result2 = validator.validate(key, testObject);
-    console.log(`   - Validation result (modified): ${result2.valid} - ${result2.message}`);
-    console.log('');
 
     // 4. Demonstrate Memory Integration
-    console.log('4. Memory with Validation Integration:');
     const memory = new Memory({ enableMemoryValidation: true });
     
     // This would normally validate memory structures
     const validationStats = memory.getMemoryValidationStats();
-    console.log(`   - Memory validation enabled: ${validationStats.validationEnabled}`);
-    console.log(`   - Memory validation stats:`, JSON.stringify(validationStats, null, 2));
-
-    console.log('\n=== Phase 10 Implementation Complete ===');
+    
+    // Return results for verification to avoid console noise
+    return {
+        taskBudget: { initial: taskWithBudget.budget, processed: processedTask.budget },
+        filteredTasksCount: filteredTasks.length,
+        circuitBreakerResults: {
+            initialState,
+            afterFailuresState,
+            blockedCallError,
+            successResult,
+            finalState
+        },
+        validatorResults: {
+            checksum,
+            validationUnchanged: result1,
+            validationModified: result2
+        },
+        memoryValidation: validationStats
+    };
 }
 
 // Run the demonstration

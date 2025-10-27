@@ -4,7 +4,7 @@
 
 import { Agent, InputTasks } from '../../src/Agent.js';
 import { EvaluationEngine } from '../../src/reasoning/EvaluationEngine.js';
-import { PrologParser } from '../../src/PrologParser.js';
+import { PrologParser } from '../../src/parser/PrologParser.js';
 import { NAR } from '../../src/nar/NAR.js';
 import { Task } from '../../src/task/Task.js';
 import { TermFactory } from '../../src/term/TermFactory.js';
