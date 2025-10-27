@@ -2,6 +2,9 @@ import {Bag} from './Bag.js';
 import {clamp} from '../util/common.js';
 import {ConfigurableComponent} from '../util/ConfigurableComponent.js';
 
+const TASK_TYPES = Object.freeze({BELIEF: 'BELIEF', GOAL: 'GOAL', QUESTION: 'QUESTION'});
+const CAPACITY_DISTRIBUTION = Object.freeze({BELIEF: 0.6, GOAL: 0.3, QUESTION: 0.1});
+
 export class Concept extends ConfigurableComponent {
     static DEFAULT_CONFIG = {
         maxBeliefs: 100,
@@ -92,9 +95,13 @@ export class Concept extends ConfigurableComponent {
     }
 
     _getStorage(taskType) {
-        const storageMap = {BELIEF: this._beliefs, GOAL: this._goals, QUESTION: this._questions};
+        const storageMap = {
+            [TASK_TYPES.BELIEF]: this._beliefs,
+            [TASK_TYPES.GOAL]: this._goals,
+            [TASK_TYPES.QUESTION]: this._questions
+        };
         const storage = storageMap[taskType];
-        if (!storage) throw new Error(`Unknown task type: ${taskType}. Expected BELIEF, GOAL, or QUESTION.`);
+        if (!storage) throw new Error(`Unknown task type: ${taskType}. Expected ${Object.values(TASK_TYPES).join(', ')}.`);
         return storage;
     }
 
@@ -115,11 +122,11 @@ export class Concept extends ConfigurableComponent {
     /**
      * Enforce capacity constraints on the concept's task storage
      */
-    enforceCapacity(maxTasksPerType, forgetPolicy = 'priority') {
+    enforceCapacity(maxTasksPerType) {
         // Apply capacity limits to each task type separately
-        this._enforceBagCapacity(this._beliefs, maxTasksPerType * 0.6);  // 60% for beliefs
-        this._enforceBagCapacity(this._goals, maxTasksPerType * 0.3);    // 30% for goals
-        this._enforceBagCapacity(this._questions, maxTasksPerType * 0.1); // 10% for questions
+        this._enforceBagCapacity(this._beliefs, maxTasksPerType * CAPACITY_DISTRIBUTION.BELIEF);
+        this._enforceBagCapacity(this._goals, maxTasksPerType * CAPACITY_DISTRIBUTION.GOAL);
+        this._enforceBagCapacity(this._questions, maxTasksPerType * CAPACITY_DISTRIBUTION.QUESTION);
     }
     
     _enforceBagCapacity(bag, maxCount) {

@@ -2,7 +2,7 @@ import {NAR} from '../nar/NAR.js';
 import readline from 'readline';
 import {PersistenceManager} from './PersistenceManager.js';
 
-const COMMANDS = {
+const COMMANDS = Object.freeze({
     help: ['help', 'h', '?'],
     quit: ['quit', 'q', 'exit'],
     status: ['status', 's', 'stats'],
@@ -11,25 +11,24 @@ const COMMANDS = {
     reset: ['reset', 'r'],
     save: ['save', 'sv'],
     load: ['load', 'ld']
-};
+});
 
 export class ReplInterface {
     constructor(config = {}) {
         this.nar = new NAR(config.nar || {});
         this.rl = readline.createInterface({input: process.stdin, output: process.stdout});
         this.sessionState = {history: [], lastResult: null, startTime: Date.now()};
-        this.commands = this._buildCommandMap();
+        this.commands = this._createCommandMap();
         this.persistenceManager = new PersistenceManager({
             defaultPath: config.persistence?.defaultPath || './agent.json'
         });
     }
 
-    _buildCommandMap() {
-        const commandMap = new Map();
-        Object.entries(COMMANDS).forEach(([method, aliases]) => {
-            aliases.forEach(alias => commandMap.set(alias, this[`_${method}`].bind(this)));
-        });
-        return commandMap;
+    _createCommandMap() {
+        return Object.entries(COMMANDS).reduce((map, [method, aliases]) => {
+            aliases.forEach(alias => map.set(alias, this[`_${method}`].bind(this)));
+            return map;
+        }, new Map());
     }
 
     async start() {
@@ -44,9 +43,9 @@ export class ReplInterface {
 
             this.sessionState.history.push(trimmedInput);
 
-            trimmedInput.startsWith(':')
-                ? await this._executeCommand(...trimmedInput.slice(1).split(' '))
-                : await this._processNarsese(trimmedInput);
+            await (trimmedInput.startsWith(':')
+                ? this._executeCommand(...trimmedInput.slice(1).split(' '))
+                : this._processNarsese(trimmedInput));
 
             this._prompt();
         });
@@ -145,9 +144,9 @@ Narsese input examples:
 
     _trace() {
         const beliefs = this.nar.getBeliefs();
-        if (beliefs.length === 0) return 'No recent beliefs found.';
-
-        return `Recent Beliefs (last 5):
+        return beliefs.length === 0 
+            ? 'No recent beliefs found.'
+            : `Recent Beliefs (last 5):
 ${beliefs.slice(-5).map(task => `  ${task.term.name} ${task.truth?.toString() || ''}`).join('\n')}`;
     }
 
@@ -158,7 +157,7 @@ ${beliefs.slice(-5).map(task => `  ${task.term.name} ${task.truth?.toString() ||
         return 'NAR system reset successfully.';
     }
 
-    async _save(filePath = null) {
+    async _save() {
         try {
             const state = this.nar.serialize();
             const result = await this.persistenceManager.saveToDefault(state);
@@ -168,22 +167,20 @@ ${beliefs.slice(-5).map(task => `  ${task.term.name} ${task.truth?.toString() ||
         }
     }
 
-    async _load(filePath = null) {
+    async _load() {
         try {
             // Check if file exists first
-            const exists = await this.persistenceManager.exists(filePath);
+            const exists = await this.persistenceManager.exists();
             if (!exists) {
-                return `Save file does not exist: ${filePath || this.persistenceManager.defaultPath}`;
+                return `Save file does not exist: ${this.persistenceManager.defaultPath}`;
             }
 
             const state = await this.persistenceManager.loadFromDefault();
             const success = await this.nar.deserialize(state);
             
-            if (success) {
-                return `NAR state loaded successfully from ${filePath || this.persistenceManager.defaultPath}`;
-            } else {
-                return 'Failed to load NAR state - deserialization error';
-            }
+            return success 
+                ? `NAR state loaded successfully from ${this.persistenceManager.defaultPath}`
+                : 'Failed to load NAR state - deserialization error';
         } catch (error) {
             return `Error loading NAR state: ${error.message}`;
         }

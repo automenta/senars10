@@ -216,10 +216,24 @@ export class Memory extends BaseComponent {
     }
 
     _getMostActiveConceptsByCompositeScoring(limit = 10, options = {}) {
+        const defaultWeights = {
+            activationWeight: 0.3,
+            useCountWeight: 0.2,
+            taskCountWeight: 0.2,
+            qualityWeight: 0.15,
+            complexityWeight: 0.15,
+            diversityWeight: 0.1
+        };
+        
         const {
-            activationWeight = 0.3, useCountWeight = 0.2, taskCountWeight = 0.2,
-            qualityWeight = 0.15, complexityWeight = 0.15, diversityWeight = 0.1,
-            cognitiveDiversity = null, termFactory = null
+            activationWeight = defaultWeights.activationWeight,
+            useCountWeight = defaultWeights.useCountWeight,
+            taskCountWeight = defaultWeights.taskCountWeight,
+            qualityWeight = defaultWeights.qualityWeight,
+            complexityWeight = defaultWeights.complexityWeight,
+            diversityWeight = defaultWeights.diversityWeight,
+            cognitiveDiversity = null,
+            termFactory = null
         } = options;
 
         const concepts = this.getAllConcepts();

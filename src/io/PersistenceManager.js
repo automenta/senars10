@@ -1,5 +1,4 @@
 import fs from 'fs/promises';
-import path from 'path';
 
 /**
  * Interface for persistence adapters
@@ -7,8 +6,6 @@ import path from 'path';
 class PersistenceAdapter {
   /**
    * Save agent state
-   * @param {Object} state - Agent state to save
-   * @param {string} filePath - Target file path
    */
   async save(state, filePath) {
     throw new Error('save method must be implemented by subclass');
@@ -16,8 +13,6 @@ class PersistenceAdapter {
 
   /**
    * Load agent state
-   * @param {string} filePath - Source file path
-   * @returns {Object} Loaded state
    */
   async load(filePath) {
     throw new Error('load method must be implemented by subclass');
@@ -64,13 +59,17 @@ class MemoryAdapter extends PersistenceAdapter {
  */
 class PersistenceManager {
   constructor(options = {}) {
+    const defaults = Object.freeze({
+      defaultAdapter: 'file',
+      defaultPath: './agent.json'
+    });
+    
     this.adapters = new Map();
-    this.defaultAdapter = options.defaultAdapter || 'file';
-    this._defaultPath = options.defaultPath || './agent.json';
+    this.defaultAdapter = options.defaultAdapter || defaults.defaultAdapter;
+    this._defaultPath = options.defaultPath || defaults.defaultPath;
     
     // Register built-in adapters
-    this.registerAdapter('file', new FileSystemAdapter());
-    this.registerAdapter('memory', new MemoryAdapter());
+    this._registerDefaultAdapters();
   }
 
   get defaultPath() {
@@ -81,11 +80,11 @@ class PersistenceManager {
     this._defaultPath = path;
   }
 
-  /**
-   * Register a new persistence adapter
-   * @param {string} name - Adapter name
-   * @param {PersistenceAdapter} adapter - Adapter instance
-   */
+  _registerDefaultAdapters() {
+    this.registerAdapter('file', new FileSystemAdapter());
+    this.registerAdapter('memory', new MemoryAdapter());
+  }
+
   registerAdapter(name, adapter) {
     if (!(adapter instanceof PersistenceAdapter)) {
       throw new Error('Adapter must be an instance of PersistenceAdapter');
@@ -93,11 +92,6 @@ class PersistenceManager {
     this.adapters.set(name, adapter);
   }
 
-  /**
-   * Get a registered adapter by name
-   * @param {string} name - Adapter name
-   * @returns {PersistenceAdapter}
-   */
   getAdapter(name) {
     const adapter = this.adapters.get(name);
     if (!adapter) {
@@ -106,51 +100,22 @@ class PersistenceManager {
     return adapter;
   }
 
-  /**
-   * Save agent state using the specified adapter
-   * @param {Object} state - Agent state to save
-   * @param {string} adapterName - Adapter to use (defaults to default adapter)
-   * @param {string} filePath - File path to save to (defaults to default path)
-   * @returns {Object} Result of the save operation
-   */
   async save(state, adapterName = this.defaultAdapter, filePath = this.defaultPath) {
-    const adapter = this.getAdapter(adapterName);
-    return await adapter.save(state, filePath);
+    return await this.getAdapter(adapterName).save(state, filePath);
   }
 
-  /**
-   * Load agent state using the specified adapter
-   * @param {string} adapterName - Adapter to use (defaults to default adapter)
-   * @param {string} filePath - File path to load from (defaults to default path)
-   * @returns {Object} Loaded agent state
-   */
   async load(adapterName = this.defaultAdapter, filePath = this.defaultPath) {
-    const adapter = this.getAdapter(adapterName);
-    return await adapter.load(filePath);
+    return await this.getAdapter(adapterName).load(filePath);
   }
 
-  /**
-   * Save to default location using default adapter
-   * @param {Object} state - Agent state to save
-   * @returns {Object} Result of the save operation
-   */
   async saveToDefault(state) {
     return this.save(state, this.defaultAdapter, this.defaultPath);
   }
 
-  /**
-   * Load from default location using default adapter
-   * @returns {Object} Loaded agent state
-   */
   async loadFromDefault() {
     return this.load(this.defaultAdapter, this.defaultPath);
   }
 
-  /**
-   * Check if a save file exists
-   * @param {string} filePath - File path to check (defaults to default path)
-   * @returns {boolean} True if file exists
-   */
   async exists(filePath = this.defaultPath) {
     try {
       await fs.access(filePath);

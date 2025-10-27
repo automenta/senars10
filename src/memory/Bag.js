@@ -92,8 +92,16 @@ class RandomForgetPolicy extends ForgetPolicy {
     }
 }
 
+const DEFAULT_POLICY = 'priority';
+const POLICIES = Object.freeze({
+    'priority': new PriorityForgetPolicy(),
+    'lru': new LRUForgetPolicy(),
+    'fifo': new FIFOForgetPolicy(),
+    'random': new RandomForgetPolicy()
+});
+
 export class Bag {
-    constructor(maxSize, forgetPolicy = 'priority') {
+    constructor(maxSize, forgetPolicy = DEFAULT_POLICY) {
         this._items = new Map();
         this._maxSize = maxSize;
         this._insertionOrder = []; // For FIFO policy
@@ -120,14 +128,7 @@ export class Bag {
     }
     
     setForgetPolicy(policy) {
-        const policies = {
-            'priority': new PriorityForgetPolicy(),
-            'lru': new LRUForgetPolicy(),
-            'fifo': new FIFOForgetPolicy(),
-            'random': new RandomForgetPolicy()
-        };
-        
-        this._forgetPolicy = policies[policy] || policies['priority'];
+        this._forgetPolicy = POLICIES[policy] || POLICIES[DEFAULT_POLICY];
         this._forgetPolicyName = policy;
     }
     
@@ -253,7 +254,7 @@ export class Bag {
             }
 
             this._maxSize = data.maxSize || this._maxSize;
-            this._forgetPolicyName = data.forgetPolicyName || 'priority';
+            this._forgetPolicyName = data.forgetPolicyName || DEFAULT_POLICY;
             this.setForgetPolicy(this._forgetPolicyName);
 
             // Clear current state

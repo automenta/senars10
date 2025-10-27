@@ -15,6 +15,8 @@ export const SemanticType = Object.freeze({
     UNKNOWN: 'unknown'
 });
 
+const COMMUTATIVE_OPERATORS = Object.freeze(['&', '|', '+', '*', '<->', '<=>', '=']);
+
 export class Term {
     constructor(type, name, components = [], operator = null) {
         this._type = type;
@@ -33,7 +35,7 @@ export class Term {
         // Determine semantic type based on the term structure and name
         if (this._type === TermType.ATOM) {
             // Check for boolean values
-            if (this._name === 'True' || this._name === 'False' || this._name === 'Null') {
+            if (['True', 'False', 'Null'].includes(this._name)) {
                 return SemanticType.BOOLEAN;
             }
             
@@ -158,8 +160,7 @@ export class Term {
      * @returns {boolean} - True if operator is commutative
      */
     _isCommutativeOperator() {
-        const commutativeOps = new Set(['&', '|', '+', '*', '<->', '<=>', '=']);
-        return commutativeOps.has(this._operator);
+        return COMMUTATIVE_OPERATORS.includes(this._operator);
     }
 
     /**

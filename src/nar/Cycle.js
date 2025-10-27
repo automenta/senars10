@@ -1,6 +1,8 @@
 import {BaseComponent} from '../util/BaseComponent.js';
 import {EvaluationEngine} from '../reasoning/EvaluationEngine.js';
 
+const DEFAULT_FOCUS_TASK_LIMIT = 10;
+
 export class Cycle extends BaseComponent {
     constructor({memory, focus, ruleEngine, taskManager, evaluator, config, reasoningStrategy, termFactory, nar}) {
         super(config, 'Cycle');
@@ -32,7 +34,7 @@ export class Cycle extends BaseComponent {
             this._taskManager.processPendingTasks(cycleStartTime);
             this._memory.consolidate(cycleStartTime);
 
-            const focusTasks = this._focus.getTasks(this._config.focusTaskLimit || 10);
+            const focusTasks = this._focus.getTasks(this._config.focusTaskLimit || DEFAULT_FOCUS_TASK_LIMIT);
             const allConcepts = this._memory.getAllConcepts();
             const memoryTasks = allConcepts.flatMap(c => c.getAllTasks ? c.getAllTasks() : []);
 

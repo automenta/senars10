@@ -4,13 +4,14 @@ import {Term} from '../term/Term.js';
 
 const PUNCTUATION_TO_TYPE = Object.freeze({'.': 'BELIEF', '!': 'GOAL', '?': 'QUESTION'});
 const TYPE_TO_PUNCTUATION = Object.freeze({'BELIEF': '.', 'GOAL': '!', 'QUESTION': '?'});
+const DEFAULT_BUDGET = Object.freeze({priority: 0.5, durability: 0.5, quality: 0.5, cycles: 100, depth: 10});
 
 export class Task {
     constructor({
         term,
         punctuation = '.',
         truth = null,
-        budget = {priority: 0.5, durability: 0.5, quality: 0.5, cycles: 100, depth: 10},
+        budget = DEFAULT_BUDGET,
         stamp = null
     }) {
         if (!(term instanceof Term)) throw new Error('Task must be initialized with a valid Term object.');

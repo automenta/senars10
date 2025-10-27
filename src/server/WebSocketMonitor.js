@@ -1,15 +1,36 @@
 import { WebSocketServer } from 'ws';
 import {EventEmitter} from 'events';
 
+const DEFAULT_OPTIONS = Object.freeze({
+    port: 8080,
+    host: 'localhost',
+    path: '/ws',
+    maxConnections: 10
+});
+
+const NAR_EVENTS = Object.freeze([
+    'task.input',
+    'task.processed', 
+    'cycle.start',
+    'cycle.complete',
+    'task.added',
+    'belief.added',
+    'question.answered',
+    'system.started',
+    'system.stopped',
+    'system.reset',
+    'system.loaded'
+]);
+
 /**
  * WebSocket server for real-time monitoring
  */
 class WebSocketMonitor {
     constructor(options = {}) {
-        this.port = options.port || 8080;
-        this.host = options.host || 'localhost';
-        this.path = options.path || '/ws';
-        this.maxConnections = options.maxConnections || 10;
+        this.port = options.port || DEFAULT_OPTIONS.port;
+        this.host = options.host || DEFAULT_OPTIONS.host;
+        this.path = options.path || DEFAULT_OPTIONS.path;
+        this.maxConnections = options.maxConnections || DEFAULT_OPTIONS.maxConnections;
         this.eventFilter = options.eventFilter || null;
         this.clients = new Set();
         this.eventEmitter = new EventEmitter();
@@ -239,21 +260,7 @@ class WebSocketMonitor {
         }
 
         // Subscribe to common NAR events
-        const eventsToMonitor = [
-            'task.input',
-            'task.processed', 
-            'cycle.start',
-            'cycle.complete',
-            'task.added',
-            'belief.added',
-            'question.answered',
-            'system.started',
-            'system.stopped',
-            'system.reset',
-            'system.loaded'
-        ];
-
-        eventsToMonitor.forEach(eventName => {
+        NAR_EVENTS.forEach(eventName => {
             nar.on(eventName, (data, metadata) => {
                 this.broadcastEvent(eventName, {
                     data,

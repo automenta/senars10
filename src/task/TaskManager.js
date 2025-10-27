@@ -2,6 +2,16 @@ import {Task} from './Task.js';
 import {collectTasksFromAllConcepts} from '../util/memory.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 
+const PRIORITY_BUCKETS = Object.freeze({
+    LOW_THRESHOLD: 0.3,
+    MEDIUM_THRESHOLD: 0.7
+});
+
+const DEFAULT_PRIORITY_THRESHOLD = 0.1;
+const DEFAULT_MIN_PRIORITY = 0.7;
+const DEFAULT_MAX_AGE = 60000;
+const DEFAULT_LIMIT = 20;
+
 export class TaskManager extends BaseComponent {
     constructor(memory, focus, config) {
         super(config, 'TaskManager');
@@ -40,7 +50,7 @@ export class TaskManager extends BaseComponent {
         const processedTasks = [];
 
         // Use a default priority threshold if not configured
-        const priorityThreshold = this._config?.priorityThreshold ?? 0.1;
+        const priorityThreshold = this._config?.priorityThreshold ?? DEFAULT_PRIORITY_THRESHOLD;
 
         for (const [taskId, task] of this._pendingTasks) {
             const addedToMemory = this._memory.addTask(task, currentTime);
@@ -124,7 +134,7 @@ export class TaskManager extends BaseComponent {
     }
 
     getTasksNeedingAttention(criteria = {}) {
-        const {minPriority = 0.7, maxAge = 60000, limit = 20} = criteria;
+        const {minPriority = DEFAULT_MIN_PRIORITY, maxAge = DEFAULT_MAX_AGE, limit = DEFAULT_LIMIT} = criteria;
         const currentTime = Date.now();
 
         const allTasks = collectTasksFromAllConcepts(this._memory, task =>
@@ -168,7 +178,9 @@ export class TaskManager extends BaseComponent {
         };
     }
 
-    _getPriorityBucket = (priority) => priority < 0.3 ? 'low' : priority < 0.7 ? 'medium' : 'high';
+    _getPriorityBucket = (priority) => 
+        priority < PRIORITY_BUCKETS.LOW_THRESHOLD ? 'low' : 
+        priority < PRIORITY_BUCKETS.MEDIUM_THRESHOLD ? 'medium' : 'high';
 
     clearPendingTasks() {
         this._pendingTasks.clear();

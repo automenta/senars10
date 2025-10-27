@@ -6,13 +6,17 @@ import {clamp} from '../util/common.js';
 import {sortByProperty} from '../util/collections.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 
+const DEFAULT_CONFIG = Object.freeze({
+    maxFocusSets: 5,
+    defaultFocusSetSize: 100,
+    attentionDecayRate: 0.05
+});
+
 export class Focus extends BaseComponent {
     constructor(config = {}) {
         super(config, 'Focus');
         this._config = {
-            maxFocusSets: 5,
-            defaultFocusSetSize: 100,
-            attentionDecayRate: 0.05,
+            ...DEFAULT_CONFIG,
             ...config
         };
 
@@ -228,6 +232,13 @@ export class Focus extends BaseComponent {
 /**
  * FocusSet class - represents a single focus set
  */
+const DEFAULT_SCORE_WEIGHTS = Object.freeze({
+    priorityWeight: 0.4,
+    activationWeight: 0.3,
+    complexityWeight: 0.2,
+    recencyWeight: 0.1
+});
+
 class FocusSet {
     constructor(name, maxSize) {
         this._name = name;
@@ -306,13 +317,10 @@ class FocusSet {
      * @returns {Array<Task>} - Tasks in composite score order
      */
     getTasksByCompositeScore(count = 10, scoringOptions = {}) {
-        const {
-            priorityWeight = 0.4,
-            activationWeight = 0.3,
-            complexityWeight = 0.2,
-            recencyWeight = 0.1,
-            targetComplexity = null
-        } = scoringOptions;
+        const options = {
+            ...DEFAULT_SCORE_WEIGHTS,
+            ...scoringOptions
+        };
 
         const taskEntries = Array.from(this._tasks.values());
 
@@ -331,10 +339,10 @@ class FocusSet {
 
             // Calculate composite score
             const compositeScore =
-                (priority * priorityWeight) +
-                (activationScore * activationWeight) +
-                (complexityScore * complexityWeight) +
-                (recencyScore * recencyWeight);
+                (priority * options.priorityWeight) +
+                (activationScore * options.activationWeight) +
+                (complexityScore * options.complexityWeight) +
+                (recencyScore * options.recencyWeight);
 
             return {
                 task,
@@ -350,10 +358,10 @@ class FocusSet {
         scoredTasks.sort((a, b) => b.compositeScore - a.compositeScore);
 
         // If target complexity is specified, prefer tasks with similar complexity
-        if (targetComplexity !== null) {
+        if (options.targetComplexity !== null) {
             scoredTasks.sort((a, b) => {
-                const aDistance = Math.abs(a.complexityScore - targetComplexity);
-                const bDistance = Math.abs(b.complexityScore - targetComplexity);
+                const aDistance = Math.abs(a.complexityScore - options.targetComplexity);
+                const bDistance = Math.abs(b.complexityScore - options.targetComplexity);
                 return aDistance - bDistance; // Sort by complexity distance first
             });
         }
