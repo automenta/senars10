@@ -4,6 +4,7 @@ import {MemoryConsolidation} from './MemoryConsolidation.js';
 import {Bag} from './Bag.js';
 import {BaseComponent} from '../util/BaseComponent.js';
 import {clamp} from '../util/common.js';
+import {MemoryValidator} from '../util/MemoryValidator.js';
 
 export class Memory extends BaseComponent {
     static SCORING_WEIGHTS = Object.freeze({activation: 0.5, useCount: 0.3, taskCount: 0.2});
@@ -26,7 +27,9 @@ export class Memory extends BaseComponent {
             resourceBudget: 10000,  // Total resource budget for AIKR
             activationDecayRate: 0.005,  // Rate at which concept activation decays
             memoryPressureThreshold: 0.8,  // Threshold for memory pressure (80% full)
-            enableAdaptiveForgetting: true  // Enable adaptive forgetting based on memory pressure
+            enableAdaptiveForgetting: true,  // Enable adaptive forgetting based on memory pressure
+            enableMemoryValidation: config.enableMemoryValidation !== false,  // Enable memory validation by default
+            memoryValidationInterval: config.memoryValidationInterval || 30000,  // Validate every 30 seconds
         });
 
         super({...defaultConfig, ...config}, 'Memory');
@@ -38,6 +41,16 @@ export class Memory extends BaseComponent {
         this._focusConcepts = new Set();
         this._index = new MemoryIndex();
         this._consolidation = new MemoryConsolidation();
+        
+        // Initialize memory validator if enabled
+        this._memoryValidator = null;
+        if (this._config.enableMemoryValidation) {
+            this._memoryValidator = new MemoryValidator({
+                enableChecksums: true,
+                validationInterval: this._config.memoryValidationInterval
+            });
+        }
+        
         this._stats = {
             totalConcepts: 0,
             totalTasks: 0,
@@ -48,7 +61,9 @@ export class Memory extends BaseComponent {
             tasksForgotten: 0,
             totalResourceUsage: 0,  // Track total resource usage
             peakResourceUsage: 0,   // Track peak resource usage
-            memoryPressureEvents: 0 // Track memory pressure events
+            memoryPressureEvents: 0, // Track memory pressure events
+            memoryCorruptionEvents: 0, // Track memory corruption events
+            validationFailures: 0 // Track validation failures
         };
         this._cyclesSinceConsolidation = 0;
         
@@ -631,6 +646,103 @@ export class Memory extends BaseComponent {
                 this._resourceTracker.delete(termStr);
                 this._stats.totalResourceUsage -= usage;
             }
+        }
+    }
+
+    /**
+     * Validate memory structures for corruption
+     */
+    validateMemory() {
+        if (!this._memoryValidator) {
+            return { valid: true, message: 'Memory validation is disabled' };
+        }
+
+        // Create a validation batch with key memory structures
+        const validations = [];
+
+        // Validate concepts
+        for (const [term, concept] of this._concepts) {
+            validations.push([`concept_${term.toString()}`, concept]);
+        }
+
+        // Validate memory index
+        validations.push(['memory_index', this._index]);
+
+        // Validate memory stats
+        validations.push(['memory_stats', this._stats]);
+
+        // Perform batch validation
+        const results = this._memoryValidator.validateBatch(validations);
+
+        // Process results
+        const invalidResults = results.filter(result => !result.result.valid);
+        
+        if (invalidResults.length > 0) {
+            this._stats.memoryCorruptionEvents++;
+            this._stats.validationFailures += invalidResults.length;
+            
+            this.logger.warn('Memory corruption detected', {
+                invalidCount: invalidResults.length,
+                totalChecked: results.length,
+                details: invalidResults.map(r => ({
+                    key: r.key,
+                    message: r.result.message
+                }))
+            });
+            
+            return {
+                valid: false,
+                message: `Memory corruption detected in ${invalidResults.length} structures`,
+                details: invalidResults
+            };
+        }
+
+        return { valid: true, message: 'Memory validation passed' };
+    }
+
+    /**
+     * Update checksum for a memory structure
+     */
+    updateMemoryChecksum(key, obj) {
+        if (!this._memoryValidator) return null;
+        
+        return this._memoryValidator.updateChecksum(key, obj);
+    }
+
+    /**
+     * Get memory validation statistics
+     */
+    getMemoryValidationStats() {
+        if (!this._memoryValidator) {
+            return { validationEnabled: false };
+        }
+
+        return {
+            validationEnabled: true,
+            validationStats: this._stats,
+            checksumCount: this._memoryValidator.getChecksums().size
+        };
+    }
+
+    /**
+     * Enable memory validation
+     */
+    enableMemoryValidation() {
+        if (!this._memoryValidator) {
+            this._memoryValidator = new MemoryValidator({
+                enableChecksums: true,
+                validationInterval: this._config.memoryValidationInterval
+            });
+        }
+        this._memoryValidator.enable();
+    }
+
+    /**
+     * Disable memory validation
+     */
+    disableMemoryValidation() {
+        if (this._memoryValidator) {
+            this._memoryValidator.disable();
         }
     }
 }

@@ -47,8 +47,10 @@ export class Cycle extends BaseComponent {
             const allConcepts = this._memory.getAllConcepts();
             const memoryTasks = allConcepts.flatMap(c => c.getAllTasks ? c.getAllTasks() : []);
 
+            // Filter tasks based on budget constraints
+            const filteredTasks = this._filterTasksByBudget([...focusTasks, ...memoryTasks]);
             const taskMap = new Map();
-            [...focusTasks, ...memoryTasks].forEach(task => taskMap.set(task.stamp.id, task));
+            filteredTasks.forEach(task => taskMap.set(task.stamp.id, task));
             let allTasks = Array.from(taskMap.values());
 
             if (this._nar?.termLayer) {
@@ -65,12 +67,15 @@ export class Cycle extends BaseComponent {
             // Process all inferences through the evaluator to ensure they are simplified and evaluated
             const processedInferences = await this._processInferencesWithEvaluator(newInferences);
 
-            this._updateMemoryWithInferences(processedInferences, cycleStartTime);
+            // Apply budget constraints to inferences before adding to memory
+            const budgetedInferences = this._applyBudgetConstraints(processedInferences);
+
+            this._updateMemoryWithInferences(budgetedInferences, cycleStartTime);
             this._updateCycleStats(cycleStartTime);
 
             return {
                 cycleNumber: this._cycleCount,
-                newInferences: processedInferences.length,
+                newInferences: budgetedInferences.length,
                 cycleTime: Date.now() - cycleStartTime,
                 memoryStats: this._memory.getDetailedStats()
             };
@@ -127,6 +132,57 @@ export class Cycle extends BaseComponent {
         // just apply structural reduction without functional evaluation
         const reducedTerm = this._evaluator.reduce(inference.term);
         return inference.clone({ term: reducedTerm });
+    }
+
+    /**
+     * Filter tasks based on their budget constraints
+     */
+    _filterTasksByBudget(tasks) {
+        return tasks.filter(task => {
+            if (!task.budget) return true; // If no budget specified, allow task
+            
+            // Check if task has exhausted its cycle budget
+            if (task.budget.cycles !== undefined && task.budget.cycles <= 0) {
+                return false;
+            }
+            
+            // Check if task has exceeded its depth budget
+            if (task.budget.depth !== undefined && task.budget.depth <= 0) {
+                return false;
+            }
+            
+            return true;
+        });
+    }
+
+    /**
+     * Apply budget constraints to inferences - decrement budget values
+     */
+    _applyBudgetConstraints(inferences) {
+        return inferences.map(inference => {
+            if (!inference.budget) return inference; // If no budget, return unchanged
+            
+            // Decrement cycle budget
+            let newCycles = inference.budget.cycles;
+            if (newCycles !== undefined) {
+                newCycles = Math.max(0, newCycles - 1); // Ensure it doesn't go below 0
+            }
+            
+            // Decrement depth budget if applicable
+            let newDepth = inference.budget.depth;
+            if (newDepth !== undefined) {
+                newDepth = Math.max(0, newDepth - 1); // Ensure it doesn't go below 0
+            }
+            
+            // Create new budget with decremented values
+            const newBudget = {
+                ...inference.budget,
+                cycles: newCycles,
+                depth: newDepth
+            };
+            
+            return inference.clone({ budget: newBudget });
+        });
     }
 
     async _enhanceTasksWithAssociativeLinks(tasks, termLayer) {

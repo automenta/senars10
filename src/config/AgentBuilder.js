@@ -20,6 +20,17 @@ export class AgentBuilder {
                 rules: ['syllogistic-core', 'temporal'],
                 tools: false,
                 lm: false
+            },
+            memory: {
+                enableMemoryValidation: true,
+                memoryValidationInterval: 30000
+            },
+            lm: {
+                circuitBreaker: {
+                    failureThreshold: 5,
+                    timeout: 60000,
+                    resetTimeout: 30000
+                }
             }
         };
         this.dependencies = new Map();

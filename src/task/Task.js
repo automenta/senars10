@@ -10,7 +10,7 @@ export class Task {
                     term,
                     punctuation = '.',
                     truth = null,
-                    budget = {priority: 0.5, durability: 0.5, quality: 0.5},
+                    budget = {priority: 0.5, durability: 0.5, quality: 0.5, cycles: 100, depth: 10},
                     stamp = null
                 }) {
         if (!(term instanceof Term)) throw new Error('Task must be initialized with a valid Term object.');

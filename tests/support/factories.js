@@ -10,10 +10,10 @@ const termFactory = new TermFactory();
 
 export const TEST_CONSTANTS = {
     BUDGET: {
-        DEFAULT: {priority: 0.5, durability: 0.5, quality: 0.5},
-        MEDIUM: {priority: 0.7, durability: 0.6, quality: 0.7},
-        HIGH: {priority: 0.9, durability: 0.8, quality: 0.9},
-        LOW: {priority: 0.3, durability: 0.4, quality: 0.3}
+        DEFAULT: {priority: 0.5, durability: 0.5, quality: 0.5, cycles: 100, depth: 10},
+        MEDIUM: {priority: 0.7, durability: 0.6, quality: 0.7, cycles: 75, depth: 7},
+        HIGH: {priority: 0.9, durability: 0.8, quality: 0.9, cycles: 100, depth: 10},
+        LOW: {priority: 0.3, durability: 0.4, quality: 0.3, cycles: 25, depth: 3}
     },
     TRUTH: {
         HIGH: {f: 0.9, c: 0.8},
@@ -100,7 +100,9 @@ export const createMemoryConfig = () => ({
     activationDecayRate: 0.005,
     enableAdaptiveForgetting: true,
     memoryPressureThreshold: 0.8,
-    resourceBudget: 10000
+    resourceBudget: 10000,
+    enableMemoryValidation: true,
+    memoryValidationInterval: 30000
 });
 
 /**
