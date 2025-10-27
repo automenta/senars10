@@ -1,6 +1,3 @@
-/**
- * Memory validation and integrity checking system
- */
 export class MemoryValidator {
     constructor(options = {}) {
         this.options = {

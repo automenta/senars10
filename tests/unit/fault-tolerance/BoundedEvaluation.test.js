@@ -1,8 +1,6 @@
 import { Task } from '../../../src/task/Task.js';
 import { Term, TermType } from '../../../src/term/Term.js';
 
-// Jest is available as a global in test environment
-
 describe('Bounded Evaluation Tests', () => {
     // Create a minimal Cycle-like object with the methods we need to test
     const createTestCycle = () => ({

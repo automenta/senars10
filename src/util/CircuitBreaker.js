@@ -1,6 +1,3 @@
-/**
- * Circuit Breaker pattern implementation for fault tolerance
- */
 export class CircuitBreaker {
     constructor(options = {}) {
         this.options = {

@@ -1,6 +1,3 @@
-/**
- * Integration test/demonstration of Phase 10 fault tolerance features
- */
 import { Task } from '../../src/task/Task.js';
 import { Term, TermType } from '../../src/term/Term.js';
 import { CircuitBreaker } from '../../src/util/CircuitBreaker.js';
