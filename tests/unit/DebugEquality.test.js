@@ -19,19 +19,9 @@ describe('Phase 8: Debugging Atomic Equality', () => {
         const anotherFiveTerm = termFactory.create({ name: '5', type: 'atomic' });
         
         // Check what values they return
-        console.log('Five term name:', fiveTerm.name);
-        console.log('Another five term name:', anotherFiveTerm.name);
-        console.log('Five term isAtomic:', fiveTerm.isAtomic);
-        console.log('Five term value via _termToValue:', engine._termToValue(fiveTerm));
-        
         const equalityTerm = termFactory.create({ operator: '=', components: [fiveTerm, anotherFiveTerm] });
-        console.log('Equality term operator:', equalityTerm.operator);
-        console.log('Equality term components:', equalityTerm.components);
         
         const result = await engine.evaluate(equalityTerm);
-        console.log('Result of equality evaluation:', result);
-        console.log('Result result:', result.result);
-        console.log('Result success:', result.success);
         
         expect(result.success).toBe(true);
         expect(result.result).toBe(SYSTEM_ATOMS.True);
