@@ -24,16 +24,6 @@ export const ResourceLimits = {
  * with strict resource limits and capability controls
  */
 export class SandboxedTool extends BaseTool {
-    /**
-     * @param {object} config - Configuration for the sandboxed tool
-     * @param {number} config.memoryLimit - Memory limit in bytes
-     * @param {number} config.cpuTimeLimit - CPU time limit in ms
-     * @param {number} config.runtimeLimit - Total runtime limit in ms
-     * @param {number} config.stdoutSizeLimit - Max stdout size in bytes
-     * @param {number} config.stderrSizeLimit - Max stderr size in bytes
-     * @param {string} config.workingDir - Working directory for execution
-     * @param {Array<string>} config.allowedPaths - Paths that the tool can access
-     */
     constructor(config = {}) {
         super(config);
         
@@ -58,9 +48,6 @@ export class SandboxedTool extends BaseTool {
 
     /**
      * Execute the tool in a sandboxed environment
-     * @param {object} params - Parameters for the tool execution
-     * @param {object} context - Execution context including the tool engine
-     * @returns {Promise<any>} - Execution result
      */
     async execute(params, context) {
         // Validate that the tool has required capabilities
@@ -98,7 +85,6 @@ export class SandboxedTool extends BaseTool {
 
     /**
      * Get required capabilities for this tool
-     * @returns {Array<string>} - Array of required capability IDs
      */
     getRequiredCapabilities() {
         return ['sandbox-execution'];
@@ -106,7 +92,6 @@ export class SandboxedTool extends BaseTool {
 
     /**
      * Get resource limits for this tool
-     * @returns {object} - Resource limits
      */
     getResourceLimits() {
         return {
@@ -120,8 +105,6 @@ export class SandboxedTool extends BaseTool {
 
     /**
      * Validate that a path is allowed for access
-     * @param {string} targetPath - Path to validate
-     * @returns {boolean} - True if path is allowed
      */
     isPathAllowed(targetPath) {
         const resolvedPath = path.resolve(targetPath);

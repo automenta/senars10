@@ -33,9 +33,7 @@ async function runBenchmarks() {
         
         // Exit with appropriate code
         const summary = runner.generateSummary();
-        const hasFailures = summary.failed > 0 || summary.errors > 0;
-        
-        process.exit(hasFailures ? 1 : 0);
+        process.exit((summary.failed > 0 || summary.errors > 0) ? 1 : 0);
     } catch (error) {
         console.error('Error running benchmarks:', error);
         process.exit(1);

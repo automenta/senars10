@@ -37,15 +37,6 @@ export const CapabilityTypes = {
  * Represents a capability with its metadata and security parameters
  */
 export class Capability {
-    /**
-     * @param {string} type - The type of capability from CapabilityTypes
-     * @param {object} options - Additional options for the capability
-     * @param {string} [options.description] - Description of what the capability enables
-     * @param {number} [options.resourceLimit] - Resource limit associated with this capability
-     * @param {string} [options.scope] - Scope of the capability (e.g., 'local', 'network', 'system')
-     * @param {Array<string>} [options.permissions] - Specific permissions granted by this capability
-     * @param {boolean} [options.requiresApproval] - Whether this capability requires explicit approval
-     */
     constructor(type, options = {}) {
         this.type = type;
         this.description = options.description || `Capability for ${type}`;
@@ -58,8 +49,6 @@ export class Capability {
 
     /**
      * Validates if this capability can be granted based on security policies
-     * @param {object} context - Context information for validation
-     * @returns {object} - Validation result
      */
     validate(context = {}) {
         const result = { valid: true, errors: [] };
@@ -96,9 +85,6 @@ export class CapabilityManager {
 
     /**
      * Register a new capability type
-     * @param {string} id - Unique identifier for the capability
-     * @param {Capability} capability - The capability object
-     * @returns {Promise<boolean>} - True if registration successful
      */
     async registerCapability(id, capability) {
         if (!id || !capability) {
@@ -128,13 +114,6 @@ export class CapabilityManager {
 
     /**
      * Grant capabilities to a tool/plugin
-     * @param {string} toolId - ID of the tool/plugin
-     * @param {Array<string>} capabilityIds - Array of capability IDs to grant
-     * @param {object} [options] - Grant options
-     * @param {string} [options.grantedBy] - Who granted these capabilities
-     * @param {number} [options.expiresAt] - Expiration timestamp
-     * @param {object} [options.conditions] - Conditions for the grant
-     * @returns {Promise<object>} - Result of the grant operation
      */
     async grantCapabilities(toolId, capabilityIds, options = {}) {
         if (!toolId || !Array.isArray(capabilityIds) || capabilityIds.length === 0) {
@@ -202,9 +181,6 @@ export class CapabilityManager {
 
     /**
      * Revoke capabilities from a tool/plugin
-     * @param {string} toolId - ID of the tool/plugin
-     * @param {Array<string>} capabilityIds - Array of capability IDs to revoke
-     * @returns {Promise<object>} - Result of the revoke operation
      */
     async revokeCapabilities(toolId, capabilityIds) {
         if (!toolId || !Array.isArray(capabilityIds) || capabilityIds.length === 0) {
@@ -253,9 +229,6 @@ export class CapabilityManager {
 
     /**
      * Check if a tool has a specific capability
-     * @param {string} toolId - ID of the tool/plugin
-     * @param {string} capabilityId - ID of the capability to check
-     * @returns {Promise<boolean>} - True if tool has the capability
      */
     async hasCapability(toolId, capabilityId) {
         const toolGrants = this.grants.get(toolId);
@@ -274,9 +247,6 @@ export class CapabilityManager {
 
     /**
      * Check if a tool has all required capabilities
-     * @param {string} toolId - ID of the tool/plugin
-     * @param {Array<string>} capabilityIds - Array of capability IDs to check
-     * @returns {Promise<boolean>} - True if tool has all capabilities
      */
     async hasAllCapabilities(toolId, capabilityIds) {
         if (!Array.isArray(capabilityIds) || capabilityIds.length === 0) {
@@ -293,8 +263,6 @@ export class CapabilityManager {
 
     /**
      * Get all capabilities granted to a tool
-     * @param {string} toolId - ID of the tool/plugin
-     * @returns {Promise<Array<object>>} - Array of capability details
      */
     async getToolCapabilities(toolId) {
         const toolGrants = this.grants.get(toolId);
@@ -316,8 +284,6 @@ export class CapabilityManager {
 
     /**
      * Get all tools that have a specific capability
-     * @param {string} capabilityId - ID of the capability
-     * @returns {Promise<Array<string>>} - Array of tool IDs
      */
     async getToolsWithCapability(capabilityId) {
         const tools = [];
@@ -333,14 +299,6 @@ export class CapabilityManager {
 
     /**
      * Define a security policy rule
-     * @param {string} ruleId - Unique identifier for the rule
-     * @param {object} rule - Policy rule definition
-     * @param {string} rule.type - Type of rule ('deny', 'allow', 'conditional')
-     * @param {string|Array<string>} rule.tools - Tool patterns or IDs affected by this rule
-     * @param {string|Array<string>} rule.capabilities - Capability patterns or IDs affected by this rule
-     * @param {Function} [rule.condition] - Function to evaluate if rule applies
-     * @param {string} [rule.reason] - Reason for the rule
-     * @returns {Promise<boolean>} - True if rule was added successfully
      */
     async addPolicyRule(ruleId, rule) {
         if (!ruleId || !rule) {
@@ -374,7 +332,6 @@ export class CapabilityManager {
 
     /**
      * Check if a grant complies with policy rules
-     * @private
      */
     _checkPolicyRules(toolId, capabilityId, grantOptions) {
         for (const [ruleId, rule] of this.policyRules.entries()) {
@@ -413,7 +370,6 @@ export class CapabilityManager {
 
     /**
      * Helper to check if a value matches a pattern
-     * @private
      */
     _matchesPattern(value, patterns) {
         if (typeof patterns === 'string') {
@@ -438,13 +394,6 @@ export class CapabilityManager {
 
     /**
      * Create a security manifest for a tool/plugin
-     * @param {object} manifest - Tool manifest with capability requirements
-     * @param {string} manifest.id - Tool ID
-     * @param {string} manifest.name - Tool name
-     * @param {Array<string>} [manifest.requiredCapabilities] - Required capabilities
-     * @param {Array<string>} [manifest.optionalCapabilities] - Optional capabilities
-     * @param {object} [manifest.metadata] - Additional metadata
-     * @returns {object} - Validated manifest
      */
     createSecurityManifest(manifest) {
         if (!manifest || !manifest.id || !manifest.name) {
@@ -473,9 +422,6 @@ export class CapabilityManager {
 
     /**
      * Request capabilities based on a manifest
-     * @param {object} manifest - Security manifest
-     * @param {object} [approvalContext] - Context for capability approval
-     * @returns {Promise<object>} - Grant result
      */
     async requestCapabilitiesFromManifest(manifest, approvalContext = {}) {
         if (!manifest || !manifest.id) {
@@ -508,7 +454,6 @@ export class CapabilityManager {
 
     /**
      * Get capability usage statistics
-     * @returns {object} - Usage statistics
      */
     getUsageStats() {
         const stats = {
@@ -533,8 +478,6 @@ export class CapabilityManager {
 
     /**
      * Get audit log for security events
-     * @param {object} [filter] - Filter options for audit log
-     * @returns {Array<object>} - Audit events
      */
     getAuditLog(filter = {}) {
         let events = [...this.auditLog];
@@ -563,7 +506,6 @@ export class CapabilityManager {
 
     /**
      * Log an audit event
-     * @private
      */
     _logAudit(eventType, data) {
         const event = {

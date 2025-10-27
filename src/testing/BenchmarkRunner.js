@@ -6,18 +6,11 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { glob } from 'glob';
-import {Truth} from '../Truth.js';
 
 /**
  * Benchmark runner that executes JSON-based reasoning tests
  */
 export class BenchmarkRunner {
-    /**
-     * @param {object} config - Configuration for the benchmark runner
-     * @param {string} config.benchmarkDir - Directory containing benchmark files
-     * @param {object} config.reasoningEngine - The reasoning engine to test
-     * @param {number} config.timeout - Timeout for each benchmark in ms (default: 5000)
-     */
     constructor(config = {}) {
         this.benchmarkDir = config.benchmarkDir || './benchmarks';
         this.reasoningEngine = config.reasoningEngine;
@@ -56,9 +49,6 @@ export class BenchmarkRunner {
 
     /**
      * Run a single benchmark
-     * @param {object} benchmark - The benchmark object
-     * @param {string} filePath - Path to the benchmark file
-     * @returns {Promise<object>} - Benchmark result
      */
     async _runSingleBenchmark(benchmark, filePath) {
         const startTime = Date.now();
@@ -75,7 +65,7 @@ export class BenchmarkRunner {
             };
 
             // Process the input statements
-            const inputResults = await this._processInput(benchmark.input);
+            await this._processInput(benchmark.input);
             
             // Get the reasoning result for the query
             const queryResult = await this._processQuery(benchmark.input, benchmark.expected);
@@ -84,8 +74,7 @@ export class BenchmarkRunner {
             result.executionTime = Date.now() - startTime;
 
             // Validate the result against expected output
-            const isCorrect = this._validateResult(queryResult, benchmark.expected);
-            result.status = isCorrect ? 'passed' : 'failed';
+            result.status = this._validateResult(queryResult, benchmark.expected) ? 'passed' : 'failed';
             
             // Validate execution time
             if (benchmark.expected.executionTime) {
@@ -111,58 +100,25 @@ export class BenchmarkRunner {
 
     /**
      * Process the input statements to prime the reasoning engine
-     * @private
      */
     async _processInput(input) {
-        if (!this.reasoningEngine) {
-            // If no reasoning engine provided, return dummy processing
-            // This is a placeholder - in a real implementation, we'd use the actual engine
-            const results = [];
-            
-            for (const statement of input) {
-                if (statement.includes('?')) {
-                    // This is a query - don't process it as input, just identify it
-                    results.push({ type: 'query', statement });
-                } else {
-                    // This is an input statement - process it
-                    results.push({ type: 'input', statement, processed: true });
-                }
-            }
-            
-            return results;
-        }
-
-        // In a real implementation, this would call the reasoning engine's input processing
-        // For now, we'll simulate the process
-        const results = [];
-        
-        for (const statement of input) {
-            if (statement.includes('?')) {
-                results.push({ type: 'query', statement });
-            } else {
-                // Simulate processing the statement
-                results.push({ 
-                    type: 'input', 
-                    statement, 
-                    processed: true,
-                    timestamp: Date.now()
-                });
-            }
-        }
-        
-        return results;
+        // If no reasoning engine provided, return dummy processing
+        // This is a placeholder - in a real implementation, we'd use the actual engine
+        return input.map(statement => ({
+            type: statement.includes('?') ? 'query' : 'input',
+            statement,
+            processed: !statement.includes('?'),
+            timestamp: statement.includes('?') ? undefined : Date.now()
+        }));
     }
 
     /**
      * Process a query against the knowledge base
-     * @private
      */
     async _processQuery(input, expected) {
         // Find the query in the input
         const queries = input.filter(stmt => stmt.includes('?'));
-        if (queries.length === 0) {
-            return { answer: null };
-        }
+        if (queries.length === 0) return { answer: null };
 
         // For this simulation, return a basic answer structure
         // In a real implementation, this would call the reasoning engine
@@ -176,30 +132,20 @@ export class BenchmarkRunner {
 
     /**
      * Validate the actual result against expected result
-     * @private
      */
     _validateResult(actual, expected) {
         if (!actual || !expected) return false;
 
         // Validate answer if specified
-        if (expected.answer && actual.answer !== expected.answer) {
-            return false;
-        }
+        if (expected.answer && actual.answer !== expected.answer) return false;
 
         // Validate confidence if specified
-        if (typeof expected.confidence === 'number' && 
-            actual.confidence && 
-            Math.abs(actual.confidence - expected.confidence) > 0.1) {
-            return false;
-        }
+        if (typeof expected.confidence === 'number' && actual.confidence && 
+            Math.abs(actual.confidence - expected.confidence) > 0.1) return false;
 
         // Validate trace if specified
         if (expected.trace && Array.isArray(expected.trace) && actual.trace) {
-            for (const expectedStep of expected.trace) {
-                if (!actual.trace.includes(expectedStep)) {
-                    return false;
-                }
-            }
+            return expected.trace.every(expectedStep => actual.trace.includes(expectedStep));
         }
 
         return true;
@@ -207,29 +153,21 @@ export class BenchmarkRunner {
 
     /**
      * Parse execution time string to number
-     * @private
      */
     _parseExecutionTime(timeStr) {
         if (typeof timeStr !== 'string') return null;
 
         // Handle format like "<1000" meaning less than 1000ms
         const match = timeStr.match(/<(\d+)/);
-        if (match) {
-            return parseInt(match[1], 10);
-        }
+        if (match) return parseInt(match[1], 10);
 
         // Handle exact time
         const num = parseInt(timeStr, 10);
-        if (!isNaN(num)) {
-            return num;
-        }
-
-        return null;
+        return isNaN(num) ? null : num;
     }
 
     /**
      * Load a benchmark from a file
-     * @private
      */
     async _loadBenchmark(filePath) {
         const content = await fs.readFile(filePath, 'utf8');
@@ -238,7 +176,6 @@ export class BenchmarkRunner {
 
     /**
      * Find all benchmark files in the directory
-     * @private
      */
     async _findBenchmarkFiles() {
         const pattern = path.join(this.benchmarkDir, '**/*.json');
@@ -247,23 +184,18 @@ export class BenchmarkRunner {
 
     /**
      * Generate a summary report of benchmark results
-     * @returns {object} - Summary report
      */
     generateSummary() {
-        if (this.results.length === 0) {
-            return { message: 'No benchmarks run yet' };
-        }
+        if (this.results.length === 0) return { message: 'No benchmarks run yet' };
 
         const total = this.results.length;
         const passed = this.results.filter(r => r.status === 'passed').length;
         const failed = this.results.filter(r => r.status === 'failed').length;
         const errors = this.results.filter(r => r.status === 'error').length;
+        const perfIssues = this.results.filter(r => r.perfIssue).length;
         
         const totalExecutionTime = this.results.reduce((sum, r) => sum + r.executionTime, 0);
         const avgExecutionTime = totalExecutionTime / total;
-
-        // Performance issues
-        const perfIssues = this.results.filter(r => r.perfIssue).length;
 
         const summary = {
             total,
@@ -298,11 +230,7 @@ export class BenchmarkRunner {
         console.log('\n=== Reasoning Benchmark Results ===');
         
         for (const result of this.results) {
-            const statusEmoji = {
-                'passed': '✅',
-                'failed': '❌',
-                'error': '💥'
-            }[result.status] || '❓';
+            const statusEmoji = { passed: '✅', failed: '❌', error: '💥' }[result.status] || '❓';
             
             console.log(`${statusEmoji} ${result.name} (${result.executionTime}ms)`);
             
@@ -329,7 +257,6 @@ export class BenchmarkRunner {
 
     /**
      * Export results to JSON file
-     * @param {string} outputPath - Path to output results file
      */
     async exportResults(outputPath) {
         const resultsWithSummary = {

@@ -11,15 +11,6 @@ import {CapabilityManager, Capability} from '../util/CapabilityManager.js';
  * Inspired by v8/coreagent/tools architecture
  */
 export class ToolEngine {
-    /**
-     * @param {object} config - Tool engine configuration
-     * @param {number} config.defaultTimeout - Default timeout for tool execution in ms (default: 5000)
-     * @param {object} config.safetyLimits - Safety limits configuration
-     * @param {number} config.safetyLimits.maxOutputSize - Maximum output size in characters (default: 10000)
-     * @param {number} config.safetyLimits.maxCommandLength - Maximum command length in characters (default: 1000)
-     * @param {number} config.maxHistorySize - Maximum number of execution records to retain (default: 1000)
-     * @param {CapabilityManager} config.capabilityManager - Capability manager instance (optional)
-     */
     constructor(config = {}) {
         Object.assign(this, {
             config: {
@@ -59,10 +50,6 @@ export class ToolEngine {
 
     /**
      * Registers a new tool with the engine
-     * @param {string} id - Unique tool identifier
-     * @param {object} tool - The tool instance to register
-     * @param {object} [metadata] - Optional metadata about the tool
-     * @returns {ToolEngine} - Returns this instance for chaining
      */
     async registerTool(id, tool, metadata = {}) {
         if (this.tools.has(id)) throw new Error(`Tool with ID "${id}" already exists`);
@@ -126,8 +113,6 @@ export class ToolEngine {
 
     /**
      * Unregisters a tool
-     * @param {string} id - Tool ID to unregister
-     * @returns {boolean} - True if unregistered, false if not found
      */
     unregisterTool(id) {
         if (!this.tools.has(id)) return false;
@@ -140,13 +125,6 @@ export class ToolEngine {
 
     /**
      * Executes a tool with safety validation and enhanced tracking
-     * @param {string} toolId - ID of the tool to execute
-     * @param {object} params - Parameters for the tool execution
-     * @param {object} [context] - Execution context with additional info
-     * @param {number} [context.timeout] - Custom timeout for this execution
-     * @param {string} [context.user] - User executing the tool
-     * @param {string} [context.session] - Session ID
-     * @returns {Promise<object>} - Execution result with enhanced metadata
      */
     async executeTool(toolId, params = {}, context = {}) {
         const startTime = Date.now();
@@ -196,7 +174,6 @@ export class ToolEngine {
 
     /**
      * Creates execution context for tracking
-     * @private
      */
     _createExecutionContext(executionId, toolId, params, context, startTime) {
         return {
@@ -216,7 +193,6 @@ export class ToolEngine {
 
     /**
      * Handles successful execution
-     * @private
      */
     _handleExecutionSuccess(executionContext, result, startTime, tool) {
         const {executionId, toolId} = executionContext;
@@ -244,7 +220,6 @@ export class ToolEngine {
 
     /**
      * Handles execution error
-     * @private
      */
     _handleExecutionError(executionContext, error, startTime, tool) {
         const {executionId, toolId, parameters} = executionContext;
@@ -278,10 +253,6 @@ export class ToolEngine {
 
     /**
      * Executes multiple tools in sequence or parallel
-     * @param {Array<object>} toolCalls - Array of tool call specifications
-     * @param {object} [context] - Context for all executions
-     * @param {boolean} [context.concurrent] - Whether to execute tools concurrently
-     * @returns {Promise<Array<object>>} - Array of execution results
      */
     async executeTools(toolCalls, context = {}) {
         if (!Array.isArray(toolCalls)) throw new Error('ToolCalls must be an array');
@@ -305,7 +276,6 @@ export class ToolEngine {
 
     /**
      * Gets information about available tools
-     * @returns {Array<object>} - Array of tool descriptions
      */
     getAvailableTools() {
         return Array.from(this.tools.values()).map(tool => ({
@@ -331,11 +301,6 @@ export class ToolEngine {
 
     /**
      * Gets execution history with optional filtering
-     * @param {object} [options] - Filtering options
-     * @param {string} [options.toolName] - Filter by specific tool name
-     * @param {string} [options.category] - Filter by category
-     * @param {number} [options.limit] - Limit number of results
-     * @returns {Array<object>} - Execution history
      */
     getExecutionHistory(options = {}) {
         let history = [...this.executionHistory];
@@ -358,7 +323,6 @@ export class ToolEngine {
 
     /**
      * Gets comprehensive statistics about tool execution
-     * @returns {object} - Execution statistics
      */
     getStats() {
         const stats = {
@@ -391,7 +355,6 @@ export class ToolEngine {
 
     /**
      * Validates parameters for safety
-     * @private
      */
     _validateSafety(params) {
         // Check for command injection patterns in string parameters
@@ -442,7 +405,6 @@ export class ToolEngine {
 
     /**
      * Sanitizes result for safety
-     * @private
      */
     _sanitizeResult(result) {
         const jsonString = JSON.stringify(result);
@@ -457,7 +419,6 @@ export class ToolEngine {
 
     /**
      * Executes a promise with timeout
-     * @private
      */
     _executeWithTimeout(promise, timeout, timeoutMessage) {
         return new Promise((resolve, reject) => {
@@ -479,7 +440,6 @@ export class ToolEngine {
 
     /**
      * Tracks successful execution for performance metrics
-     * @private
      */
     _trackExecutionSuccess(executionId, toolName, startTime, result) {
         const duration = Date.now() - startTime;
@@ -510,7 +470,6 @@ export class ToolEngine {
 
     /**
      * Tracks failed execution for error metrics
-     * @private
      */
     _trackExecutionFailure(executionId, toolName, startTime, error) {
         const duration = Date.now() - startTime;

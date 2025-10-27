@@ -11,9 +11,6 @@ import {TruthFunctions} from '../../src/reasoning/nal/TruthFunctions.js';
  * Property-based tests for TruthFunctions
  */
 describe('TruthFunctions - Property Based Tests', () => {
-    /**
-     * Test that frequency values are always between 0 and 1 after any operation
-     */
     test('deduction should produce frequency values between 0 and 1', () => {
         fc.assert(
             fc.property(
