@@ -120,7 +120,7 @@ This document outlines a phased plan for developing the SeNARS Terminal and Web 
 
 ----
 
-# The specification, for reference:
+# UI Specification (for reference)
 
 ### ✅ SeNARS UIs (Terminal and Web)
 

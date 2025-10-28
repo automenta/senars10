@@ -18,3 +18,5 @@ lerna-debug.log*
 .idea
 benchmark-results-*
 agent.json
+.vite/
+.env

@@ -2,16 +2,19 @@
   "name": "senars",
   "version": "10.0.0",
   "description": "SeNARS (Semantic Non-Axiomatic Reasoning System)",
-  "main": "src/index.js",
+  "main": "core/index.js",
   "type": "module",
   "scripts": {
+    "dev:cli": "nodemon --watch ui --watch core -e js --exec \"node ui/cli/index.js\"",
+    "dev:web": "vite ui/web",
+    "build:web": "vite build --outDir dist/web",
     "test": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:unit": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules npx jest tests/unit",
     "test:integration": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules npx jest tests/integration",
     "test:property": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules npx jest tests/nal/propertyBasedTests.test.js",
-    "benchmark": "node src/testing/runBenchmarks.js",
-    "dev": "node --watch src/core/nar/NAR.js",
-    "start": "node src/core/nar/NAR.js"
+    "benchmark": "node core/testing/runBenchmarks.js",
+    "dev": "node --watch core/nar/NAR.js",
+    "start": "node core/nar/NAR.js"
   },
   "keywords": [
     "senars",
@@ -33,6 +36,10 @@
     "js-sha256": "^0.11.1",
     "langchain": "^0.3.0",
     "mitt": "^3.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "blessed": "^0.1.81",
+    "react-blessed": "^0.4.0",
     "uuid": "^9.0.1",
     "ws": "^8.18.3",
     "zod": "^3.25.76"
@@ -42,6 +49,16 @@
     "@babel/plugin-syntax-import-meta": "^7.10.4",
     "@babel/preset-env": "^7.28.3",
     "babel-jest": "^30.2.0",
-    "jest": "^30.2.0"
+    "jest": "^30.2.0",
+    "vite": "^6.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "nodemon": "^3.1.9"
+  },
+  "overrides": {
+    "react-blessed": {
+      "react": "$react",
+      "react-dom": "$react-dom",
+      "ws": "$ws"
+    }
   }
 }
