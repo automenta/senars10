@@ -170,10 +170,6 @@ export class RuleEngine extends BaseComponent {
         return [...lmResults, ...nalResults];
     }
 
-    /**
-     * Performs coordinated reasoning between LM and NAL rules
-     * Applies LM rules first, then NAL rules on the combined results
-     */
     async coordinateRules(task, memory = null) {
         // Apply LM rules to original task
         const lmResults = this.applyLMRules(task, null, memory);

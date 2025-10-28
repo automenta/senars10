@@ -163,7 +163,7 @@ export class TestNAR {
                         const inputStr = `${op.termStr}. %${op.freq};${op.conf}%`;
                         await this.nar.input(inputStr);
                     } catch (error) {
-                        console.warn(`Input failed: ${op.termStr}`, error);
+                        this.logger?.warn(`Input failed: ${op.termStr}`, error);
                     }
                     break;
 

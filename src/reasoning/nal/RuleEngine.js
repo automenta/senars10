@@ -82,7 +82,7 @@ export class RuleEngine extends BaseRuleEngine {
             try {
                 context[name] = await provider(context);
             } catch (error) {
-                console.warn(`Context provider ${name} failed:`, error);
+                this.logger?.warn(`Context provider ${name} failed:`, error);
             }
         }
 

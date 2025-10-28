@@ -92,7 +92,7 @@ export class ReasoningAboutReasoning {
             const metrics = this.nar.metricsMonitor.getMetricsSnapshot();
             return metrics.ruleMetrics ?? {};
         } catch (error) {
-            console.warn('Could not retrieve rule performance data:', error);
+            this.logger?.warn('Could not retrieve rule performance data:', error);
             return null;
         }
     }

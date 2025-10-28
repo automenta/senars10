@@ -65,7 +65,7 @@ export class FunctorRegistry {
                 // Same functor, no need to replace or warn
                 return true;
             }
-            console.warn(`Functor ${name} is already registered, replacing it.`);
+            this.logger?.warn(`Functor ${name} is already registered, replacing it.`);
         }
 
         this.functors.set(name, functor);
@@ -140,7 +140,7 @@ export class FunctorRegistry {
         const functor = new ConcreteFunctor(name, execute, config);
         
         if (this.functors.has(name)) {
-            console.warn(`Functor ${name} is already registered, replacing it.`);
+            this.logger?.warn(`Functor ${name} is already registered, replacing it.`);
         }
         
         this.functors.set(name, functor);

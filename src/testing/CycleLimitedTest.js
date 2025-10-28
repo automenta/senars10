@@ -64,7 +64,7 @@ export async function runCycleLimitedTest(testFn, maxCycles = 100, config = {}) 
             try {
                 await nar.dispose();
             } catch (cleanupError) {
-                console.warn('Warning during test cleanup:', cleanupError.message);
+                this.logger?.warn('Warning during test cleanup:', cleanupError.message);
             }
         }
     }

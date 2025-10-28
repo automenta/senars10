@@ -3,11 +3,6 @@ import {StrategySelector} from './StrategySelector.js';
 import {ReasoningContext} from './ReasoningContext.js';
 import {Logger} from '../util/Logger.js';
 
-/**
- * A modular, flexible Reasoner class that coordinates different reasoning strategies
- * including symbolic, temporal, and modular reasoning with NAL/LM integration.
- * Designed for extensibility and maintainability.
- */
 export class Reasoner {
     constructor(config = {}) {
         this.config = {
@@ -36,17 +31,11 @@ export class Reasoner {
         this.logger = Logger;
     }
 
-    /**
-     * Set the system context for the reasoner
-     */
     setSystemContext(systemContext) {
         this.systemContext = systemContext;
         return this;
     }
 
-    /**
-     * Perform inference on a focus set of tasks using configured reasoning strategies
-     */
     async performInference(focusSet, options = {}) {
         if (!Array.isArray(focusSet)) {
             throw new Error(`Focus set must be an array, received: ${typeof focusSet}`);
@@ -59,9 +48,6 @@ export class Reasoner {
         return await this._executeInference(focusSet, options);
     }
 
-    /**
-     * Execute inference using all enabled reasoning modes
-     */
     async _executeInference(focusSet, options = {}) {
         const {
             maxDerivedTasks = this.config.maxDerivedTasks,
@@ -101,9 +87,6 @@ export class Reasoner {
         return finalTasks;
     }
 
-    /**
-     * Perform symbolic reasoning using rule engine
-     */
     async _performSymbolicInference(focusSet, maxDerived) {
         const derivedTasks = [];
 
@@ -130,9 +113,6 @@ export class Reasoner {
         return derivedTasks;
     }
 
-    /**
-     * Perform temporal reasoning using temporal reasoner
-     */
     _performTemporalInference(focusSet, maxTemporalTasks) {
         if (!this.temporalReasoner) {
             this.logger.debug('Temporal reasoner not available, skipping temporal reasoning');
@@ -155,9 +135,6 @@ export class Reasoner {
         }
     }
 
-    /**
-     * Perform modular reasoning using system context and strategy selection
-     */
     async _performModularInference(focusSet, maxModularTasks) {
         if (!this.systemContext) {
             this.logger.debug('System context not available, skipping modular reasoning');
@@ -205,9 +182,6 @@ export class Reasoner {
         return derivedTasks;
     }
 
-    /**
-     * Create a reasoning context with the current configuration
-     */
     _createReasoningContext() {
         return new ReasoningContext({
             memory: this.systemContext?.memory || null,
@@ -218,18 +192,12 @@ export class Reasoner {
         });
     }
 
-    /**
-     * Process a single task through the reasoning engine
-     */
     async processTask(task) {
         // Add the task to focus set and perform inference
         const focusSet = [task];
         return await this.performInference(focusSet);
     }
 
-    /**
-     * Get reasoning performance statistics
-     */
     getPerformanceStats() {
         return {
             ...this.metrics,
@@ -240,9 +208,6 @@ export class Reasoner {
         };
     }
 
-    /**
-     * Get rule-related statistics
-     */
     getRuleStatistics() {
         return {
             totalRules: this.ruleEngine.rules.length,
@@ -255,22 +220,12 @@ export class Reasoner {
         };
     }
 
-    /**
-     * Enable or disable a specific reasoning mode
-     */
     setReasoningMode(mode, enabled) {
         switch (mode) {
-            case 'symbolic':
-                this.config.enableSymbolicReasoning = enabled;
-                break;
-            case 'temporal':
-                this.config.enableTemporalReasoning = enabled;
-                break;
-            case 'modular':
-                this.config.enableModularReasoning = enabled;
-                break;
-            default:
-                throw new Error(`Unknown reasoning mode: ${mode}`);
+            case 'symbolic': this.config.enableSymbolicReasoning = enabled; break;
+            case 'temporal': this.config.enableTemporalReasoning = enabled; break;
+            case 'modular': this.config.enableModularReasoning = enabled; break;
+            default: throw new Error(`Unknown reasoning mode: ${mode}`);
         }
         return this;
     }

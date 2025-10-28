@@ -216,7 +216,7 @@ export class AgentBuilder {
         if (registerFn) {
             registerFn();
         } else {
-            console.warn(`Unknown functor collection: ${collectionName}`);
+            this.logger?.warn(`Unknown functor collection: ${collectionName}`);
         }
     }
 
@@ -293,7 +293,7 @@ export class AgentBuilder {
         if (registerFn) {
             registerFn();
         } else {
-            console.warn(`Unknown rule set: ${ruleSetName}`);
+            this.logger?.warn(`Unknown rule set: ${ruleSetName}`);
         }
     }
 
@@ -349,13 +349,13 @@ export class AgentBuilder {
             agent._pluginManager.initializeAll().then(success => {
                 if (success) {
                     agent._pluginManager.startAll().catch(error => {
-                        console.error('Failed to start plugins:', error);
+                        this.logger?.error('Failed to start plugins:', error);
                     });
                 } else {
-                    console.error('Failed to initialize plugins');
+                    this.logger?.error('Failed to initialize plugins');
                 }
             }).catch(error => {
-                console.error('Failed to initialize plugins:', error);
+                this.logger?.error('Failed to initialize plugins:', error);
             });
         }
     }

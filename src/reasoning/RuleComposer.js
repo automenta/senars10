@@ -101,8 +101,7 @@ class ChainedRule {
                         newTasks.push(...result.results);
                         currentRule = result.rule;
                     } catch (error) {
-                        // Continue with other tasks even if one fails
-                        console.warn(`Chained rule ${rule.id} failed:`, error);
+                        this.logger?.warn(`Chained rule ${rule.id} failed:`, error);
                     }
                 }
             }
@@ -160,7 +159,7 @@ class CombinedRule {
                     allResults.push(...result.results);
                     currentRule = result.rule;
                 } catch (error) {
-                    console.warn(`Combined rule ${rule.id} failed:`, error);
+                    this.logger?.warn(`Combined rule ${rule.id} failed:`, error);
                 }
             }
         }
@@ -213,7 +212,7 @@ class ConditionalRule {
             const result = await ruleToApply.apply(task, context);
             return {results: result.results, rule: result.rule};
         } catch (error) {
-            console.warn(`Conditional rule ${this.id} failed:`, error);
+            this.logger?.warn(`Conditional rule ${this.id} failed:`, error);
             return {results: [], rule: this};
         }
     }
@@ -263,8 +262,7 @@ class DispatcherRule {
                     const result = await rule.apply(task, context);
                     return {results: result.results, rule: result.rule};
                 } catch (error) {
-                    console.warn(`Dispatcher rule ${rule.id} failed:`, error);
-                    // Continue to next condition
+                    this.logger?.warn(`Dispatcher rule ${rule.id} failed:`, error);
                 }
             }
         }
@@ -314,8 +312,7 @@ class FallbackRule {
                         return {results: result.results, rule: result.rule};
                     }
                 } catch (error) {
-                    console.warn(`Fallback rule ${rule.id} failed, trying next:`, error);
-                    // Continue to next rule
+                    this.logger?.warn(`Fallback rule ${rule.id} failed, trying next:`, error);
                 }
             }
         }

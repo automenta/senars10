@@ -253,7 +253,7 @@ export class RuleManager {
             return ruleResults;
         } catch (error) {
             this.updateMetrics(rule.id, false, performance.now() - start);
-            console.error(`Rule ${rule.id} failed:`, error);
+            this.logger?.error(`Rule ${rule.id} failed:`, error);
             return [];
         }
     }

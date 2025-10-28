@@ -17,12 +17,7 @@ export class InputTasks {
     }
 
     updatePriority(index, newPriority) {
-        if (index >= 0 && index < this.tasks.length) {
-            this.tasks[index].priority = newPriority;
-            this._sortTasks();
-            return true;
-        }
-        return false;
+        return index >= 0 && index < this.tasks.length ? (this.tasks[index].priority = newPriority, this._sortTasks(), true) : false;
     }
 
     getHighestPriorityTask() {
@@ -95,16 +90,14 @@ export class Agent {
                 }
                 this._removeProcessedTask(task);
             } catch (error) {
-                console.error('Error processing task:', error);
+                this.logger?.error('Error processing task:', error);
             }
         } else {
             await this._sleep(10);
         }
     }
 
-    async _processDerivedTasks() {
-        // Simplified; hook into NAR's inference for derived tasks
-    }
+    async _processDerivedTasks() {}
 
     stop() {
         this.isRunning = false;

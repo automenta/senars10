@@ -74,7 +74,7 @@ export class RuleProcessor {
             context.incrementMetric('inferencesMade', ruleResults.length);
             return ruleResults;
         } catch (error) {
-            console.warn(`Rule ${rule.id} failed:`, error);
+            this.logger?.warn(`Rule ${rule.id} failed:`, error);
             return [];
         }
     }

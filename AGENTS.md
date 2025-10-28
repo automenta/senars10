@@ -10,11 +10,10 @@
 - Modularized
 - Parameterized
 
-- Terse syntax: ternary, switch, etc
+- Terse syntax: ternary, switch, etc... but adhere to reasonable JavaScript code guidelines.
+
 - Few comments: rely on self-documenting code
 
 - Purpose: professional, not explanatory/educational
 
 - Unit testing: avoid Mocks; test objects directly.
-
-- Do not modify `v8/*`, `v9/*` - these previous versions are for reference, ideas, and inspiration.

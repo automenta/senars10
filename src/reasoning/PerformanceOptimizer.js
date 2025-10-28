@@ -320,7 +320,7 @@ export class PerformanceOptimizer {
                 const ruleResult = await this.applyRuleWithOptimization(rule, task, context);
                 results.push(...ruleResult.results);
             } catch (error) {
-                console.warn(`Optimized rule ${rule.id} failed:`, error);
+                this.logger?.warn(`Optimized rule ${rule.id} failed:`, error);
             }
         }
 

@@ -40,8 +40,7 @@ export class InferenceLMRule extends LMRule {
                         return [inferredTask];
                     }
                 } catch (error) {
-                    console.warn('Error parsing LM response:', error);
-                    // Return empty array if parsing fails
+                    this.logger?.warn('Error parsing LM response:', error);
                 }
 
                 return [];
