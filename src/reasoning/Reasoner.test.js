@@ -95,7 +95,6 @@ describe('Reasoner - Refactored Implementation', () => {
     test('should process a single task', async () => {
         const mockTask = {term: {toString: () => 'test'}, type: 'BELIEF'};
 
-        // Mock the performInference method to return the task
         const originalPerformInference = reasoner.performInference;
         reasoner.performInference = async (focusSet) => focusSet;
 
@@ -103,7 +102,6 @@ describe('Reasoner - Refactored Implementation', () => {
 
         expect(result).toEqual([mockTask]);
 
-        // Restore original method
         reasoner.performInference = originalPerformInference;
     });
 

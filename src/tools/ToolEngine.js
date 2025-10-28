@@ -112,7 +112,7 @@ export class ToolEngine {
 
         const hasRequiredCapabilities = await this.capabilityManager.hasAllCapabilities(toolId, tool.capabilities || []);
         if (!hasRequiredCapabilities) {
-            const missingCaps = tool.capabilities.filter(cap => 
+            const missingCaps = tool.capabilities.filter(cap =>
                 !this.capabilityManager.hasCapability(toolId, cap)
             );
             throw new Error(`Tool "${toolId}" lacks required capabilities: ${missingCaps.join(', ')}`);

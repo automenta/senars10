@@ -541,7 +541,6 @@ export class NAR extends BaseComponent {
 
     async executeTool(toolId, params, context = {}) {
         this._ensureToolIntegration();
-
         const startTime = Date.now();
         try {
             const result = await this._toolIntegration.executeTool(toolId, params, {
@@ -550,16 +549,12 @@ export class NAR extends BaseComponent {
                 timestamp: Date.now(),
                 ...context
             });
-
             const duration = Date.now() - startTime;
-            if (duration > 1000) {
-                this.logger.warn(`Slow tool execution: ${toolId} took ${duration}ms`, {
-                    toolId,
-                    duration,
-                    paramsSize: JSON.stringify(params).length
-                });
-            }
-
+            duration > 1000 && this.logger.warn(`Slow tool execution: ${toolId} took ${duration}ms`, {
+                toolId,
+                duration,
+                paramsSize: JSON.stringify(params).length
+            });
             return result;
         } catch (error) {
             this.logger.error(`Tool execution failed: ${toolId}`, {

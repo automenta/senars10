@@ -115,7 +115,6 @@ export class ToolIntegration extends BaseComponent {
                 reasoningContext: context
             });
 
-            // Log tool usage for potential learning
             this.toolUsageHistory.push({
                 toolId,
                 params,
@@ -125,10 +124,7 @@ export class ToolIntegration extends BaseComponent {
                 context: context
             });
 
-            // Limit history size to prevent memory issues
-            if (this.toolUsageHistory.length > 1000) {
-                this.toolUsageHistory = this.toolUsageHistory.slice(-500);
-            }
+            this.toolUsageHistory.length > 1000 && (this.toolUsageHistory = this.toolUsageHistory.slice(-500));
 
             return result;
         } catch (error) {

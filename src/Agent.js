@@ -36,9 +36,7 @@ export class InputTasks {
         this.tasks = [];
     }
 
-    _validateTask(task) {
-        return task != null;
-    }
+    _validateTask = task => task != null;
 
     _sortTasks() {
         this.tasks.sort((a, b) => b.priority - a.priority || a.timestamp - b.timestamp);
@@ -115,9 +113,7 @@ export class Agent {
         };
     }
 
-    _sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    _sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
     _removeProcessedTask(task) {
         const index = this.inputTasks.getAllTasks().findIndex(item => item.task === task);

@@ -60,28 +60,15 @@ export class Reasoner {
 
         let allDerivedTasks = [];
 
-        // Execute symbolic reasoning if enabled
-        if (enableSymbolicReasoning) {
-            const symbolicTasks = await this._performSymbolicInference(focusSet, maxDerivedTasks - allDerivedTasks.length);
-            allDerivedTasks.push(...symbolicTasks);
-        }
+        enableSymbolicReasoning && allDerivedTasks.push(...await this._performSymbolicInference(focusSet, maxDerivedTasks - allDerivedTasks.length));
 
-        // Execute temporal reasoning if enabled and within limits
-        if (enableTemporalReasoning && allDerivedTasks.length < maxDerivedTasks && this.temporalReasoner) {
-            const temporalTasks = this._performTemporalInference(focusSet, maxDerivedTasks - allDerivedTasks.length);
-            allDerivedTasks.push(...temporalTasks);
-        }
+        enableTemporalReasoning && allDerivedTasks.length < maxDerivedTasks && this.temporalReasoner && allDerivedTasks.push(...this._performTemporalInference(focusSet, maxDerivedTasks - allDerivedTasks.length));
 
-        // Execute modular reasoning if enabled and within limits
-        if (enableModularReasoning && allDerivedTasks.length < maxDerivedTasks && this.systemContext) {
-            const modularTasks = await this._performModularInference(focusSet, maxDerivedTasks - allDerivedTasks.length);
-            allDerivedTasks.push(...modularTasks);
-        }
+        enableModularReasoning && allDerivedTasks.length < maxDerivedTasks && this.systemContext && allDerivedTasks.push(...await this._performModularInference(focusSet, maxDerivedTasks - allDerivedTasks.length));
 
         const finalTasks = allDerivedTasks.slice(0, maxDerivedTasks);
         this.logger.debug(`Total inference produced ${finalTasks.length} derived tasks`);
 
-        // Update metrics
         this.metrics.totalInferences += finalTasks.length;
 
         return finalTasks;

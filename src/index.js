@@ -21,17 +21,17 @@ const DEFAULT_CONFIG = Object.freeze({
 
 async function main() {
     console.log('Starting SeNARS with WebSocket monitoring...');
-    
+
     const nar = new NAR(DEFAULT_CONFIG.nar);
     await nar.initialize();
-    
+
     const monitor = new WebSocketMonitor(DEFAULT_CONFIG.webSocket);
     await monitor.start();
     nar.connectToWebSocketMonitor(monitor);
-    
+
     const repl = new ReplInterface(DEFAULT_CONFIG);
     repl.nar = nar;
-    
+
     setupGracefulShutdown(repl, monitor);
     await repl.start();
 }
@@ -39,7 +39,7 @@ async function main() {
 function setupGracefulShutdown(repl, monitor) {
     process.on('SIGINT', async () => {
         console.log('\nShutting down gracefully...');
-        
+
         try {
             const state = repl.nar.serialize();
             await repl.persistenceManager.saveToDefault(state);
@@ -47,11 +47,11 @@ function setupGracefulShutdown(repl, monitor) {
         } catch (saveError) {
             console.error('Error saving state on shutdown:', saveError.message);
         }
-        
+
         await monitor.stop();
         process.exit(0);
     });
-    
+
     process.on('uncaughtException', (error) => {
         console.error('Uncaught exception:', error);
         process.exit(1);
@@ -63,12 +63,10 @@ function setupGracefulShutdown(repl, monitor) {
     });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-    main().catch(error => {
-        console.error('Failed to start SeNARS:', error);
-        process.exit(1);
-    });
-}
+import.meta.url === `file://${process.argv[1]}` && main().catch(error => {
+    console.error('Failed to start SeNARS:', error);
+    process.exit(1);
+});
 
 export { main as startServer };
 export * from './module.js';
