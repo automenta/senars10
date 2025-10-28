@@ -1,38 +1,20 @@
-# SeNARS UI Phased Development Plan
+# UI Plan: Unified Web and CLI (Corrected)
 
-This document outlines a phased plan for developing the SeNARS Terminal and Web UIs. The goal is to ensure a structured approach, starting with a solid foundation and iteratively adding features. Each phase includes actionable, checkbox-based tasks.
-
----
-
-### Phase 1: Project Setup & Foundation
-
-**Goal:** Restructure the project, install dependencies, and create the core platform abstraction layer.
-
-- [ ] **Project Restructuring**
-    - [ ] Move all files from `src/` to a new `core/` directory.
-    - [ ] Create the main `ui/` directory.
-    - [ ] Create subdirectories: `ui/shared`, `ui/cli`, `ui/web`.
-    - [ ] Create deeper structure: `ui/shared/components`, `ui/shared/hooks`, `ui/shared/models`, `ui/shared/utils`, `ui/shared/platform`, `ui/shared/styles`.
-- [ ] **Configuration**
-    - [ ] Add `dist/`, `.vite/`, and `.env` to `.gitignore`.
-    - [ ] Update `package.json` with new dependencies:
-        - `dependencies`: `react`, `react-dom`, `blessed`, `react-blessed`, `zod`
-        - `devDependencies`: `vite`, `@vitejs/plugin-react`, `nodemon`
-    - [ ] Run `npm install` to fetch the new packages.
-    - [ ] Add new scripts to `package.json`: `dev:cli`, `dev:web`, `build:web`.
-    - [ ] Update the `test` script in `package.json` to `NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules npx jest`.
-    - [ ] Create `vite.config.js` at the project root for the web build process.
-- [ ] **Platform Abstraction**
-    - [ ] Implement the initial platform abstraction layer in `ui/shared/platform/index.js`.
-    - [ ] Use a runtime check (`typeof window`) and dynamic `import()` to load `react-blessed` only for the CLI platform.
-    - [ ] Export a shared `h` (React.createElement) alias, platform-specific components (`Box`, `Text`, etc.), and an `eventMap` function.
-- [ ] **Development Concerns**
-    - [ ] **Note:** The platform abstraction uses top-level `await`. Confirm the project's target Node.js version supports this. If not, the logic should be wrapped in an async IIFE in the CLI entry point.
+This plan outlines a corrected, implementable architecture for a unified UI serving both web and command-line interfaces from a single codebase. It avoids synchronous module loading issues by isolating the asynchronous `import('ink')` to the CLI entry point.
 
 ---
 
-### Phase 2: Core Components & Theming
+## Core Principles
+- **Single Codebase**: Shared components and hooks for both platforms.
+- **Platform Abstraction**: Primitives are defined synchronously for the web and overridden at runtime for the CLI.
+- **ESM Native**: No `require()` or bundler hacks.
+- **Developer Experience**: Hot reloading for both web and CLI.
 
+---
+
+## 1. Dependencies
+
+<<<<<<< HEAD
 **Goal:** Build the first set of reusable, cross-platform components and a robust styling system.
 
 - [ ] **Theming & Styling**
@@ -202,552 +184,168 @@ Move core logic to `core/`, add `ui/` with shared abstractions.
 > 💡 Keep it lean. No Redux, no heavy UI libs. `react-blessed` is sufficient for TUI.
 
 Run:
+=======
+>>>>>>> 007bc39 (planning)
 ```bash
-npm install react react-dom blessed react-blessed zod
-npm install -D vite @vitejs/plugin-react nodemon
+# Core dependencies
+npm i react ink react-hook-form zod
+
+# Development dependencies
+npm i -D vite @vitejs/plugin-react nodemon
 ```
 
 ---
 
-### 3. Platform Abstraction (`ui/shared/platform/index.js`)
+## 2. Project Structure
 
-Use **dynamic imports** to avoid bundling CLI code in web.
+```
+ui/
+├── shared/
+│   ├── components/     # Shared components (Button, Grid, etc.)
+│   ├── hooks/          # Shared hooks
+│   ├── platform/       # Synchronous platform module
+│   └── App.js          # Root application component
+├── cli/
+│   └── index.js        # CLI entry point (imports and patches Ink)
+└── web/
+    ├── index.html
+    ├── index.js        # Web entry point
+    └── vite.config.js  # Vite configuration
+```
+
+---
+
+## 3. Platform Abstraction (`ui/shared/platform/index.js`)
+
+This module is fully synchronous and defaults to web primitives.
 
 ```js
 // ui/shared/platform/index.js
-import React from 'react';
+import { createElement as h } from 'react';
 
-const h = React.createElement;
+export const PLATFORM = process.env.PLATFORM || 'web';
 
-// Detect platform at runtime (for dev only; production uses separate entries)
-const PLATFORM = typeof window === 'undefined' ? 'cli' : 'web';
+// Default to web primitives. These will be monkey-patched by the CLI entry point.
+export let Box = 'div';
+export let Text = 'span';
+export let Newline = 'br';
 
-let adapters;
-let eventMap;
+// Re-export shared components
+export { default as Button } from '../components/Button.js';
+export { default as Grid } from '../components/Grid.js';
+export { default as Modal } from '../components/Modal.js';
+export { default as Tabs } from '../components/Tabs.js';
 
-if (PLATFORM === 'cli') {
-  // Lazy-load CLI deps only when needed
-  const blessedComponents = await import('react-blessed');
-  adapters = {
-    Box: blessedComponents.createBlessedComponent('box'),
-    Text: blessedComponents.createBlessedComponent('text'),
-    Button: blessedComponents.createBlessedComponent('button'),
-    Grid: blessedComponents.createBlessedComponent('table'),
-    Tabs: blessedComponents.createBlessedComponent('listbar'),
-    Modal: blessedComponents.createBlessedComponent('box'),
-  };
-  eventMap = (event) => (event === 'onPress' ? 'onPress' : event);
-} else {
-  // Web
-  adapters = {
-    Box: 'div',
-    Text: 'span',
-    Button: 'button',
-    Grid: 'div', // styled as CSS grid
-    Tabs: 'nav',
-    Modal: 'dialog',
-  };
-  eventMap = (event) => (event === 'onPress' ? 'onClick' : event);
-}
-
-export { h, PLATFORM, eventMap, ...adapters };
+export { h };
 ```
-
-> ⚠️ **Caveat**: Top-level `await` is valid in modules. For older Node, wrap in IIFE or use async init in CLI entry.
 
 ---
 
-### 4. Shared Components (`ui/shared/components/Button.js`)
+## 4. CLI Entry Point (`ui/cli/index.js`)
+
+This is the **only** place where Ink is imported. It dynamically patches the platform primitives before rendering the application.
 
 ```js
-// ui/shared/components/Button.js
-import { h, Button as PlatformButton, eventMap } from '../platform/index.js';
-import theme from '../styles/theme.js';
+#!/usr/bin/env node
+process.env.PLATFORM = 'cli';
 
-export default function Button({ label, onPress, primary = false, ...props }) {
-  const style = primary
-    ? { bg: theme.palette.primary, fg: theme.palette.fg } // CLI
-    : {}; // Web: could map to CSS later
-
-  return h(PlatformButton, {
-    ...props,
-    [eventMap('onPress')]: onPress,
-    content: label, // blessed uses 'content'; web uses children
-    mouse: true,
-    keys: true,
-    style,
-  });
-}
-```
-
-> 🔁 **Strategy**: Use `content` for CLI text; for web, pass `label` as child. Adjust in platform layer if needed.
-
----
-
-### 5. Shared Hooks & Logic
-
-```js
-// ui/shared/hooks/useAgentState.js
-import { useState, useEffect } from 'react';
-import { eventBus } from '../../core/util/EventBus.js'; // adjust path
-
-export function useAgentState() {
-  const [agents, setAgents] = useState([]);
-
-  useEffect(() => {
-    const handler = (data) => setAgents(data);
-    eventBus.on('agentUpdate', handler);
-    return () => eventBus.off('agentUpdate', handler);
-  }, []);
-
-  return { agents };
-}
-```
-
-> ✅ Assumes your core already emits `'agentUpdate'`. If using `mitt`, replace `.on`/`.off`.
-
----
-
-### 6. Entry Points
-
-#### CLI (`ui/cli/index.js`)
-```js
-// ui/cli/index.js
-import blessed from 'blessed';
-import { createBlessedRenderer } from 'react-blessed';
-import { h } from '../shared/platform/index.js';
+import { render } from 'ink';
+import { createElement as h } from 'react';
 import App from '../shared/App.js';
 
-const screen = blessed.screen({
-  smartCSR: true,
-  fullUnicode: true,
-  dockBorders: true,
-  autoPadding: true,
-});
+// Import the platform module to be patched
+import * as platform from '../shared/platform/index.js';
 
-// Render app
-createBlessedRenderer(blessed)(h(App), screen);
+// Dynamically import Ink and get its components
+const { Box, Text, Newline } = await import('ink');
 
-// Exit on q or Ctrl-C
-screen.key(['q', 'C-c'], () => process.exit(0));
+// Monkey-patch the platform exports for the CLI process
+Object.assign(platform, { Box, Text, Newline });
+
+// Render the app now that the primitives are correctly set
+render(h(App));
 ```
 
-#### Web (`ui/web/index.js`)
+---
+
+## 5. Web Entry Point (`ui/web/index.js`)
+
+The web entry point remains simple and unchanged.
+
 ```js
-// ui/web/index.js
+process.env.PLATFORM = 'web';
+
 import { createRoot } from 'react-dom/client';
-import { h } from '../shared/platform/index.js';
+import { createElement as h } from 'react';
 import App from '../shared/App.js';
 
-const root = createRoot(document.getElementById('root'));
-root.render(h(App));
+createRoot(document.getElementById('root')).render(h(App));
 ```
-
-> ✅ No `process.env.PLATFORM` needed—platform is auto-detected via `typeof window`.
 
 ---
 
-### 7. Root App (`ui/shared/App.js`)
+## 6. Shared Components
+
+Components can now safely import from `platform` and will receive the correct primitives based on the environment.
+
+### Example: `ui/shared/components/Button.js`
 ```js
-// ui/shared/App.js
-import { h, Box, Text } from './platform/index.js';
-import Button from './components/Button.js';
-import { useAgentState } from './hooks/useAgentState.js';
-import { useState } from 'react';
+import { h, Box, Text, PLATFORM } from '../platform/index.js';
 
-export default function App() {
-  const { agents } = useAgentState();
-  const [selected, setSelected] = useState(null);
+export default function Button({ children, onPress, primary }) {
+  if (PLATFORM === 'cli') {
+    return h(Box, {
+      borderStyle: 'round',
+      paddingX: 1,
+      borderColor: primary ? 'blue' : 'gray',
+    }, h(Text, {}, children));
+  }
 
-  return h(Box, { border: 'line', label: 'SeNARS UI' }, [
-    h(Text, {}, `Agents: ${agents.length}`),
-    h('div', {}, agents.map(a => h(Text, {}, a.id))), // placeholder
-    h(Button, { label: 'Refresh', onPress: () => console.log('refresh') }),
-  ]);
+  return h('button', {
+    onClick: onPress,
+    style: {
+      background: primary ? '#1e90ff' : '#333',
+      color: 'white',
+      padding: '8px 16px',
+      border: 'none',
+      borderRadius: 4,
+    }
+  }, children);
 }
 ```
 
 ---
 
-### 8. Styling (`ui/shared/styles/theme.js`)
-```js
-// ui/shared/styles/theme.js
-export default {
-  palette: {
-    primary: '#1e90ff',
-    bg: '#000',
-    fg: '#fff',
-  },
-  spacing: (n) => n * 4,
-};
-```
+## 7. Development and Build
 
-> 🎨 For web, you’ll eventually need a `styleMapper` to convert `{ bg, fg }` → `{ backgroundColor, color }`. For now, keep styles minimal or platform-specific.
-
----
-
-### 9. Scripts (`package.json` additions)
-
+### Dev Scripts (`package.json`)
 ```json
 {
   "scripts": {
-    "dev:cli": "nodemon --watch ui --watch core -e js --exec \"node ui/cli/index.js\"",
-    "dev:web": "vite ui/web",
-    "build:web": "vite build --outDir dist/web",
-    "test": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules npx jest"
+    "dev:cli": "nodemon --watch ui --ext js --exec 'PLATFORM=cli node ui/cli/index.js'",
+    "dev:web": "vite"
   }
 }
 ```
 
-> ✅ `nodemon` watches JS files; Vite serves web with HMR.
-
----
-
-### 10. Vite Config (`vite.config.js`)
+### Vite Config (`ui/web/vite.config.js`)
 ```js
-// vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  // The root is the web sub-directory
+  root: 'ui/web',
   plugins: [
     react({
-      jsxRuntime: 'classic', // required for h()
-    }),
+      // Use classic runtime to avoid automatic JSX imports
+      jsxRuntime: 'classic'
+    })
   ],
-  root: 'ui/web',
-  build: {
-    outDir: '../../dist/web',
-    rollupOptions: {
-      input: 'ui/web/index.html',
-    },
-  },
 });
 ```
 
----
-
-### ✅ Final Notes
-
-- **No TypeScript**: All code is standard JavaScript (ESM).
-- **Zero JSX**: Only `h()` is used.
-- **Platform detection** is runtime-based but safe (`typeof window`).
-- **Dynamic imports** prevent CLI code from entering web bundles.
-- **Testing**: Use existing Jest setup; add `@testing-library/react` if needed.
-- **Performance**: Lazy-load heavy viz only when needed.
-
-----
-
-Below are **practical, battle-tested enhancements and implementation tips** tailored to your SeNARS project (ESM, JavaScript, no TypeScript, NARS core) that will **accelerate development, prevent common pitfalls, and improve UX consistency** across terminal and web.
-
----
-
-### 🔧 1. **Refine Platform Abstraction: Handle `children` vs `content`**
-
-Blessed uses `content` for text; React DOM uses `children`. Shared components must reconcile this.
-
-**Solution**: Normalize in the platform layer or component.
-
-```js
-// ui/shared/components/Text.js
-import { h, Text as PlatformText, PLATFORM } from '../platform/index.js';
-
-export default function Text({ children, ...props }) {
-  if (PLATFORM === 'cli') {
-    return h(PlatformText, { ...props, content: String(children) });
-  }
-  return h(PlatformText, props, children);
-}
-```
-
-> ✅ Use this pattern for **all text-bearing components** (`Button`, `Box`, etc.).
-
----
-
-### 🎨 2. **Style Mapper Utility (Critical for Shared Theming)**
-
-Create a helper to translate shared style props → platform-native styles.
-
-```js
-// ui/shared/utils/styleMapper.js
-import theme from '../styles/theme.js';
-
-export function mapStyle(style, platform) {
-  if (!style) return {};
-
-  if (platform === 'cli') {
-    // Blessed: bg, fg, bold, etc.
-    return {
-      bg: style.bg || theme.palette.bg,
-      fg: style.fg || theme.palette.fg,
-      bold: style.bold,
-      // ... other blessed attrs
-    };
-  }
-
-  // Web: CSS-in-JS
-  return {
-    backgroundColor: style.bg || theme.palette.bg,
-    color: style.fg || theme.palette.fg,
-    fontWeight: style.bold ? 'bold' : 'normal',
-    padding: style.p ? `${style.p}px` : undefined,
-    margin: style.m ? `${style.m}px` : undefined,
-  };
-}
-```
-
-Then in components:
-```js
-// Button.js
-import { mapStyle } from '../utils/styleMapper.js';
-import { h, Button as PlatformButton, eventMap, PLATFORM } from '../platform/index.js';
-
-export default function Button({ label, onPress, style = {}, ...props }) {
-  const resolvedStyle = mapStyle({ ...style, bg: style.bg || (primary ? theme.palette.primary : undefined) }, PLATFORM);
-
-  if (PLATFORM === 'cli') {
-    return h(PlatformButton, {
-      ...props,
-      [eventMap('onPress')]: onPress,
-      content: label,
-      mouse: true,
-      keys: true,
-      style: resolvedStyle,
-    });
-  }
-
-  return h(PlatformButton, {
-    ...props,
-    [eventMap('onPress')]: onPress,
-    style: resolvedStyle,
-  }, label);
-}
-```
-
-> 💡 This enables **truly shared style logic** without platform leaks.
-
----
-
-### ⚡ 3. **Optimize CLI Performance: Use `smartCSR` and Avoid Re-renders**
-
-- Always enable `smartCSR: true` in `blessed.screen()` → reduces terminal redraws.
-- Wrap shared components in `React.memo()` to prevent unnecessary Blessed re-renders:
-
-```js
-// Button.js
-import React from 'react';
-// ... other imports
-
-const ButtonImpl = ({ label, onPress, primary = false, ...props }) => { /* ... */ };
-
-export default React.memo(ButtonImpl);
-```
-
-> 📉 Blessed re-renders are expensive. Memoization is essential.
-
----
-
-### 🧪 4. **Testing Strategy for Shared UI**
-
-Add lightweight test helpers:
-
-```js
-// tests/ui/testUtils.js
-export const isWeb = typeof window !== 'undefined';
-export const isCLI = !isWeb;
-
-// Skip CLI tests in JSDOM
-export const skipIfCLI = () => (isCLI ? test.skip : test);
-```
-
-Example test:
-```js
-// tests/ui/shared/Button.test.js
-import { render } from '@testing-library/react';
-import Button from '../../../ui/shared/components/Button.js';
-import { isWeb } from '../testUtils.js';
-
-test('renders label', () => {
-  const { container } = render(Button({ label: 'Test', onPress: () => {} }));
-  if (isWeb) {
-    expect(container.textContent).toBe('Test');
-  }
-  // CLI: harder to test; consider snapshot or manual validation
-});
-```
-
-> 🧩 For CLI, rely on **integration demos** (`examples/cli-demo.js`) and **manual testing in real terminals** (iTerm, GNOME Terminal).
-
----
-
-### 🌐 5. **Web Accessibility (a11y) Essentials**
-
-Since you’re using semantic abstractions:
-- Add `role`, `aria-label`, `tabIndex` in web adapters.
-- Example in `platform/index.js` (web branch):
-
-```js
-adapters = {
-  Button: ({ onPress, ...props }) => 
-    h('button', { 
-      ...props, 
-      onClick: onPress,
-      tabIndex: 0,
-      role: 'button'
-    }),
-  // ...
-};
-```
-
-Or better: enhance shared `Button` to accept `aria-label` and pass through.
-
-> ✅ This ensures keyboard nav and screen reader support.
-
----
-
-### 📦 6. **Bundle Size & Build Safety**
-
-- **Vite** will **not bundle `blessed`** into web output because it’s only imported in the CLI branch (thanks to `typeof window` guard + dynamic import).
-- Verify with: `npx vite build --debug` → check `dist/web/assets/*.js` for `blessed` references.
-- If issues arise, **split platform modules**:
-
-```js
-// ui/shared/platform/web.js
-export { createElement as h } from 'react';
-export const Box = 'div';
-// ...
-
-// ui/shared/platform/cli.js
-import React from 'react';
-import { createBlessedComponent } from 'react-blessed';
-export const h = React.createElement;
-export const Box = createBlessedComponent('box');
-// ...
-
-// ui/shared/platform/index.js
-export * from (typeof window === 'undefined' 
-  ? './cli.js' 
-  : './web.js');
-```
-
-> 🔒 This guarantees **zero cross-platform leakage** at build time.
-
----
-
-### 🖥️ 7. **CLI-Specific UX Tips**
-
-- Enable **mouse support** globally in Blessed screen:
-  ```js
-  const screen = blessed.screen({ ..., mouse: true });
-  ```
-- Handle **resize events**:
-  ```js
-  screen.on('resize', () => screen.render());
-  ```
-- Use `scrollable: true` on large lists.
-- For **reasoning traces**, use a `log` box with `scrollable: true, alwaysScroll: true`.
-
----
-
-### 🧠 8. **Integrate with SeNARS Core Smoothly**
-
-Assume your core emits events like:
-```js
-eventBus.emit('agentUpdate', agents);
-eventBus.emit('reasoningStep', { step, timestamp });
-```
-
-Then in shared hooks:
-```js
-// useReasoningTrace.js
-export function useReasoningTrace() {
-  const [trace, setTrace] = useState([]);
-
-  useEffect(() => {
-    const handler = (step) => setTrace(t => [...t, step].slice(-100)); // cap at 100
-    eventBus.on('reasoningStep', handler);
-    return () => eventBus.off('reasoningStep', handler);
-  }, []);
-
-  return trace;
-}
-```
-
-> 🔄 This gives **real-time, reactive UIs without polling**.
-
----
-
-### 📄 9. **Documentation Snippet for `README.md`**
-
-Add this to your README:
-
-```md
-## UI Development
-
-### Terminal UI
+### Build CLI Binary
 ```bash
-npm run dev:cli
+pkg ui/cli/index.js --out-path dist/ --targets node18-linux-x64
 ```
-- Navigate with arrow keys, press buttons with `Enter`.
-- Quit with `q` or `Ctrl+C`.
-
-### Web UI
-```bash
-npm run dev:web
-```
-- Opens at `http://localhost:5173`
-- Responsive grid view of agents and reasoning trace.
-
-> Both UIs share >80% code via `ui/shared/`.
-```
-
-----
-
-### ✅ **1. Start with a Minimal Viable UI (MVI)**
-Don’t build all components at once. Implement in this order:
-1. **Platform abstraction** (`ui/shared/platform/index.js`)
-2. **Text + Box + Button** (with style mapping)
-3. **CLI entry** that renders a static "Hello SeNARS" screen
-4. **Web entry** that renders the same
-5. **Hook** that listens to one core event (e.g., `agentUpdate`)
-6. **Grid** showing live agents
-
-> 🚀 This validates your architecture in <1 day and surfaces bundling/runtime issues early.
-
----
-
-### 🔒 **2. Guard Against Common ESM Pitfalls**
-- **File extensions are required** in imports (Node/Vite strict mode):
-  ```js
-  // ✅ Good
-  import App from '../shared/App.js';
-  // ❌ Bad
-  import App from '../shared/App';
-  ```
-- **Use `.js` even for JSX-like files** (since you’re not using `.jsx`).
-- In `vite.config.js`, ensure:
-  ```js
-  optimizeDeps: { include: ['react', 'react-dom'] }
-  ```
-
-> 💡 Add an `.editorconfig` or ESLint rule to enforce `.js` extensions if needed.
-
----
-
-### 📊 **3. Plan for Core-UI Data Contracts**
-Since you’re using Zod in `models/`, **define schemas for all core events**:
-```js
-// ui/shared/models/Agent.js
-import { z } from 'zod';
-
-export const AgentSchema = z.object({
-  id: z.string(),
-  status: z.enum(['idle', 'reasoning', 'blocked']),
-  tasks: z.array(z.string()),
-});
-
-// In core, validate before emitting:
-// eventBus.emit('agentUpdate', AgentSchema.parse(agent));
-```
-
-> 🔗 This prevents UI crashes from malformed core data and documents your event API.
