@@ -1,15 +1,6 @@
-/**
- * @file src/tools/ToolEngine.js
- * @description Core tool execution engine with safety features and orchestration
- */
-
 import {Logger} from '../util/Logger.js';
 import {CapabilityManager, Capability} from '../util/CapabilityManager.js';
 
-/**
- * Core Tool Engine that manages safe tool execution with comprehensive safety features
- * Inspired by v8/coreagent/tools architecture
- */
 export class ToolEngine {
     constructor(config = {}) {
         Object.assign(this, {
@@ -42,15 +33,11 @@ export class ToolEngine {
             }
         });
         
-        // Initialize capability manager if not provided
         if (!this.capabilityManager) {
             this.capabilityManager = new CapabilityManager();
         }
     }
 
-    /**
-     * Registers a new tool with the engine
-     */
     async registerTool(id, tool, metadata = {}) {
         if (this.tools.has(id)) throw new Error(`Tool with ID "${id}" already exists`);
 
@@ -79,11 +66,8 @@ export class ToolEngine {
 
         this.tools.set(id, toolData);
 
-        // Register capabilities for this tool if they don't exist
         for (const capability of toolCapabilities) {
-            // Check if capability exists, if not create a default one
             if (!this.capabilityManager.capabilities.has(capability)) {
-                // Create a basic capability if it doesn't exist
                 await this.capabilityManager.registerCapability(capability, 
                     new Capability(capability, {
                         description: `Capability for ${capability}`,
@@ -94,7 +78,6 @@ export class ToolEngine {
             }
         }
 
-        // Automatically grant capabilities to the tool based on its declared capabilities
         if (toolCapabilities.length > 0) {
             await this.capabilityManager.grantCapabilities(id, toolCapabilities, {
                 grantedBy: 'system',
@@ -111,9 +94,6 @@ export class ToolEngine {
         return this;
     }
 
-    /**
-     * Unregisters a tool
-     */
     unregisterTool(id) {
         if (!this.tools.has(id)) return false;
 
@@ -123,9 +103,6 @@ export class ToolEngine {
         return true;
     }
 
-    /**
-     * Executes a tool with safety validation and enhanced tracking
-     */
     async executeTool(toolId, params = {}, context = {}) {
         const startTime = Date.now();
         const executionId = this._generateExecutionId();
@@ -133,7 +110,6 @@ export class ToolEngine {
         const tool = this.tools.get(toolId);
         if (!tool) throw new Error(`Tool "${toolId}" not found`);
 
-        // Check if the tool has the required capabilities to execute
         const hasRequiredCapabilities = await this.capabilityManager.hasAllCapabilities(toolId, tool.capabilities || []);
         if (!hasRequiredCapabilities) {
             const missingCaps = tool.capabilities.filter(cap => 
@@ -172,9 +148,6 @@ export class ToolEngine {
         }
     }
 
-    /**
-     * Creates execution context for tracking
-     */
     _createExecutionContext(executionId, toolId, params, context, startTime) {
         return {
             executionId,
@@ -191,9 +164,6 @@ export class ToolEngine {
         };
     }
 
-    /**
-     * Handles successful execution
-     */
     _handleExecutionSuccess(executionContext, result, startTime, tool) {
         const {executionId, toolId} = executionContext;
         executionContext.endTime = Date.now();
@@ -218,9 +188,6 @@ export class ToolEngine {
         };
     }
 
-    /**
-     * Handles execution error
-     */
     _handleExecutionError(executionContext, error, startTime, tool) {
         const {executionId, toolId, parameters} = executionContext;
         const endTime = Date.now();
@@ -251,9 +218,6 @@ export class ToolEngine {
         };
     }
 
-    /**
-     * Executes multiple tools in sequence or parallel
-     */
     async executeTools(toolCalls, context = {}) {
         if (!Array.isArray(toolCalls)) throw new Error('ToolCalls must be an array');
 
@@ -274,9 +238,6 @@ export class ToolEngine {
         }
     }
 
-    /**
-     * Gets information about available tools
-     */
     getAvailableTools() {
         return Array.from(this.tools.values()).map(tool => ({
             id: tool.id,
@@ -299,9 +260,6 @@ export class ToolEngine {
         return Array.from(this.tools.values()).filter(tool => tool.category === category);
     }
 
-    /**
-     * Gets execution history with optional filtering
-     */
     getExecutionHistory(options = {}) {
         let history = [...this.executionHistory];
 
@@ -321,9 +279,6 @@ export class ToolEngine {
         return history;
     }
 
-    /**
-     * Gets comprehensive statistics about tool execution
-     */
     getStats() {
         const stats = {
             totalTools: this.tools.size,
@@ -353,34 +308,29 @@ export class ToolEngine {
         return stats;
     }
 
-    /**
-     * Validates parameters for safety
-     */
     _validateSafety(params) {
-        // Check for command injection patterns in string parameters
         const checkParam = (value, path = '') => {
             if (typeof value === 'string') {
-                // Check for dangerous patterns
                 const dangerousPatterns = [
-                    /rm\s+-rf/,                  // File deletion
-                    /exec\s*\(/,                 // Execution
-                    /eval\s*\(/,                 // Evaluation
-                    /import\s+subprocess/,      // Process spawning
-                    /import\s+os\.system/,       // System commands
-                    /import\s+os\.popen/,        // Process opening
-                    /&&/,                       // Command chaining
-                    /\|\|/,                     // Command chaining
-                    /\|/,                       // Pipe operations
-                    />/,                       // Output redirection
-                    /</,                       // Input redirection
-                    /;/,                       // Command separators
-                    /chmod/,                    // Permission changes
-                    /chown/,                    // Ownership changes
-                    /passwd/,                   // Password changes
-                    /useradd/,                  // User creation
-                    /userdel/,                  // User deletion
-                    /su/,                       // Switch user
-                    /sudo/,                     // Superuser
+                    /rm\s+-rf/,
+                    /exec\s*\(/,
+                    /eval\s*\(/,
+                    /import\s+subprocess/,
+                    /import\s+os\.system/,
+                    /import\s+os\.popen/,
+                    /&&/,
+                    /\|\|/,
+                    /\|/,
+                    />/,
+                    /</,
+                    /;/,
+                    /chmod/,
+                    /chown/,
+                    /passwd/,
+                    /useradd/,
+                    /userdel/,
+                    /su/,
+                    /sudo/,
                 ];
 
                 for (const pattern of dangerousPatterns) {
@@ -389,7 +339,6 @@ export class ToolEngine {
                     }
                 }
 
-                // Check length limits
                 if (value.length > this.config.safetyLimits.maxCommandLength) {
                     throw new Error(`Parameter${path ? ` (${path})` : ''} exceeds maximum length limit`);
                 }
@@ -403,9 +352,6 @@ export class ToolEngine {
         checkParam(params);
     }
 
-    /**
-     * Sanitizes result for safety
-     */
     _sanitizeResult(result) {
         const jsonString = JSON.stringify(result);
 
@@ -413,13 +359,9 @@ export class ToolEngine {
             throw new Error(`Tool result exceeds maximum output size limit (${this.config.safetyLimits.maxOutputSize} chars)`);
         }
 
-        // Additional sanitization can be added here
         return result;
     }
 
-    /**
-     * Executes a promise with timeout
-     */
     _executeWithTimeout(promise, timeout, timeoutMessage) {
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error(timeoutMessage)), timeout);
@@ -438,9 +380,6 @@ export class ToolEngine {
         }
     }
 
-    /**
-     * Tracks successful execution for performance metrics
-     */
     _trackExecutionSuccess(executionId, toolName, startTime, result) {
         const duration = Date.now() - startTime;
 
@@ -468,9 +407,6 @@ export class ToolEngine {
         toolStats.averageTime = toolStats.totalTime / toolStats.executions;
     }
 
-    /**
-     * Tracks failed execution for error metrics
-     */
     _trackExecutionFailure(executionId, toolName, startTime, error) {
         const duration = Date.now() - startTime;
 
@@ -498,9 +434,6 @@ export class ToolEngine {
         this.performanceTracker.errorPatterns.set(errorKey, count + 1);
     }
 
-    /**
-     * Cancels all active executions (emergency stop)
-     */
     cancelAllExecutions() {
         const count = this.activeExecutions.size;
         this.activeExecutions.clear();

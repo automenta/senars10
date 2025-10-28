@@ -591,10 +591,6 @@ export class Memory extends BaseComponent {
         }
     }
 
-    /**
-     * Serialize the memory state to an object
-     * @returns {Object} Serializable memory state
-     */
     serialize() {
         const conceptsData = [];
         for (const [term, concept] of this._concepts) {
@@ -617,38 +613,24 @@ export class Memory extends BaseComponent {
         };
     }
 
-    /**
-     * Deserialize and restore memory state from an object
-     * @param {Object} data - Serialized memory state
-     * @returns {boolean} True if restoration was successful
-     */
     async deserialize(data) {
         try {
             if (!data || !data.concepts) {
                 throw new Error('Invalid memory data for deserialization');
             }
 
-            // Clear current memory
             this.clear();
 
-            // Restore configuration
             if (data.config) {
                 this._config = { ...this._config, ...data.config };
             }
 
-            // Restore concepts
             for (const conceptData of data.concepts) {
-                // For now, we'll create concepts and add them - in a complete implementation
-                // we'd need to properly reconstruct Term objects from their serialized state
-                // This is a simplified approach - in practice, you'd need proper Term deserialization
                 if (conceptData.concept) {
-                    // Create a basic concept from the data
                     const term = typeof conceptData.term === 'string' ? 
                         { toString: () => conceptData.term, equals: (other) => other.toString && other.toString() === conceptData.term } : 
                         conceptData.term;
                     
-                    // In a complete implementation, we would reconstruct actual Term objects
-                    // But for this implementation, we'll just create a placeholder concept
                     const concept = new Concept(term, this._config);
                     if (concept.deserialize) {
                         await concept.deserialize(conceptData.concept);
@@ -661,7 +643,6 @@ export class Memory extends BaseComponent {
                 }
             }
 
-            // Restore focus concepts
             if (data.focusConcepts) {
                 for (const termStr of data.focusConcepts) {
                     const concept = this._concepts.get({ toString: () => termStr, equals: (other) => other.toString && other.toString() === termStr });
@@ -672,22 +653,18 @@ export class Memory extends BaseComponent {
                 this._updateFocusConceptsCount();
             }
 
-            // Restore index
             if (data.index && this._index.deserialize) {
                 await this._index.deserialize(data.index);
             }
 
-            // Restore stats
             if (data.stats) {
                 this._stats = { ...data.stats };
             }
 
-            // Restore resource tracker
             if (data.resourceTracker) {
                 this._resourceTracker = new Map(Object.entries(data.resourceTracker));
             }
 
-            // Restore other properties
             this._cyclesSinceConsolidation = data.cyclesSinceConsolidation || 0;
             this._lastConsolidationTime = data.lastConsolidationTime || Date.now();
 

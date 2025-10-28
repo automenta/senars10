@@ -1,27 +1,15 @@
 import fs from 'fs/promises';
 
-/**
- * Interface for persistence adapters
- */
 class PersistenceAdapter {
-  /**
-   * Save agent state
-   */
   async save(state, filePath) {
     throw new Error('save method must be implemented by subclass');
   }
 
-  /**
-   * Load agent state
-   */
   async load(filePath) {
     throw new Error('load method must be implemented by subclass');
   }
 }
 
-/**
- * File system adapter for persistence
- */
 class FileSystemAdapter extends PersistenceAdapter {
   async save(state, filePath) {
     const serializedState = JSON.stringify(state, null, 2);
@@ -35,9 +23,6 @@ class FileSystemAdapter extends PersistenceAdapter {
   }
 }
 
-/**
- * Memory adapter for testing
- */
 class MemoryAdapter extends PersistenceAdapter {
   constructor() {
     super();
@@ -45,7 +30,7 @@ class MemoryAdapter extends PersistenceAdapter {
   }
 
   async save(state, key = 'default') {
-    this.storage.set(key, JSON.parse(JSON.stringify(state))); // Deep clone
+    this.storage.set(key, JSON.parse(JSON.stringify(state)));
     return { success: true, key };
   }
 
@@ -54,9 +39,6 @@ class MemoryAdapter extends PersistenceAdapter {
   }
 }
 
-/**
- * Manages persistence operations with pluggable adapters
- */
 class PersistenceManager {
   constructor(options = {}) {
     const defaults = Object.freeze({
@@ -68,7 +50,6 @@ class PersistenceManager {
     this.defaultAdapter = options.defaultAdapter || defaults.defaultAdapter;
     this._defaultPath = options.defaultPath || defaults.defaultPath;
     
-    // Register built-in adapters
     this._registerDefaultAdapters();
   }
 

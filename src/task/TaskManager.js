@@ -18,7 +18,7 @@ export class TaskManager extends BaseComponent {
         this._memory = memory;
         this._focus = focus;
         this._config = config;
-        this._pendingTasks = new Map(); // Map<taskId, Task>
+        this._pendingTasks = new Map();
         this._stats = {
             totalTasksCreated: 0,
             totalTasksProcessed: 0,
@@ -49,7 +49,6 @@ export class TaskManager extends BaseComponent {
     processPendingTasks(currentTime = Date.now()) {
         const processedTasks = [];
 
-        // Use a default priority threshold if not configured
         const priorityThreshold = this._config?.priorityThreshold ?? DEFAULT_PRIORITY_THRESHOLD;
 
         for (const [taskId, task] of this._pendingTasks) {
@@ -196,10 +195,6 @@ export class TaskManager extends BaseComponent {
         return Array.from(this._pendingTasks.values());
     }
 
-    /**
-     * Serialize the task manager to an object
-     * @returns {Object} Serializable task manager representation
-     */
     serialize() {
         return {
             config: this._config,
@@ -212,37 +207,26 @@ export class TaskManager extends BaseComponent {
         };
     }
 
-    /**
-     * Deserialize and restore the task manager from an object
-     * @param {Object} data - Serialized task manager data
-     * @returns {boolean} True if restoration was successful
-     */
     async deserialize(data) {
         try {
             if (!data) {
                 throw new Error('Invalid task manager data for deserialization');
             }
 
-            // Restore configuration
             if (data.config) {
                 this._config = data.config;
             }
 
-            // Clear current pending tasks
             this._pendingTasks.clear();
 
-            // Restore pending tasks
             if (data.pendingTasks) {
                 for (const { id, task: taskData } of data.pendingTasks) {
                     if (taskData) {
-                        // In a full implementation, we would reconstruct actual Task objects
-                        // For now, we'll just store placeholder data
                         this._pendingTasks.set(id, Task.fromJSON ? Task.fromJSON(taskData) : null);
                     }
                 }
             }
 
-            // Restore stats
             if (data.stats) {
                 this._stats = { ...data.stats };
             }

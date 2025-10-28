@@ -169,7 +169,6 @@ ${beliefs.slice(-5).map(task => `  ${task.term.name} ${task.truth?.toString() ||
 
     async _load() {
         try {
-            // Check if file exists first
             const exists = await this.persistenceManager.exists();
             if (!exists) {
                 return `Save file does not exist: ${this.persistenceManager.defaultPath}`;

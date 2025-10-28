@@ -187,10 +187,6 @@ export class Cycle extends BaseComponent {
         };
     }
 
-    /**
-     * Serialize the cycle to an object
-     * @returns {Object} Serializable cycle representation
-     */
     serialize() {
         return {
             cycleCount: this._cycleCount,
@@ -201,11 +197,6 @@ export class Cycle extends BaseComponent {
         };
     }
 
-    /**
-     * Deserialize and restore the cycle from an object
-     * @param {Object} data - Serialized cycle data
-     * @returns {boolean} True if restoration was successful
-     */
     async deserialize(data) {
         try {
             if (!data) {

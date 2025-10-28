@@ -1,15 +1,9 @@
-/**
- * Interface for forget policies in the Bag
- */
 class ForgetPolicy {
-    /** Select an item to remove based on the policy */
     selectForRemoval(items, itemData, insertionOrder, accessTimes) { }
     
-    /** Order items based on the policy */
     orderItems(items, itemData, insertionOrder, accessTimes) { }
 }
 
-/** Priority-based forgetting policy */
 class PriorityForgetPolicy extends ForgetPolicy {
     selectForRemoval(items, itemData) {
         let lowestPriorityItem = null;
@@ -31,7 +25,6 @@ class PriorityForgetPolicy extends ForgetPolicy {
     }
 }
 
-/** LRU (Least Recently Used) forgetting policy */
 class LRUForgetPolicy extends ForgetPolicy {
     selectForRemoval(items, itemData, insertionOrder, accessTimes) {
         let leastRecentItem = null;
@@ -48,16 +41,14 @@ class LRUForgetPolicy extends ForgetPolicy {
     
     orderItems(items, itemData, insertionOrder, accessTimes) {
         return [...accessTimes.entries()]
-            .sort((a, b) => b[1] - a[1]) // b[1] and a[1] are access times
-            .filter(([item]) => items.has(item)) // Only items still in the bag
+            .sort((a, b) => b[1] - a[1])
+            .filter(([item]) => items.has(item))
             .map(([item]) => item);
     }
 }
 
-/** FIFO (First In, First Out) forgetting policy */
 class FIFOForgetPolicy extends ForgetPolicy {
     selectForRemoval(items, itemData, insertionOrder) {
-        // Find the first item in insertion order that's still in the bag
         for (const item of insertionOrder) {
             if (items.has(item)) {
                 return item;
@@ -71,7 +62,6 @@ class FIFOForgetPolicy extends ForgetPolicy {
     }
 }
 
-/** Random forgetting policy */
 class RandomForgetPolicy extends ForgetPolicy {
     selectForRemoval(items) {
         const itemArray = [...items.keys()];
@@ -83,7 +73,6 @@ class RandomForgetPolicy extends ForgetPolicy {
     
     orderItems(items) {
         const itemArray = [...items.keys()];
-        // Fisher-Yates shuffle
         for (let i = itemArray.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [itemArray[i], itemArray[j]] = [itemArray[j], itemArray[i]];
@@ -104,8 +93,8 @@ export class Bag {
     constructor(maxSize, forgetPolicy = DEFAULT_POLICY) {
         this._items = new Map();
         this._maxSize = maxSize;
-        this._insertionOrder = []; // For FIFO policy
-        this._accessTimes = new Map(); // For LRU policy
+        this._insertionOrder = [];
+        this._accessTimes = new Map();
         this.setForgetPolicy(forgetPolicy);
     }
 
@@ -119,7 +108,6 @@ export class Bag {
     
     set maxSize(newSize) {
         if (newSize < this._maxSize) {
-            // If reducing size, we need to remove items
             while (this.size > newSize) {
                 this._removeItemByPolicy();
             }
@@ -146,7 +134,6 @@ export class Bag {
         const priority = item.budget?.priority || 0;
         this._items.set(item, priority);
         
-        // Update insertion order and access times
         this._insertionOrder.push(item);
         this._accessTimes.set(item, Date.now());
         
@@ -156,7 +143,6 @@ export class Bag {
     remove(item) {
         const result = this._items.delete(item);
         if (result) {
-            // Remove from insertion order and access times as well
             this._insertionOrder = this._insertionOrder.filter(i => i !== item);
             this._accessTimes.delete(item);
         }
@@ -170,7 +156,6 @@ export class Bag {
     peek() {
         if (this.size === 0) return null;
         
-        // For peek, we'll return the highest priority item according to the policy
         const orderedItems = this.getItemsInPriorityOrder();
         return orderedItems[0] || null;
     }
@@ -218,16 +203,12 @@ export class Bag {
         this._accessTimes.clear();
     }
 
-    /**
-     * Serialize the bag to an object
-     * @returns {Object} Serializable bag representation
-     */
     serialize() {
         return {
             maxSize: this._maxSize,
             forgetPolicyName: this._forgetPolicyName,
             items: Array.from(this._items.entries()).map(([item, priority]) => ({
-                item: item.serialize ? item.serialize() : null, // Save item state if available
+                item: item.serialize ? item.serialize() : null,
                 priority: priority
             })),
             insertionOrder: this._insertionOrder.map((item, index) => ({
@@ -242,11 +223,6 @@ export class Bag {
         };
     }
 
-    /**
-     * Deserialize and restore the bag from an object
-     * @param {Object} data - Serialized bag data
-     * @returns {boolean} True if restoration was successful
-     */
     async deserialize(data) {
         try {
             if (!data) {
@@ -257,32 +233,23 @@ export class Bag {
             this._forgetPolicyName = data.forgetPolicyName || DEFAULT_POLICY;
             this.setForgetPolicy(this._forgetPolicyName);
 
-            // Clear current state
             this.clear();
 
-            // Restore items
             if (data.items) {
                 for (const { item: itemData, priority } of data.items) {
-                    // We'll create placeholder items since the actual task objects need to be recreated separately
-                    // In a complete implementation, we'd have deserialization methods for Task objects
                     if (itemData) {
-                        // Placeholder - in a complete implementation, we'd reconstruct actual Task objects
                         const placeholderItem = {
                             budget: { priority: priority },
                             serialize: function() { return itemData; },
                             toString: function() { return JSON.stringify(itemData); }
                         };
                         this.add(placeholderItem);
-                        // For real reconstruction, we would need the actual Task deserialization
-                        // This is a simplified approach for the persistence system
                     }
                 }
             }
 
-            // Restore insertion order and access times
             if (data.insertionOrder) {
                 this._insertionOrder = data.insertionOrder.map((itemData, index) => {
-                    // Placeholder - in a complete implementation, we'd reconstruct actual Task objects
                     return {
                         serialize: function() { return itemData.item; },
                         toString: function() { return JSON.stringify(itemData.item); }
@@ -292,8 +259,6 @@ export class Bag {
 
             if (data.accessTimes) {
                 for (const [itemKey, time] of Object.entries(data.accessTimes)) {
-                    // For access times, we map back to actual items in the bag
-                    // This is more complex and would require a full implementation
                 }
             }
 

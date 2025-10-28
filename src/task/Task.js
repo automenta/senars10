@@ -58,10 +58,6 @@ export class Task {
         return `${this.term.toString()}${this.punctuation}${truthStr}`;
     }
 
-    /**
-     * Serialize the task to an object
-     * @returns {Object} Serializable task representation
-     */
     serialize() {
         return {
             term: this.term.serialize ? this.term.serialize() : this.term.toString(),
@@ -74,21 +70,13 @@ export class Task {
         };
     }
 
-    /**
-     * Create a task from serialized data
-     * @param {Object} data - Serialized task data
-     * @returns {Task} New Task instance
-     */
     static fromJSON(data) {
         if (!data) {
             throw new Error('Task.fromJSON requires valid data object');
         }
 
-        // This is a simplified implementation - in a complete system, we'd need to reconstruct
-        // Term and Truth objects properly from their serialized state
         const reconstructedTerm = data.term ? 
             (typeof data.term === 'string' ? 
-                // In a real implementation we would need to parse the term string back to a Term object
                 { toString: () => data.term, equals: (other) => other.toString && other.toString() === data.term } :
                 data.term) :
             null;

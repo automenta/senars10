@@ -57,7 +57,7 @@ export class Concept extends ConfigurableComponent {
     }
 
     get priority() {
-        return this._activation;  // Use activation as priority for AIKR caching
+        return this._activation;
     }
 
     get beliefs() {
@@ -119,20 +119,14 @@ export class Concept extends ConfigurableComponent {
         return added;
     }
     
-    /**
-     * Enforce capacity constraints on the concept's task storage
-     */
     enforceCapacity(maxTasksPerType) {
-        // Apply capacity limits to each task type separately
         this._enforceBagCapacity(this._beliefs, maxTasksPerType * CAPACITY_DISTRIBUTION.BELIEF);
         this._enforceBagCapacity(this._goals, maxTasksPerType * CAPACITY_DISTRIBUTION.GOAL);
         this._enforceBagCapacity(this._questions, maxTasksPerType * CAPACITY_DISTRIBUTION.QUESTION);
     }
     
     _enforceBagCapacity(bag, maxCount) {
-        // This method ensures the bag doesn't exceed maxCount
         if (bag.size > maxCount) {
-            // Remove excess items based on the forget policy
             while (bag.size > maxCount) {
                 bag._removeLowestPriorityItem();
             }
@@ -208,7 +202,6 @@ export class Concept extends ConfigurableComponent {
     }
 
     updateTaskBudget(task, newBudget) {
-        // Remove the old task and add a new one with the updated budget
         const storage = this._getStorage(task.type);
         if (storage.remove(task)) {
             const updatedTask = task.clone({budget: newBudget});
@@ -233,10 +226,6 @@ export class Concept extends ConfigurableComponent {
         };
     }
 
-    /**
-     * Serialize the concept to an object
-     * @returns {Object} Serializable concept representation
-     */
     serialize() {
         return {
             term: this._term.serialize ? this._term.serialize() : this._term.toString(),
@@ -253,30 +242,22 @@ export class Concept extends ConfigurableComponent {
         };
     }
 
-    /**
-     * Deserialize and restore the concept from an object
-     * @param {Object} data - Serialized concept data
-     * @returns {boolean} True if restoration was successful
-     */
     async deserialize(data) {
         try {
             if (!data) {
                 throw new Error('Invalid concept data for deserialization');
             }
 
-            // Restore properties
             this._createdAt = data.createdAt || Date.now();
             this._lastAccessed = data.lastAccessed || Date.now();
             this._activation = data.activation || 0;
             this._useCount = data.useCount || 0;
             this._quality = data.quality || 0;
 
-            // Restore configurations if provided
             if (data.config) {
                 this.configure(data.config);
             }
 
-            // Restore bags (beliefs, goals, questions)
             if (data.beliefs && this._beliefs.deserialize) {
                 await this._beliefs.deserialize(data.beliefs);
             }

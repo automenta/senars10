@@ -116,7 +116,6 @@ export class NAR extends BaseComponent {
     get reasoningAboutReasoning() { return this._reasoningAboutReasoning; }
 
     _registerComponents() {
-        // Register core components with dependencies
         this._componentManager.registerComponent('termFactory', {
             initialize: () => Promise.resolve(true),
             start: () => Promise.resolve(true),
@@ -144,10 +143,6 @@ export class NAR extends BaseComponent {
         }
 
         this._componentManager.registerComponent('cycle', this._cycle, ['memory', 'focus', 'taskManager', 'ruleEngine']);
-
-        // MetricsMonitor, TermLayer, and ReasoningAboutReasoning are features that don't follow
-        // the ComponentManager lifecycle interface, so they're not registered with it.
-        // They're initialized directly in the constructor and managed separately.
     }
 
     _setupDefaultRules() {
@@ -192,10 +187,8 @@ export class NAR extends BaseComponent {
     }
 
     async initialize() {
-        // Initialize all registered components
         const success = await this._componentManager.initializeAll();
         if (success) {
-            // Set up default rules after initialization
             this._setupDefaultRules();
         }
         return success;
@@ -207,7 +200,6 @@ export class NAR extends BaseComponent {
             return false;
         }
 
-        // Start all registered components asynchronously but return immediately
         this._startComponentsAsync();
 
         this._isRunning = true;
@@ -248,7 +240,6 @@ export class NAR extends BaseComponent {
         this._isRunning = false;
         this._cycleInterval && clearInterval(this._cycleInterval) && (this._cycleInterval = null);
 
-        // Stop all registered components asynchronously but return immediately
         this._stopComponentsAsync();
 
         this._eventBus.emit('system.stopped', {timestamp: Date.now()}, {traceId: options.traceId});
@@ -293,16 +284,11 @@ export class NAR extends BaseComponent {
     }
 
     async dispose() {
-        // Dispose all registered components
         const success = await this._componentManager.disposeAll();
         await super.dispose();
         return success;
     }
 
-    /**
-     * Serialize the current state of the NAR to an object
-     * @returns {Object} Serializable state representation
-     */
     serialize() {
         return {
             config: this._config.toJSON(),
@@ -317,55 +303,40 @@ export class NAR extends BaseComponent {
         };
     }
 
-    /**
-     * Deserialize and restore the NAR state from an object
-     * @param {Object} state - State object to restore from
-     * @returns {boolean} True if restoration was successful
-     */
     async deserialize(state) {
         try {
-            // Stop the NAR if it's running
             if (this._isRunning) {
                 this.stop();
             }
 
-            // Update the configuration
             if (state.config) {
                 this._config = SystemConfig.from(state.config);
             }
 
-            // Restore memory
             if (state.memory && this._memory.deserialize) {
                 await this._memory.deserialize(state.memory);
             }
 
-            // Restore task manager
             if (state.taskManager && this._taskManager.deserialize) {
                 await this._taskManager.deserialize(state.taskManager);
             }
 
-            // Restore focus
             if (state.focus && this._focus.deserialize) {
                 await this._focus.deserialize(state.focus);
             }
 
-            // Restore cycle state
             if (state.cycle && this._cycle.deserialize) {
                 await this._cycle.deserialize(state.cycle);
             }
 
-            // Restore cycle count
             if (state.cycleCount !== undefined) {
                 this._cycle.cycleCount = state.cycleCount;
             }
 
-            // Restore running state
             if (state.isRunning !== undefined) {
-                // We don't restart automatically, but remember the state
                 this._isRunning = state.isRunning;
             }
 
-            // Initialize components with the new state
             await this._componentManager.disposeAll();
             this._initComponents(this._config.toJSON());
             await this._componentManager.initializeAll();
@@ -437,7 +408,6 @@ export class NAR extends BaseComponent {
         if (!this._lm) throw new Error('Language Model is not enabled in this NAR instance');
     }
 
-    // LM-related methods
     registerLMProvider(id, provider) {
         this._ensureLMEnabled();
         this._lm.registerProvider(id, provider);
@@ -480,10 +450,6 @@ export class NAR extends BaseComponent {
         }
     }
 
-    /**
-     * Connect to a WebSocket monitor for real-time event broadcasting
-     * @param {WebSocketMonitor} monitor - The WebSocket monitor instance
-     */
     connectToWebSocketMonitor(monitor) {
         if (!monitor || typeof monitor.listenToNAR !== 'function') {
             throw new Error('Invalid WebSocket monitor provided');
@@ -502,34 +468,22 @@ export class NAR extends BaseComponent {
         return false;
     }
 
-    /**
-     * Get current metrics from the MetricsMonitor
-     */
     getMetrics() {
         return this._metricsMonitor ? this._metricsMonitor.getMetricsSnapshot() : null;
     }
 
-    /**
-     * Perform manual self-optimization
-     */
     performSelfOptimization() {
         if (this._metricsMonitor) {
             this._metricsMonitor._performSelfOptimization();
         }
     }
 
-    /**
-     * Solve an equation for a variable
-     */
     async solveEquation(leftTerm, rightTerm, variableName, context = null) {
-        // We need to create an evaluation engine to solve the equation
-        // For now, we'll use the existing rule engine's context or create a simple one
         const evaluationContext = context || {
             memory: this._memory,
             termFactory: this._termFactory
         };
 
-        // Use the Cycle's evaluation engine if available
         if (this._cycle && this._cycle.evaluationEngine) {
             return await this._cycle.evaluationEngine.solveEquation(
                 leftTerm,
@@ -539,10 +493,6 @@ export class NAR extends BaseComponent {
             );
         }
 
-        // If no operation evaluation engine is directly available on the cycle,
-        // we'll need to create one or use the rule engine's associated components
-        // This is a simplified approach - in a full implementation, the NAR would
-        // have direct access to the OperationEvaluationEngine
         return {
             result: SYSTEM_ATOMS.Null,
             success: false,
@@ -550,9 +500,6 @@ export class NAR extends BaseComponent {
         };
     }
 
-    /**
-     * Get current reasoning state for introspection
-     */
     getReasoningState() {
         if (this._reasoningAboutReasoning) {
             return this._reasoningAboutReasoning.getReasoningState();
@@ -560,9 +507,6 @@ export class NAR extends BaseComponent {
         return null;
     }
 
-    /**
-     * Perform meta-cognitive reasoning about the system's state
-     */
     async performMetaCognitiveReasoning() {
         if (this._reasoningAboutReasoning) {
             return await this._reasoningAboutReasoning.performMetaCognitiveReasoning();
@@ -570,9 +514,6 @@ export class NAR extends BaseComponent {
         return null;
     }
 
-    /**
-     * Perform system self-correction based on meta-cognitive analysis
-     */
     async performSelfCorrection() {
         if (this._reasoningAboutReasoning) {
             return await this._reasoningAboutReasoning.performSelfCorrection();
@@ -580,9 +521,6 @@ export class NAR extends BaseComponent {
         return null;
     }
 
-    /**
-     * Query the system's reasoning state for specific information
-     */
     querySystemState(query) {
         if (this._reasoningAboutReasoning) {
             return this._reasoningAboutReasoning.querySystemState(query);
@@ -590,9 +528,6 @@ export class NAR extends BaseComponent {
         return null;
     }
 
-    /**
-     * Get the reasoning trace for introspection
-     */
     getReasoningTrace() {
         if (this._reasoningAboutReasoning) {
             return this._reasoningAboutReasoning.getReasoningTrace();
@@ -617,7 +552,7 @@ export class NAR extends BaseComponent {
             });
 
             const duration = Date.now() - startTime;
-            if (duration > 1000) { // Log if > 1 second
+            if (duration > 1000) {
                 this.logger.warn(`Slow tool execution: ${toolId} took ${duration}ms`, {
                     toolId,
                     duration,

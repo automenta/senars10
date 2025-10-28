@@ -1,41 +1,25 @@
-/**
- * @file src/util/CapabilityManager.js
- * @description Capability-based security model for tools and plugins
- */
-
-/**
- * Types of capabilities that can be granted to tools/plugins
- */
 export const CapabilityTypes = {
-    // System capabilities
     FILE_SYSTEM_READ: 'file-system-read',
     FILE_SYSTEM_WRITE: 'file-system-write',
     NETWORK_ACCESS: 'network-access',
     COMMAND_EXECUTION: 'command-execution',
     
-    // Sensitive capabilities
     PROCESS_MANAGEMENT: 'process-management',
     USER_MANAGEMENT: 'user-management',
     SYSTEM_CONFIGURATION: 'system-configuration',
     
-    // Data capabilities
     DATABASE_ACCESS: 'database-access',
     ENCRYPTION: 'encryption',
     CRYPTOGRAPHY: 'cryptography',
     
-    // API capabilities
     EXTERNAL_API_ACCESS: 'external-api-access',
     WEB_REQUESTS: 'web-requests',
     
-    // Resource capabilities
     RESOURCE_LIMITS: 'resource-limits',
     MEMORY_ACCESS: 'memory-access',
     CPU_INTENSIVE: 'cpu-intensive'
 };
 
-/**
- * Represents a capability with its metadata and security parameters
- */
 export class Capability {
     constructor(type, options = {}) {
         this.type = type;
@@ -47,13 +31,9 @@ export class Capability {
         this.createdAt = new Date().toISOString();
     }
 
-    /**
-     * Validates if this capability can be granted based on security policies
-     */
     validate(context = {}) {
         const result = { valid: true, errors: [] };
 
-        // Certain capabilities always require approval
         if ([CapabilityTypes.PROCESS_MANAGEMENT, 
              CapabilityTypes.USER_MANAGEMENT, 
              CapabilityTypes.SYSTEM_CONFIGURATION].includes(this.type) 
@@ -62,7 +42,6 @@ export class Capability {
             result.errors.push(`Capability ${this.type} requires explicit approval`);
         }
 
-        // Validate resource limits if specified
         if (this.resourceLimit !== null && this.resourceLimit <= 0) {
             result.valid = false;
             result.errors.push(`Invalid resource limit: ${this.resourceLimit}`);
@@ -72,20 +51,14 @@ export class Capability {
     }
 }
 
-/**
- * Manages capabilities for tools and plugins
- */
 export class CapabilityManager {
     constructor() {
-        this.capabilities = new Map(); // Map of capabilityId -> Capability
-        this.grants = new Map();       // Map of toolId -> Set of granted capability IDs
-        this.policyRules = new Map();  // Security policy rules
+        this.capabilities = new Map();
+        this.grants = new Map();
+        this.policyRules = new Map();
         this.auditLog = [];
     }
 
-    /**
-     * Register a new capability type
-     */
     async registerCapability(id, capability) {
         if (!id || !capability) {
             throw new Error('Both id and capability are required for registration');
@@ -95,7 +68,6 @@ export class CapabilityManager {
             throw new Error(`Capability with ID "${id}" already exists`);
         }
 
-        // Validate capability
         const validation = capability.validate();
         if (!validation.valid) {
             throw new Error(`Capability validation failed: ${validation.errors.join(', ')}`);
@@ -112,38 +84,30 @@ export class CapabilityManager {
         return true;
     }
 
-    /**
-     * Grant capabilities to a tool/plugin
-     */
     async grantCapabilities(toolId, capabilityIds, options = {}) {
         if (!toolId || !Array.isArray(capabilityIds) || capabilityIds.length === 0) {
             throw new Error('Tool ID and at least one capability ID are required');
         }
 
-        // Validate that all requested capabilities exist
         for (const capId of capabilityIds) {
             if (!this.capabilities.has(capId)) {
                 throw new Error(`Capability ID "${capId}" does not exist`);
             }
         }
 
-        // Check policy rules before granting
         for (const capId of capabilityIds) {
             const capability = this.capabilities.get(capId);
             
-            // Check if capability requires approval
             if (capability.requiresApproval && !options.approved) {
                 throw new Error(`Capability "${capId}" requires explicit approval`);
             }
 
-            // Validate policy rules
             const policyCheck = this._checkPolicyRules(toolId, capId, options);
             if (!policyCheck.allowed) {
                 throw new Error(`Policy violation: ${policyCheck.reason}`);
             }
         }
 
-        // Create or update grants for this tool
         if (!this.grants.has(toolId)) {
             this.grants.set(toolId, new Set());
         }
@@ -179,9 +143,6 @@ export class CapabilityManager {
         };
     }
 
-    /**
-     * Revoke capabilities from a tool/plugin
-     */
     async revokeCapabilities(toolId, capabilityIds) {
         if (!toolId || !Array.isArray(capabilityIds) || capabilityIds.length === 0) {
             throw new Error('Tool ID and at least one capability ID are required');
@@ -213,7 +174,6 @@ export class CapabilityManager {
             }
         }
 
-        // Clean up empty grant sets
         if (toolGrants.size === 0) {
             this.grants.delete(toolId);
         }
@@ -227,30 +187,22 @@ export class CapabilityManager {
         };
     }
 
-    /**
-     * Check if a tool has a specific capability
-     */
     async hasCapability(toolId, capabilityId) {
         const toolGrants = this.grants.get(toolId);
         if (!toolGrants) {
             return false;
         }
 
-        // Check if the specific capability is granted
         if (!toolGrants.has(capabilityId)) {
             return false;
         }
 
-        // Additional checks could be added here for expiration, conditions, etc.
         return true;
     }
 
-    /**
-     * Check if a tool has all required capabilities
-     */
     async hasAllCapabilities(toolId, capabilityIds) {
         if (!Array.isArray(capabilityIds) || capabilityIds.length === 0) {
-            return true; // If no capabilities required, assume valid
+            return true;
         }
 
         const toolGrants = this.grants.get(toolId);
@@ -261,9 +213,6 @@ export class CapabilityManager {
         return capabilityIds.every(capId => toolGrants.has(capId));
     }
 
-    /**
-     * Get all capabilities granted to a tool
-     */
     async getToolCapabilities(toolId) {
         const toolGrants = this.grants.get(toolId);
         if (!toolGrants) {
@@ -282,9 +231,6 @@ export class CapabilityManager {
         });
     }
 
-    /**
-     * Get all tools that have a specific capability
-     */
     async getToolsWithCapability(capabilityId) {
         const tools = [];
 
@@ -297,15 +243,11 @@ export class CapabilityManager {
         return tools;
     }
 
-    /**
-     * Define a security policy rule
-     */
     async addPolicyRule(ruleId, rule) {
         if (!ruleId || !rule) {
             throw new Error('Both ruleId and rule are required');
         }
 
-        // Validate rule structure
         if (!rule.type || !['deny', 'allow', 'conditional'].includes(rule.type)) {
             throw new Error('Rule type must be one of: deny, allow, conditional');
         }
@@ -330,21 +272,16 @@ export class CapabilityManager {
         return true;
     }
 
-    /**
-     * Check if a grant complies with policy rules
-     */
     _checkPolicyRules(toolId, capabilityId, grantOptions) {
         for (const [ruleId, rule] of this.policyRules.entries()) {
-            // Check if rule applies to this tool and capability
             const toolMatch = this._matchesPattern(toolId, rule.tools);
             const capMatch = this._matchesPattern(capabilityId, rule.capabilities);
 
             if (toolMatch && capMatch) {
-                // Check condition if present
                 if (rule.condition && typeof rule.condition === 'function') {
                     try {
                         if (!rule.condition(toolId, capabilityId, grantOptions)) {
-                            continue; // Condition not met, skip this rule
+                            continue;
                         }
                     } catch (error) {
                         this._logAudit('policy-condition-error', {
@@ -355,7 +292,6 @@ export class CapabilityManager {
                     }
                 }
 
-                // Rule matches and condition is satisfied
                 if (rule.type === 'deny') {
                     return {
                         allowed: false,
@@ -368,9 +304,6 @@ export class CapabilityManager {
         return { allowed: true };
     }
 
-    /**
-     * Helper to check if a value matches a pattern
-     */
     _matchesPattern(value, patterns) {
         if (typeof patterns === 'string') {
             patterns = [patterns];
@@ -380,7 +313,6 @@ export class CapabilityManager {
             if (pattern === '*' || pattern === value) {
                 return true;
             }
-            // Support basic glob patterns
             if (pattern.endsWith('*') && value.startsWith(pattern.slice(0, -1))) {
                 return true;
             }
@@ -392,9 +324,6 @@ export class CapabilityManager {
         return false;
     }
 
-    /**
-     * Create a security manifest for a tool/plugin
-     */
     createSecurityManifest(manifest) {
         if (!manifest || !manifest.id || !manifest.name) {
             throw new Error('Manifest must include id and name');
@@ -409,7 +338,6 @@ export class CapabilityManager {
             createdAt: new Date().toISOString()
         };
 
-        // Validate capability IDs exist
         const allCapabilities = [...validated.requiredCapabilities, ...validated.optionalCapabilities];
         for (const capId of allCapabilities) {
             if (!this.capabilities.has(capId)) {
@@ -420,9 +348,6 @@ export class CapabilityManager {
         return validated;
     }
 
-    /**
-     * Request capabilities based on a manifest
-     */
     async requestCapabilitiesFromManifest(manifest, approvalContext = {}) {
         if (!manifest || !manifest.id) {
             throw new Error('Manifest must include an ID');
@@ -430,14 +355,11 @@ export class CapabilityManager {
 
         const allCapabilities = [...manifest.requiredCapabilities, ...manifest.optionalCapabilities];
         
-        // Determine which capabilities to grant based on approval context
         const capabilitiesToGrant = allCapabilities.filter(capId => {
             const capability = this.capabilities.get(capId);
-            // Always grant capabilities that don't require approval
             if (!capability.requiresApproval) {
                 return true;
             }
-            // Grant capabilities that require approval only if explicitly approved
             return approvalContext.approvedCapabilities?.includes(capId);
         });
 
@@ -452,9 +374,6 @@ export class CapabilityManager {
         );
     }
 
-    /**
-     * Get capability usage statistics
-     */
     getUsageStats() {
         const stats = {
             totalCapabilities: this.capabilities.size,
@@ -464,7 +383,6 @@ export class CapabilityManager {
             auditLogSize: this.auditLog.length
         };
 
-        // Count total grants
         for (const [toolId, toolGrants] of this.grants.entries()) {
             stats.totalGrants += toolGrants.size;
             for (const capId of toolGrants) {
@@ -476,9 +394,6 @@ export class CapabilityManager {
         return stats;
     }
 
-    /**
-     * Get audit log for security events
-     */
     getAuditLog(filter = {}) {
         let events = [...this.auditLog];
 
@@ -504,9 +419,6 @@ export class CapabilityManager {
         return events;
     }
 
-    /**
-     * Log an audit event
-     */
     _logAudit(eventType, data) {
         const event = {
             type: eventType,
@@ -516,19 +428,14 @@ export class CapabilityManager {
 
         this.auditLog.push(event);
 
-        // Limit audit log size to prevent memory issues
         if (this.auditLog.length > 10000) {
-            this.auditLog = this.auditLog.slice(-5000); // Keep last 5000 entries
+            this.auditLog = this.auditLog.slice(-5000);
         }
     }
 
-    /**
-     * Initialize with default capabilities
-     */
     static async createDefaultManager() {
         const manager = new CapabilityManager();
 
-        // Register default capabilities
         await manager.registerCapability('file-system-read', new Capability(CapabilityTypes.FILE_SYSTEM_READ, {
             description: 'Read access to file system in restricted directories',
             scope: 'local',
